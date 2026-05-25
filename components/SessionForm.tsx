@@ -26,32 +26,35 @@ export default function SessionForm({ mode, sessionId }: Props) {
   const [players, setPlayers] = useState<Player[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [error, setError] = useState('')
 
   useEffect(() => {
     if (mode === 'new') {
-      fetch('/api/players').then(r => r.json()).then((ps: Player[]) => {
-        setPlayers(ps)
-        setLoading(false)
-      })
+      fetch('/api/players')
+        .then(r => r.json())
+        .then((ps: Player[]) => { setPlayers(ps); setLoading(false) })
+        .catch(() => { setLoadError('Failed to load players.'); setLoading(false) })
     } else {
       Promise.all([
         fetch('/api/players').then(r => r.json()),
         fetch(`/api/sessions/${sessionId}`).then(r => r.json()),
-      ]).then(([ps, session]) => {
-        setPlayers(ps)
-        setDate(session.date ?? '')
-        setExchangeRate(session.exchange_rate ? String(session.exchange_rate) : '')
-        setDescription(session.description ?? '')
-        setRows((session.session_entries ?? []).map((e: any) => ({
-          uid: crypto.randomUUID(),
-          playerId: e.player_id,
-          chips: String(e.chips),
-          isNew: false,
-          newName: '',
-        })))
-        setLoading(false)
-      })
+      ])
+        .then(([ps, session]: [Player[], { date: string; exchange_rate: number; description: string | null; session_entries: { player_id: string; chips: number }[] }]) => {
+          setPlayers(ps)
+          setDate(session.date ?? '')
+          setExchangeRate(session.exchange_rate ? String(session.exchange_rate) : '')
+          setDescription(session.description ?? '')
+          setRows(session.session_entries.map(e => ({
+            uid: crypto.randomUUID(),
+            playerId: e.player_id,
+            chips: String(e.chips),
+            isNew: false,
+            newName: '',
+          })))
+          setLoading(false)
+        })
+        .catch(() => { setLoadError('Failed to load session.'); setLoading(false) })
     }
   }, [mode, sessionId])
 
@@ -113,6 +116,7 @@ export default function SessionForm({ mode, sessionId }: Props) {
   const submitLabel = mode === 'new' ? 'SAVE SESSION' : 'SAVE CHANGES'
 
   if (loading) return <p className="text-muted text-xs tracking-widest">LOADING...</p>
+  if (loadError) return <p className="text-danger text-xs tracking-widest">{loadError}</p>
 
   return (
     <>

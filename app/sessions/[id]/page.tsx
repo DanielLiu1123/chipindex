@@ -5,6 +5,21 @@ import SessionEntriesTable from '@/components/SessionEntriesTable'
 
 export const dynamic = 'force-dynamic'
 
+interface SessionEntry {
+  id: string
+  player_id: string
+  chips: number
+  players: { name: string } | null
+}
+
+interface Session {
+  id: string
+  date: string
+  description: string | null
+  exchange_rate: number
+  session_entries: SessionEntry[]
+}
+
 export default async function SessionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const { data: session } = await db
@@ -15,8 +30,9 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
 
   if (!session) notFound()
 
-  const entries = [...session.session_entries].sort((a: any, b: any) => b.chips - a.chips)
-  const total = entries.reduce((s: number, e: any) => s + e.chips, 0)
+  const typed = session as unknown as Session
+  const entries = [...typed.session_entries].sort((a, b) => b.chips - a.chips)
+  const total = entries.reduce((s, e) => s + e.chips, 0)
 
   return (
     <>
@@ -24,18 +40,18 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
         <Link href="/sessions" className="text-muted text-xs hover:text-white tracking-widest">← SESSIONS</Link>
       </div>
       <div className="flex items-center justify-between mb-2">
-        <h1 className="text-white">{session.date}</h1>
+        <h1 className="text-white">{typed.date}</h1>
         <Link href={`/sessions/${id}/edit`} className="text-xs text-accent tracking-widest border border-accent/50 hover:border-accent px-2.5 py-1 transition-colors">EDIT</Link>
       </div>
       <div className="mb-2">
         <span className="text-xs text-muted">
-          {session.exchange_rate} chips = 1 CNY
+          {typed.exchange_rate} chips = 1 CNY
         </span>
       </div>
       <div className="mb-6">
-        {session.description && <p className="text-sm text-muted mt-1">{session.description}</p>}
+        {typed.description && <p className="text-sm text-muted mt-1">{typed.description}</p>}
       </div>
-      <SessionEntriesTable entries={entries} exchangeRate={session.exchange_rate} total={total} />
+      <SessionEntriesTable entries={entries} exchangeRate={typed.exchange_rate} total={total} />
     </>
   )
 }
