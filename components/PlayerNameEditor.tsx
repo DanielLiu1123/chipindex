@@ -1,10 +1,13 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
 export default function PlayerNameEditor({ id, initialName }: { id: string; initialName: string }) {
+  const router = useRouter()
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(initialName)
+  const [savedName, setSavedName] = useState(initialName)
   const [saving, setSaving] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -14,8 +17,8 @@ export default function PlayerNameEditor({ id, initialName }: { id: string; init
 
   async function save() {
     const trimmed = name.trim()
-    if (!trimmed || trimmed === initialName) {
-      setName(initialName)
+    if (!trimmed || trimmed === savedName) {
+      setName(savedName)
       setEditing(false)
       return
     }
@@ -27,13 +30,15 @@ export default function PlayerNameEditor({ id, initialName }: { id: string; init
     })
     setSaving(false)
     if (res.ok) {
+      setSavedName(trimmed)
       setEditing(false)
+      router.refresh()
     }
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Enter') save()
-    if (e.key === 'Escape') { setName(initialName); setEditing(false) }
+    if (e.key === 'Escape') { setName(savedName); setEditing(false) }
   }
 
   if (editing) {

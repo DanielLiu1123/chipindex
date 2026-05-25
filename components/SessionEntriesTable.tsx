@@ -41,8 +41,8 @@ export default function SessionEntriesTable({ entries, exchangeRate, total }: {
       <tfoot>
         <tr className="text-muted text-xs">
           <td className="pt-4">SUM</td>
-          <td className="pt-4 text-right"><ChipValue chips={total} /></td>
           <td />
+          <td className="pt-4 text-right"><ChipValue chips={total} /></td>
         </tr>
       </tfoot>
     </table>
