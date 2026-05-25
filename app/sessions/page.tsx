@@ -7,6 +7,7 @@ import Link from 'next/link'
 interface Session {
   id: string
   date: string
+  description: string | null
   exchange_rate: number | null
   session_entries: { count: number }[]
 }
@@ -49,7 +50,10 @@ export default function SessionsPage() {
           {sessions.map((s) => (
             <tr key={s.id} onClick={() => router.push(`/sessions/${s.id}`)}
               className="border-b border-border hover:bg-surface transition-colors cursor-pointer">
-              <td className="py-4">{s.date}</td>
+              <td className="py-4">
+                <div>{s.date}</div>
+                {s.description && <div className="text-xs text-muted mt-0.5">{s.description}</div>}
+              </td>
               <td className="py-4 text-right text-muted">{s.session_entries?.[0]?.count ?? 0}</td>
               <td className="py-4 text-right text-muted">{s.exchange_rate ? `${s.exchange_rate}:1` : '—'}</td>
               <td className="py-4 text-right">

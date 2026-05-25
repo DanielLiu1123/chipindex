@@ -20,14 +20,17 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
       <div className="mb-6">
         <Link href="/sessions" className="text-muted text-xs hover:text-white tracking-widest">← SESSIONS</Link>
       </div>
-      <div className="flex items-baseline justify-between mb-6">
+      <div className="flex items-center justify-between mb-2">
         <h1 className="text-white">{session?.date}</h1>
-        <div className="flex items-baseline gap-4">
-          <span className="text-xs text-muted">
-            {session?.exchange_rate ? `${session.exchange_rate} chips = 1 yuan` : 'no rate set'}
-          </span>
-          <Link href={`/sessions/${id}/edit`} className="text-xs text-muted hover:text-white tracking-widest transition-colors">EDIT →</Link>
-        </div>
+        <Link href={`/sessions/${id}/edit`} className="text-xs text-accent tracking-widest border border-accent/50 hover:border-accent px-2.5 py-1 transition-colors">EDIT</Link>
+      </div>
+      <div className="mb-2">
+        <span className="text-xs text-muted">
+          {session?.exchange_rate ? `${session.exchange_rate} chips = 1 yuan` : 'no rate set'}
+        </span>
+      </div>
+      <div className="mb-6">
+        {session?.description && <p className="text-sm text-muted mt-1">{session.description}</p>}
       </div>
       <table className="w-full text-sm">
         <thead>
