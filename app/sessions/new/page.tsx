@@ -10,7 +10,7 @@ interface EntryRow { playerId: string; chips: string; isNew: boolean; newName: s
 export default function NewSessionPage() {
   const router = useRouter()
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0])
-  const [exchangeRate, setExchangeRate] = useState('')
+  const [exchangeRate, setExchangeRate] = useState('40')
   const [rows, setRows] = useState<EntryRow[]>([{ playerId: '', chips: '', isNew: false, newName: '' }])
   const [players, setPlayers] = useState<Player[]>([])
   const [submitting, setSubmitting] = useState(false)
@@ -46,7 +46,7 @@ export default function NewSessionPage() {
       await fetch('/api/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date, exchange_rate: exchangeRate ? Number(exchangeRate) : null, entries }),
+        body: JSON.stringify({ date, exchange_rate: exchangeRate ? Number(exchangeRate) : 40, entries }),
       })
       router.push('/sessions')
       router.refresh()
@@ -74,7 +74,7 @@ export default function NewSessionPage() {
           </div>
           <div className="w-32">
             <label className="text-xs text-muted tracking-widest block mb-2">RATE <span className="text-muted">(opt)</span></label>
-            <input type="number" value={exchangeRate} onChange={e => setExchangeRate(e.target.value)} placeholder="e.g. 10" min="1"
+            <input type="number" value={exchangeRate} onChange={e => setExchangeRate(e.target.value)} placeholder="40" min="1"
               className="w-full bg-surface border border-border text-white text-sm px-4 py-3 outline-none focus:border-white transition-colors placeholder:text-muted" />
           </div>
         </div>
