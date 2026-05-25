@@ -459,3 +459,5 @@ cython_debug/
 dist/
 
 .idea/
+
+.vercel/
