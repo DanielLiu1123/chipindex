@@ -15,7 +15,8 @@ export default function Nav() {
   return (
     <header className="border-b border-border">
       <div className="max-w-4xl mx-auto px-6 h-12 flex items-center justify-between">
-        <Link href="/" className="text-accent font-medium tracking-widest text-sm">
+        <Link href="/" className="flex items-center gap-2 text-accent font-medium tracking-widest text-sm">
+          <img src="/icon.svg" alt="" width={20} height={20} />
           CHIPINDEX
         </Link>
         <nav className="flex items-center gap-6">

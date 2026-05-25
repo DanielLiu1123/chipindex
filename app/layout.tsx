@@ -3,7 +3,13 @@ import './globals.css'
 import Nav from '@/components/Nav'
 import { isAuthenticated } from '@/lib/auth'
 
-export const metadata: Metadata = { title: 'ChipIndex' }
+export const metadata: Metadata = {
+  title: 'ChipIndex',
+  icons: {
+    icon: '/icon.svg',
+    apple: '/icon.svg',
+  },
+}
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const authed = await isAuthenticated()

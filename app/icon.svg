@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <mask id="chip">
+      <circle cx="32" cy="32" r="30" fill="white"/>
+      <!-- 8 notches evenly spaced -->
+      <circle cx="32" cy="2"     r="4.5" fill="black"/>
+      <circle cx="53.21" cy="10.79" r="4.5" fill="black"/>
+      <circle cx="62" cy="32"    r="4.5" fill="black"/>
+      <circle cx="53.21" cy="53.21" r="4.5" fill="black"/>
+      <circle cx="32" cy="62"    r="4.5" fill="black"/>
+      <circle cx="10.79" cy="53.21" r="4.5" fill="black"/>
+      <circle cx="2" cy="32"     r="4.5" fill="black"/>
+      <circle cx="10.79" cy="10.79" r="4.5" fill="black"/>
+    </mask>
+  </defs>
+
+  <g mask="url(#chip)">
+    <!-- Outer green ring -->
+    <circle cx="32" cy="32" r="30" fill="#1a7a4a"/>
+    <!-- White band -->
+    <circle cx="32" cy="32" r="23" fill="white"/>
+    <!-- Green center -->
+    <circle cx="32" cy="32" r="16" fill="#1a7a4a"/>
+  </g>
+</svg>
