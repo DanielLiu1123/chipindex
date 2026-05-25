@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { generateToken } from './_lib/auth'
 
-const PASSWORD = process.env.VITE_SHARED_PASSWORD!
+const PASSWORD = process.env.SHARED_PASSWORD!
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {

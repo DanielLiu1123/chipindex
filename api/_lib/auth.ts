@@ -1,7 +1,7 @@
 import { createHmac } from 'crypto'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 
-const PASSWORD = process.env.VITE_SHARED_PASSWORD!
+const PASSWORD = process.env.SHARED_PASSWORD!
 
 export function generateToken(): string {
   return createHmac('sha256', 'chipindex').update(PASSWORD).digest('hex')
