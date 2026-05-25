@@ -33,8 +33,7 @@ export default function SessionsPage() {
 
   return (
     <>
-      <div className="flex items-baseline justify-between mb-6">
-        <h1 className="text-xs text-muted tracking-widest">SESSIONS</h1>
+      <div className="flex items-baseline justify-end mb-6">
         <Link href="/sessions/new" className="text-xs text-accent tracking-widest hover:underline">+ NEW SESSION</Link>
       </div>
       <table className="w-full text-sm">

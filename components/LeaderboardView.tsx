@@ -39,7 +39,6 @@ export default function LeaderboardView({ stats, sessions }: { stats: PlayerStat
     <>
       <div className="flex items-baseline justify-between mb-6">
         <div className="flex items-baseline gap-4">
-          <h1 className="text-xs text-muted tracking-widest">LEADERBOARD</h1>
           <div className="flex gap-3">
             <button onClick={() => setView('table')}
               className={`text-xs tracking-widest transition-colors ${view === 'table' ? 'text-white' : 'text-muted hover:text-white'}`}>
