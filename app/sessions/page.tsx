@@ -55,7 +55,8 @@ export default function SessionsPage() {
         onConfirm={() => confirmId && handleDelete(confirmId)}
         onCancel={() => setConfirmId(null)}
       />
-      <div className="flex items-baseline justify-end mb-6">
+      <div className="flex items-baseline justify-between mb-6">
+        <span className="text-xs text-muted tracking-widest">{sessions.length} SESSIONS</span>
         <Link href="/sessions/new" className="text-xs text-accent tracking-widest hover:underline">+ NEW SESSION</Link>
       </div>
       <table className="w-full text-sm">
