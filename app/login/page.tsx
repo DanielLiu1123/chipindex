@@ -28,7 +28,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-bg flex flex-col items-center justify-center -mt-8">
+    <div className="min-h-screen bg-bg flex flex-col items-center justify-center">
       <div className="w-full max-w-xs">
         <p className="text-accent tracking-widest text-sm mb-8">CHIPINDEX</p>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">

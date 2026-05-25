@@ -1,20 +1,8 @@
 import { db } from '@/lib/db'
 import LeaderboardView from '@/components/LeaderboardView'
-import type { Player, PlayerStats } from '@/types'
+import type { Player, PlayerStats, LeaderboardSession } from '@/types'
 
 export const dynamic = 'force-dynamic'
-
-interface SessionEntry {
-  player_id: string
-  chips: number
-}
-
-interface Session {
-  id: string
-  date: string
-  exchange_rate: number
-  session_entries: SessionEntry[]
-}
 
 export default async function LeaderboardPage() {
   const [{ data: players }, { data: sessions }] = await Promise.all([
@@ -22,7 +10,7 @@ export default async function LeaderboardPage() {
     db.from('sessions').select('id, date, exchange_rate, session_entries(player_id, chips)').is('deleted_at', null).order('date', { ascending: true }),
   ])
 
-  const allSessions = (sessions ?? []) as unknown as Session[]
+  const allSessions = (sessions ?? []) as unknown as LeaderboardSession[]
 
   const sessionMaxChips = new Map<string, number>()
   for (const session of allSessions) {

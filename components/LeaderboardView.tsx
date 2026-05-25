@@ -5,16 +5,9 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import ChipValue from '@/components/ChipValue'
 import LeaderboardChart from '@/components/LeaderboardChart'
-import type { PlayerStats } from '@/types'
+import type { PlayerStats, LeaderboardSession } from '@/types'
 
-interface Session {
-  id: string
-  date: string
-  exchange_rate: number
-  session_entries: { player_id: string; chips: number }[]
-}
-
-function buildChartData(sessions: Session[], stats: PlayerStats[], mode: 'chips' | 'cny') {
+function buildChartData(sessions: LeaderboardSession[], stats: PlayerStats[], mode: 'chips' | 'cny'): { date: string; [player: string]: string | number }[] {
   const sorted = [...sessions].sort((a, b) => a.date.localeCompare(b.date))
   const playerNames = stats.map(s => s.player.name)
   const playerIds = stats.map(s => s.player.id)
@@ -36,7 +29,7 @@ function buildChartData(sessions: Session[], stats: PlayerStats[], mode: 'chips'
   })
 }
 
-export default function LeaderboardView({ stats, sessions }: { stats: PlayerStats[]; sessions: Session[] }) {
+export default function LeaderboardView({ stats, sessions }: { stats: PlayerStats[]; sessions: LeaderboardSession[] }) {
   const [view, setView] = useState<'table' | 'chart'>('table')
   const [chartMode, setChartMode] = useState<'chips' | 'cny'>('cny')
   const router = useRouter()

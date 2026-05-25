@@ -21,3 +21,15 @@ export interface PlayerStats {
   win_rate: number
   pog_count: number
 }
+
+export interface LeaderboardSessionEntry {
+  player_id: string
+  chips: number
+}
+
+export interface LeaderboardSession {
+  id: string
+  date: string
+  exchange_rate: number
+  session_entries: LeaderboardSessionEntry[]
+}
