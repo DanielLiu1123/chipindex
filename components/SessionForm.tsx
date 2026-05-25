@@ -82,7 +82,7 @@ export default function SessionForm({ mode, sessionId }: Props) {
         const res = await fetch(`/api/sessions/${sessionId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ date, exchange_rate: Number(exchangeRate), description: description || null, entries }),
+          body: JSON.stringify({ date, exchange_rate: exchangeRate ? Number(exchangeRate) : 40, description: description || null, entries }),
         })
         if (!res.ok) {
           const body = await res.json()
