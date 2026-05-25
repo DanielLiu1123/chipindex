@@ -4,6 +4,7 @@ import ChipValue from '@/components/ChipValue'
 import PlayerChartSection from '@/components/PlayerChartSection'
 import PlayerNameEditor from '@/components/PlayerNameEditor'
 import PlayerSessionHistoryTable from '@/components/PlayerSessionHistoryTable'
+import BestWorstSessions from '@/components/BestWorstSessions'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,6 +33,13 @@ export default async function PlayerDetailPage({ params }: { params: Promise<{ i
   const totalChips = history.length > 0 ? history[history.length - 1].cumulative : 0
   const wins = sessionsSorted.filter((e: any) => e.chips > 0).length
 
+  const bestSession = history.length > 0
+    ? history.reduce((best, row) => row.cny > best.cny ? row : best, history[0])
+    : null
+  const worstSession = history.length > 0
+    ? history.reduce((worst, row) => row.cny < worst.cny ? row : worst, history[0])
+    : null
+
   return (
     <>
       <div className="mb-6">
@@ -49,6 +57,11 @@ export default async function PlayerDetailPage({ params }: { params: Promise<{ i
       {history.length > 1 && (
         <PlayerChartSection data={history} totalCny={totalCny} totalChips={totalChips} />
       )}
+
+      <BestWorstSessions
+        best={bestSession ? { session_id: bestSession.session_id, date: bestSession.date, cny: bestSession.cny, chips: bestSession.chips } : null}
+        worst={worstSession ? { session_id: worstSession.session_id, date: worstSession.date, cny: worstSession.cny, chips: worstSession.chips } : null}
+      />
 
       <p className="text-xs text-muted tracking-widest mb-4">SESSION HISTORY</p>
       <PlayerSessionHistoryTable rows={[...history].reverse()} />
