@@ -21,7 +21,6 @@ interface Session {
 function getWinner(entries: SessionEntry[]): { name: string; player_id: string } | null {
   if (!entries || entries.length === 0) return null
   const top = entries.reduce((best, e) => e.chips > best.chips ? e : best, entries[0])
-  if (top.chips <= 0) return null
   return top.players ? { name: top.players.name, player_id: top.player_id } : null
 }
 
