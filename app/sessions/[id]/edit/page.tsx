@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import type { Player } from '@/types'
+import PlayerSelect from '@/components/PlayerSelect'
 
 interface EntryRow { playerId: string; chips: string; isNew: boolean; newName: string }
 
@@ -117,16 +118,14 @@ export default function EditSessionPage() {
                     placeholder="new player name"
                     className="flex-1 bg-surface border border-accent text-white text-sm px-4 py-2.5 outline-none focus:border-white transition-colors placeholder:text-muted" />
                 ) : (
-                  <select value={row.playerId}
-                    onChange={e => e.target.value === '__new__'
+                  <PlayerSelect
+                    value={row.playerId}
+                    players={players.filter(p => !usedIds.includes(p.id) || p.id === row.playerId)}
+                    onChange={val => val === '__new__'
                       ? updateRow(i, { isNew: true, playerId: '', newName: '' })
-                      : updateRow(i, { playerId: e.target.value })}
-                    className="flex-1 bg-surface border border-border text-white text-sm px-4 py-2.5 outline-none focus:border-white transition-colors">
-                    <option value="">select player</option>
-                    {players.filter(p => !usedIds.includes(p.id) || p.id === row.playerId)
-                      .map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    <option value="__new__">+ new player</option>
-                  </select>
+                      : updateRow(i, { playerId: val })}
+                    className="flex-1"
+                  />
                 )}
                 <input type="number" value={row.chips} onChange={e => updateRow(i, { chips: e.target.value })}
                   placeholder="chips (±)"

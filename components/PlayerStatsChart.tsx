@@ -23,6 +23,7 @@ export default function PlayerStatsChart({
   totalChips,
   sessions,
   wins,
+  pogCount,
 }: {
   id: string
   initialName: string
@@ -31,6 +32,7 @@ export default function PlayerStatsChart({
   totalChips: number
   sessions: number
   wins: number
+  pogCount: number
 }) {
   const [mode, setMode] = useState<'chips' | 'cny'>('cny')
   const positive = mode === 'cny' ? totalCny >= 0 : totalChips >= 0
@@ -42,6 +44,7 @@ export default function PlayerStatsChart({
         <div className="flex gap-6 text-xs text-muted items-baseline">
           <span>{sessions} sessions</span>
           <span>{wins} wins</span>
+          <span>{pogCount} pog</span>
           {mode === 'cny' ? (
             <ChipValue chips={totalCny} prefix="¥" className="text-sm" />
           ) : (

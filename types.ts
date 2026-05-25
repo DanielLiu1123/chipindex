@@ -19,4 +19,5 @@ export interface PlayerStats {
   sessions_played: number
   wins: number
   win_rate: number
+  pog_count: number
 }

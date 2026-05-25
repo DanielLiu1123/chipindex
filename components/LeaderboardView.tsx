@@ -74,6 +74,7 @@ export default function LeaderboardView({ stats, sessions }: { stats: PlayerStat
               <th className="text-right py-3 font-normal">CHIPS</th>
               <th className="text-right py-3 font-normal">SESSIONS</th>
               <th className="text-right py-3 font-normal">WIN%</th>
+              <th className="text-right py-3 font-normal">POG</th>
             </tr>
           </thead>
           <tbody>
@@ -88,6 +89,7 @@ export default function LeaderboardView({ stats, sessions }: { stats: PlayerStat
                 <td className="py-4 text-right"><ChipValue chips={s.total_chips} /></td>
                 <td className="py-4 text-right text-muted">{s.sessions_played}</td>
                 <td className="py-4 text-right text-muted">{(s.win_rate * 100).toFixed(0)}%</td>
+                <td className="py-4 text-right text-muted">{s.pog_count}</td>
               </tr>
             ))}
           </tbody>

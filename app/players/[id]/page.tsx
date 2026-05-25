@@ -9,7 +9,7 @@ export default async function PlayerDetailPage({ params }: { params: Promise<{ i
   const { id } = await params
   const { data: player } = await db
     .from('players')
-    .select('*, session_entries(*, sessions(*))')
+    .select('*, session_entries(*, sessions(*, session_entries(player_id, chips)))')
     .eq('id', id)
     .single()
 
@@ -29,6 +29,10 @@ export default async function PlayerDetailPage({ params }: { params: Promise<{ i
   const totalCny = history.length > 0 ? history[history.length - 1].cumulative_cny : 0
   const totalChips = history.length > 0 ? history[history.length - 1].cumulative : 0
   const wins = sessionsSorted.filter((e: any) => e.chips > 0).length
+  const pogCount = sessionsSorted.filter((e: any) => {
+    const allChips = (e.sessions.session_entries ?? []).map((x: any) => x.chips)
+    return allChips.length > 0 && e.chips === Math.max(...allChips)
+  }).length
 
   return (
     <>
@@ -43,6 +47,7 @@ export default async function PlayerDetailPage({ params }: { params: Promise<{ i
         totalChips={totalChips}
         sessions={sessionsSorted.length}
         wins={wins}
+        pogCount={pogCount}
       />
 
       <p className="text-xs text-muted tracking-widest mb-4">SESSION HISTORY</p>
