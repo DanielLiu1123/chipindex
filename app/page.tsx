@@ -1,24 +1,24 @@
 import Link from 'next/link'
-import { selectMany } from '@/lib/db'
+import { db } from '@/lib/db'
 import ChipValue from '@/components/ChipValue'
 import type { Player, SessionEntry, PlayerStats } from '@/types'
 
 export const dynamic = 'force-dynamic'
 
 export default async function LeaderboardPage() {
-  const [players, entries] = await Promise.all([
-    selectMany<Player>('players'),
-    selectMany<SessionEntry>('session_entries'),
+  const [{ data: players }, { data: entries }] = await Promise.all([
+    db.from('players').select('*'),
+    db.from('session_entries').select('*'),
   ])
 
-  const stats: PlayerStats[] = players
-    .map(player => {
-      const pe = entries.filter(e => e.player_id === player.id)
+  const stats: PlayerStats[] = (players ?? [])
+    .map((player: Player) => {
+      const pe = (entries ?? []).filter((e: SessionEntry) => e.player_id === player.id)
       const total_chips = pe.reduce((s, e) => s + e.chips, 0)
       const wins = pe.filter(e => e.chips > 0).length
       return { player, total_chips, sessions_played: pe.length, wins, win_rate: pe.length > 0 ? wins / pe.length : 0 }
     })
-    .sort((a, b) => b.total_chips - a.total_chips)
+    .sort((a: PlayerStats, b: PlayerStats) => b.total_chips - a.total_chips)
 
   return (
     <>

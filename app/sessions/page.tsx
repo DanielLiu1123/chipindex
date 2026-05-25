@@ -1,10 +1,13 @@
 import Link from 'next/link'
-import { selectMany } from '@/lib/db'
+import { db } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
 export default async function SessionsPage() {
-  const sessions = await selectMany('sessions', 'select=*,session_entries(count)&order=date.desc')
+  const { data: sessions } = await db
+    .from('sessions')
+    .select('*, session_entries(count)')
+    .order('date', { ascending: false })
 
   return (
     <>
@@ -22,7 +25,7 @@ export default async function SessionsPage() {
           </tr>
         </thead>
         <tbody>
-          {sessions.map((s: any) => (
+          {(sessions ?? []).map((s: any) => (
             <tr key={s.id} className="border-b border-border hover:bg-surface transition-colors">
               <td className="py-4">{s.date}</td>
               <td className="py-4 text-right text-muted">{s.session_entries?.[0]?.count ?? 0}</td>

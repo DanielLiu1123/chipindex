@@ -1,10 +1,5 @@
 import { isAuthenticated } from '@/lib/auth'
-import { selectMany, insertOne, insertMany } from '@/lib/db'
-
-export async function GET() {
-  if (!await isAuthenticated()) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-  return Response.json(await selectMany('sessions', 'select=*,session_entries(count)&order=date.desc'))
-}
+import { db } from '@/lib/db'
 
 export async function POST(req: Request) {
   if (!await isAuthenticated()) return Response.json({ error: 'Unauthorized' }, { status: 401 })
@@ -13,11 +8,11 @@ export async function POST(req: Request) {
     exchange_rate: number | null
     entries: { player_id: string; chips: number }[]
   }
-  const session = await insertOne('sessions', { date, exchange_rate })
-  await insertMany('session_entries', entries.map(e => ({
-    session_id: session.id,
-    player_id: e.player_id,
-    chips: e.chips,
-  })))
+  const { data: session, error } = await db.from('sessions').insert({ date, exchange_rate }).select().single()
+  if (error) return Response.json({ error: error.message }, { status: 500 })
+  const { error: entriesError } = await db.from('session_entries').insert(
+    entries.map(e => ({ session_id: session.id, player_id: e.player_id, chips: e.chips }))
+  )
+  if (entriesError) return Response.json({ error: entriesError.message }, { status: 500 })
   return Response.json(session, { status: 201 })
 }

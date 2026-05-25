@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { selectOne } from '@/lib/db'
+import { db } from '@/lib/db'
 import ChipValue from '@/components/ChipValue'
 import PlayerChart from '@/components/PlayerChart'
 
@@ -7,9 +7,13 @@ export const dynamic = 'force-dynamic'
 
 export default async function PlayerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const player = await selectOne('players', `id=eq.${id}&select=*,session_entries(*,sessions(*))`)
+  const { data: player } = await db
+    .from('players')
+    .select('*, session_entries(*, sessions(*))')
+    .eq('id', id)
+    .single()
 
-  const sessionsSorted = [...(player.session_entries ?? [])]
+  const sessionsSorted = [...(player?.session_entries ?? [])]
     .filter((e: any) => e.sessions)
     .sort((a: any, b: any) => a.sessions.date.localeCompare(b.sessions.date))
 
@@ -28,7 +32,7 @@ export default async function PlayerDetailPage({ params }: { params: Promise<{ i
         <Link href="/" className="text-muted text-xs hover:text-white tracking-widest">← LEADERBOARD</Link>
       </div>
       <div className="flex items-baseline justify-between mb-8">
-        <h1 className="text-white text-lg">{player.name}</h1>
+        <h1 className="text-white text-lg">{player?.name}</h1>
         <div className="flex gap-6 text-xs text-muted">
           <span>{sessionsSorted.length} sessions</span>
           <span>{wins} wins</span>

@@ -4,20 +4,12 @@ export interface Player {
   created_at: string
 }
 
-export interface Session {
-  id: string
-  date: string
-  exchange_rate: number | null
-  created_at: string
-}
-
 export interface SessionEntry {
   id: string
   session_id: string
   player_id: string
   chips: number
   players?: Player
-  sessions?: Session
 }
 
 export interface PlayerStats {

@@ -1,14 +1,18 @@
 import { isAuthenticated } from '@/lib/auth'
-import { selectMany, insertOne } from '@/lib/db'
+import { db } from '@/lib/db'
 
 export async function GET() {
   if (!await isAuthenticated()) return Response.json({ error: 'Unauthorized' }, { status: 401 })
-  return Response.json(await selectMany('players', 'order=name'))
+  const { data, error } = await db.from('players').select('*').order('name')
+  if (error) return Response.json({ error: error.message }, { status: 500 })
+  return Response.json(data)
 }
 
 export async function POST(req: Request) {
   if (!await isAuthenticated()) return Response.json({ error: 'Unauthorized' }, { status: 401 })
   const { name } = await req.json() as { name: string }
   if (!name?.trim()) return Response.json({ error: 'Name required' }, { status: 400 })
-  return Response.json(await insertOne('players', { name: name.trim() }), { status: 201 })
+  const { data, error } = await db.from('players').insert({ name: name.trim() }).select().single()
+  if (error) return Response.json({ error: error.message }, { status: 500 })
+  return Response.json(data, { status: 201 })
 }
