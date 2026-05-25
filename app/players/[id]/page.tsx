@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { notFound } from 'next/navigation'
 import { db } from '@/lib/db'
 import PlayerStatsChart from '@/components/PlayerStatsChart'
 import PlayerSessionHistoryTable from '@/components/PlayerSessionHistoryTable'
@@ -33,7 +34,9 @@ export default async function PlayerDetailPage({ params }: { params: Promise<{ i
     .eq('id', id)
     .single()
 
-  const sessionsSorted = ([...(player?.session_entries ?? [])] as unknown as PlayerEntry[])
+  if (!player) notFound()
+
+  const sessionsSorted = ([...(player.session_entries ?? [])] as unknown as PlayerEntry[])
     .filter(e => e.sessions && !e.sessions.deleted_at)
     .sort((a, b) => a.sessions.date.localeCompare(b.sessions.date))
 
