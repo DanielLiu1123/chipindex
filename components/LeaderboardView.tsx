@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import ChipValue from '@/components/ChipValue'
 import LeaderboardChart from '@/components/LeaderboardChart'
 import type { PlayerStats } from '@/types'
@@ -40,6 +41,7 @@ function buildChartData(sessions: Session[], stats: PlayerStats[], mode: 'chips'
 export default function LeaderboardView({ stats, sessions }: { stats: PlayerStats[]; sessions: Session[] }) {
   const [view, setView] = useState<'table' | 'chart'>('table')
   const [chartMode, setChartMode] = useState<'chips' | 'cny'>('cny')
+  const router = useRouter()
   const playerNames = stats.map(s => s.player.name)
   const chartData = buildChartData(sessions, stats, chartMode)
 
@@ -76,13 +78,10 @@ export default function LeaderboardView({ stats, sessions }: { stats: PlayerStat
           </thead>
           <tbody>
             {stats.map((s, i) => (
-              <tr key={s.player.id} className="border-b border-border hover:bg-surface transition-colors">
+              <tr key={s.player.id} onClick={() => router.push(`/players/${s.player.id}`)}
+                className="border-b border-border hover:bg-surface transition-colors cursor-pointer">
                 <td className="py-4 text-muted text-xs">{i + 1}</td>
-                <td className="py-4">
-                  <Link href={`/players/${s.player.id}`} className="hover:text-accent transition-colors">
-                    {s.player.name}
-                  </Link>
-                </td>
+                <td className="py-4">{s.player.name}</td>
                 <td className="py-4 text-right">
                   <ChipValue chips={s.total_yuan} prefix="¥" />
                 </td>

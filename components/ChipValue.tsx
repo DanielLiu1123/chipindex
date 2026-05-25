@@ -2,7 +2,7 @@ export default function ChipValue({ chips, className = '', prefix = '' }: { chip
   const color = chips > 0 ? 'text-accent' : chips < 0 ? 'text-danger' : 'text-muted'
   return (
     <span className={`${color} ${className}`}>
-      {chips > 0 ? '+' : ''}{prefix}{chips.toLocaleString()}
+      {chips > 0 ? '+' : chips < 0 ? '-' : ''}{prefix}{Math.abs(chips).toLocaleString()}
     </span>
   )
 }

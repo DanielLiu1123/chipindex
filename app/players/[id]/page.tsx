@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import ChipValue from '@/components/ChipValue'
 import PlayerChartSection from '@/components/PlayerChartSection'
 import PlayerNameEditor from '@/components/PlayerNameEditor'
+import PlayerSessionHistoryTable from '@/components/PlayerSessionHistoryTable'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,7 +25,7 @@ export default async function PlayerDetailPage({ params }: { params: Promise<{ i
     cumulative += e.chips
     const cny = Math.round(e.chips / e.sessions.exchange_rate)
     cumulativeCny += cny
-    return { date: e.sessions.date, chips: e.chips, cumulative, cny, cumulative_cny: cumulativeCny }
+    return { date: e.sessions.date, session_id: e.session_id, chips: e.chips, cumulative, cny, cumulative_cny: cumulativeCny }
   })
 
   const totalCny = history.length > 0 ? history[history.length - 1].cumulative_cny : 0
@@ -50,33 +51,7 @@ export default async function PlayerDetailPage({ params }: { params: Promise<{ i
       )}
 
       <p className="text-xs text-muted tracking-widest mb-4">SESSION HISTORY</p>
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-border text-muted text-xs tracking-widest">
-            <th className="text-left py-3 font-normal">DATE</th>
-            <th className="text-right py-3 font-normal">CNY</th>
-            <th className="text-right py-3 font-normal">CHIPS</th>
-            <th className="text-right py-3 font-normal">CUMULATIVE CNY</th>
-          </tr>
-        </thead>
-        <tbody>
-          {[...history].reverse().map((row, i) => {
-            const entry = [...sessionsSorted].reverse()[i]
-            return (
-              <tr key={i} className="border-b border-border hover:bg-surface transition-colors">
-                <td className="py-4">
-                  <Link href={`/sessions/${entry.session_id}`} className="hover:text-accent transition-colors">
-                    {row.date}
-                  </Link>
-                </td>
-                <td className="py-4 text-right"><ChipValue chips={row.cny} prefix="¥" /></td>
-                <td className="py-4 text-right"><ChipValue chips={row.chips} /></td>
-                <td className="py-4 text-right"><ChipValue chips={row.cumulative_cny} prefix="¥" /></td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+      <PlayerSessionHistoryTable rows={[...history].reverse()} />
     </>
   )
 }

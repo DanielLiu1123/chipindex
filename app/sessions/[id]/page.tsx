@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { db } from '@/lib/db'
-import ChipValue from '@/components/ChipValue'
+import SessionEntriesTable from '@/components/SessionEntriesTable'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,37 +32,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
       <div className="mb-6">
         {session?.description && <p className="text-sm text-muted mt-1">{session.description}</p>}
       </div>
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-border text-muted text-xs tracking-widest">
-            <th className="text-left py-3 font-normal">PLAYER</th>
-            <th className="text-right py-3 font-normal">CHIPS</th>
-            <th className="text-right py-3 font-normal">CNY</th>
-          </tr>
-        </thead>
-        <tbody>
-          {entries.map((e: any) => (
-            <tr key={e.id} className="border-b border-border hover:bg-surface transition-colors">
-              <td className="py-4">
-                <Link href={`/players/${e.player_id}`} className="hover:text-accent transition-colors">
-                  {e.players?.name ?? e.player_id}
-                </Link>
-              </td>
-              <td className="py-4 text-right"><ChipValue chips={e.chips} /></td>
-              <td className="py-4 text-right text-muted">
-                <ChipValue chips={Math.round(e.chips / session!.exchange_rate)} />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-        <tfoot>
-          <tr className="text-muted text-xs">
-            <td className="pt-4">SUM</td>
-            <td className="pt-4 text-right"><ChipValue chips={total} /></td>
-            <td />
-          </tr>
-        </tfoot>
-      </table>
+      <SessionEntriesTable entries={entries} exchangeRate={session!.exchange_rate} total={total} />
     </>
   )
 }
