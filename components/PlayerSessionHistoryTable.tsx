@@ -1,6 +1,4 @@
-'use client'
-
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import ChipValue from '@/components/ChipValue'
 
 interface HistoryRow {
@@ -13,8 +11,6 @@ interface HistoryRow {
 }
 
 export default function PlayerSessionHistoryTable({ rows }: { rows: HistoryRow[] }) {
-  const router = useRouter()
-
   return (
     <table className="w-full text-sm">
       <thead>
@@ -28,13 +24,22 @@ export default function PlayerSessionHistoryTable({ rows }: { rows: HistoryRow[]
       </thead>
       <tbody>
         {rows.map(row => (
-          <tr key={row.session_id} onClick={() => router.push(`/sessions/${row.session_id}`)}
-            className="border-b border-border hover:bg-surface transition-colors cursor-pointer">
-            <td className="py-4">{row.date}</td>
-            <td className="py-4 text-right"><ChipValue chips={row.cny} prefix="¥" /></td>
-            <td className="py-4 text-right"><ChipValue chips={row.chips} /></td>
-            <td className="py-4 text-right"><ChipValue chips={row.cumulative_cny} prefix="¥" /></td>
-            <td className="py-4 text-right"><ChipValue chips={row.cumulative} /></td>
+          <tr key={row.session_id} className="border-b border-border hover:bg-surface transition-colors">
+            <td className="py-4">
+              <Link href={`/sessions/${row.session_id}`} className="block">{row.date}</Link>
+            </td>
+            <td className="py-4 text-right">
+              <Link href={`/sessions/${row.session_id}`} className="block"><ChipValue chips={row.cny} prefix="¥" /></Link>
+            </td>
+            <td className="py-4 text-right">
+              <Link href={`/sessions/${row.session_id}`} className="block"><ChipValue chips={row.chips} /></Link>
+            </td>
+            <td className="py-4 text-right">
+              <Link href={`/sessions/${row.session_id}`} className="block"><ChipValue chips={row.cumulative_cny} prefix="¥" /></Link>
+            </td>
+            <td className="py-4 text-right">
+              <Link href={`/sessions/${row.session_id}`} className="block"><ChipValue chips={row.cumulative} /></Link>
+            </td>
           </tr>
         ))}
       </tbody>

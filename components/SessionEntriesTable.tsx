@@ -1,6 +1,4 @@
-'use client'
-
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import ChipValue from '@/components/ChipValue'
 
 interface Entry {
@@ -15,8 +13,6 @@ export default function SessionEntriesTable({ entries, exchangeRate, total }: {
   exchangeRate: number
   total: number
 }) {
-  const router = useRouter()
-
   return (
     <table className="w-full text-sm">
       <thead>
@@ -28,13 +24,20 @@ export default function SessionEntriesTable({ entries, exchangeRate, total }: {
       </thead>
       <tbody>
         {entries.map(e => (
-          <tr key={e.id} onClick={() => router.push(`/players/${e.player_id}`)}
-            className="border-b border-border hover:bg-surface transition-colors cursor-pointer">
-            <td className="py-4">{e.players?.name ?? e.player_id}</td>
-            <td className="py-4 text-right text-muted">
-              <ChipValue chips={Math.round(e.chips / exchangeRate)} prefix="¥" />
+          <tr key={e.id} className="border-b border-border hover:bg-surface transition-colors">
+            <td className="py-4">
+              <Link href={`/players/${e.player_id}`} className="block">{e.players?.name ?? e.player_id}</Link>
             </td>
-            <td className="py-4 text-right"><ChipValue chips={e.chips} /></td>
+            <td className="py-4 text-right text-muted">
+              <Link href={`/players/${e.player_id}`} className="block">
+                <ChipValue chips={Math.round(e.chips / exchangeRate)} prefix="¥" />
+              </Link>
+            </td>
+            <td className="py-4 text-right">
+              <Link href={`/players/${e.player_id}`} className="block">
+                <ChipValue chips={e.chips} />
+              </Link>
+            </td>
           </tr>
         ))}
       </tbody>
