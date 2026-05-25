@@ -461,3 +461,5 @@ dist/
 .idea/
 
 .vercel/
+
+.mcp.json

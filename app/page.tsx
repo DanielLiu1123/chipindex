@@ -1,57 +1,45 @@
-import Link from 'next/link'
 import { db } from '@/lib/db'
-import ChipValue from '@/components/ChipValue'
-import type { Player, SessionEntry, PlayerStats } from '@/types'
+import LeaderboardView from '@/components/LeaderboardView'
+import type { Player, PlayerStats } from '@/types'
 
 export const dynamic = 'force-dynamic'
 
 export default async function LeaderboardPage() {
-  const [{ data: players }, { data: entries }] = await Promise.all([
-    db.from('players').select('*'),
-    db.from('session_entries').select('*'),
+  const [{ data: players }, { data: sessions }] = await Promise.all([
+    db.from('players').select('*').is('deleted_at', null),
+    db.from('sessions').select('id, date, exchange_rate, session_entries(player_id, chips)').is('deleted_at', null).order('date', { ascending: true }),
   ])
 
   const stats: PlayerStats[] = (players ?? [])
     .map((player: Player) => {
-      const pe = (entries ?? []).filter((e: SessionEntry) => e.player_id === player.id)
-      const total_chips = pe.reduce((s, e) => s + e.chips, 0)
-      const wins = pe.filter(e => e.chips > 0).length
-      return { player, total_chips, sessions_played: pe.length, wins, win_rate: pe.length > 0 ? wins / pe.length : 0 }
-    })
-    .sort((a: PlayerStats, b: PlayerStats) => b.total_chips - a.total_chips)
+      let total_chips = 0
+      let total_yuan = 0
+      let sessions_played = 0
+      let wins = 0
 
-  return (
-    <>
-      <div className="flex items-baseline justify-between mb-6">
-        <h1 className="text-xs text-muted tracking-widest">LEADERBOARD</h1>
-        <Link href="/sessions/new" className="text-xs text-accent tracking-widest hover:underline">+ NEW SESSION</Link>
-      </div>
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-border text-muted text-xs tracking-widest">
-            <th className="text-left py-3 font-normal w-8">#</th>
-            <th className="text-left py-3 font-normal">PLAYER</th>
-            <th className="text-right py-3 font-normal">CHIPS</th>
-            <th className="text-right py-3 font-normal">SESSIONS</th>
-            <th className="text-right py-3 font-normal">WIN%</th>
-          </tr>
-        </thead>
-        <tbody>
-          {stats.map((s, i) => (
-            <tr key={s.player.id} className="border-b border-border hover:bg-surface transition-colors">
-              <td className="py-4 text-muted text-xs">{i + 1}</td>
-              <td className="py-4">
-                <Link href={`/players/${s.player.id}`} className="hover:text-accent transition-colors">
-                  {s.player.name}
-                </Link>
-              </td>
-              <td className="py-4 text-right"><ChipValue chips={s.total_chips} /></td>
-              <td className="py-4 text-right text-muted">{s.sessions_played}</td>
-              <td className="py-4 text-right text-muted">{(s.win_rate * 100).toFixed(0)}%</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </>
-  )
+      for (const session of (sessions ?? []) as any[]) {
+        const entry = (session.session_entries ?? []).find((e: any) => e.player_id === player.id)
+        if (!entry) continue
+        sessions_played++
+        total_chips += entry.chips
+        if (entry.chips > 0) wins++
+        if (session.exchange_rate) total_yuan += entry.chips / session.exchange_rate
+      }
+
+      return {
+        player,
+        total_chips,
+        total_yuan: Math.round(total_yuan),
+        sessions_played,
+        wins,
+        win_rate: sessions_played > 0 ? wins / sessions_played : 0,
+      }
+    })
+    .sort((a: PlayerStats, b: PlayerStats) => {
+      if (b.total_yuan !== a.total_yuan) return b.total_yuan - a.total_yuan
+      if (b.total_chips !== a.total_chips) return b.total_chips - a.total_chips
+      return a.player.name.localeCompare(b.player.name)
+    })
+
+  return <LeaderboardView stats={stats} sessions={sessions ?? []} />
 }

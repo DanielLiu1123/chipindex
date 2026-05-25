@@ -22,9 +22,12 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
       </div>
       <div className="flex items-baseline justify-between mb-6">
         <h1 className="text-white">{session?.date}</h1>
-        <span className="text-xs text-muted">
-          {session?.exchange_rate ? `${session.exchange_rate} chips = 1 yuan` : 'no rate set'}
-        </span>
+        <div className="flex items-baseline gap-4">
+          <span className="text-xs text-muted">
+            {session?.exchange_rate ? `${session.exchange_rate} chips = 1 yuan` : 'no rate set'}
+          </span>
+          <Link href={`/sessions/${id}/edit`} className="text-xs text-muted hover:text-white tracking-widest transition-colors">EDIT →</Link>
+        </div>
       </div>
       <table className="w-full text-sm">
         <thead>

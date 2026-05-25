@@ -15,6 +15,7 @@ export interface SessionEntry {
 export interface PlayerStats {
   player: Player
   total_chips: number
+  total_yuan: number
   sessions_played: number
   wins: number
   win_rate: number

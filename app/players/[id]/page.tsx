@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { db } from '@/lib/db'
 import ChipValue from '@/components/ChipValue'
 import PlayerChart from '@/components/PlayerChart'
+import PlayerNameEditor from '@/components/PlayerNameEditor'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,7 +15,7 @@ export default async function PlayerDetailPage({ params }: { params: Promise<{ i
     .single()
 
   const sessionsSorted = [...(player?.session_entries ?? [])]
-    .filter((e: any) => e.sessions)
+    .filter((e: any) => e.sessions && !e.sessions.deleted_at)
     .sort((a: any, b: any) => a.sessions.date.localeCompare(b.sessions.date))
 
   let cumulative = 0
@@ -32,7 +33,7 @@ export default async function PlayerDetailPage({ params }: { params: Promise<{ i
         <Link href="/" className="text-muted text-xs hover:text-white tracking-widest">← LEADERBOARD</Link>
       </div>
       <div className="flex items-baseline justify-between mb-8">
-        <h1 className="text-white text-lg">{player?.name}</h1>
+        <PlayerNameEditor id={id} initialName={player?.name ?? ''} />
         <div className="flex gap-6 text-xs text-muted">
           <span>{sessionsSorted.length} sessions</span>
           <span>{wins} wins</span>
