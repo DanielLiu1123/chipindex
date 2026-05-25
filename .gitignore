@@ -463,3 +463,4 @@ dist/
 .vercel/
 
 .mcp.json
+.env*
