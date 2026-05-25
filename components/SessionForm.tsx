@@ -6,11 +6,15 @@ import Link from 'next/link'
 import type { Player } from '@/types'
 import PlayerSelect from '@/components/PlayerSelect'
 
-interface EntryRow { playerId: string; chips: string; isNew: boolean; newName: string }
+interface EntryRow { uid: string; playerId: string; chips: string; isNew: boolean; newName: string }
 
 interface Props {
   mode: 'new' | 'edit'
   sessionId?: string
+}
+
+function newRow(): EntryRow {
+  return { uid: crypto.randomUUID(), playerId: '', chips: '', isNew: false, newName: '' }
 }
 
 export default function SessionForm({ mode, sessionId }: Props) {
@@ -18,15 +22,18 @@ export default function SessionForm({ mode, sessionId }: Props) {
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0])
   const [exchangeRate, setExchangeRate] = useState('40')
   const [description, setDescription] = useState('')
-  const [rows, setRows] = useState<EntryRow[]>([{ playerId: '', chips: '', isNew: false, newName: '' }])
+  const [rows, setRows] = useState<EntryRow[]>([newRow()])
   const [players, setPlayers] = useState<Player[]>([])
   const [submitting, setSubmitting] = useState(false)
-  const [loading, setLoading] = useState(mode === 'edit')
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
     if (mode === 'new') {
-      fetch('/api/players').then(r => r.json()).then(setPlayers)
+      fetch('/api/players').then(r => r.json()).then((ps: Player[]) => {
+        setPlayers(ps)
+        setLoading(false)
+      })
     } else {
       Promise.all([
         fetch('/api/players').then(r => r.json()),
@@ -37,6 +44,7 @@ export default function SessionForm({ mode, sessionId }: Props) {
         setExchangeRate(session.exchange_rate ? String(session.exchange_rate) : '')
         setDescription(session.description ?? '')
         setRows((session.session_entries ?? []).map((e: any) => ({
+          uid: crypto.randomUUID(),
           playerId: e.player_id,
           chips: String(e.chips),
           isNew: false,
@@ -47,8 +55,8 @@ export default function SessionForm({ mode, sessionId }: Props) {
     }
   }, [mode, sessionId])
 
-  const updateRow = (i: number, patch: Partial<EntryRow>) =>
-    setRows(r => r.map((row, idx) => idx === i ? { ...row, ...patch } : row))
+  const updateRow = (uid: string, patch: Partial<EntryRow>) =>
+    setRows(r => r.map(row => row.uid === uid ? { ...row, ...patch } : row))
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -133,10 +141,10 @@ export default function SessionForm({ mode, sessionId }: Props) {
         <div>
           <label className="text-xs text-muted tracking-widest block mb-3">PLAYERS</label>
           <div className="flex flex-col gap-2">
-            {rows.map((row, i) => (
-              <div key={i} className="flex gap-2 items-center">
+            {rows.map(row => (
+              <div key={row.uid} className="flex gap-2 items-center">
                 {row.isNew ? (
-                  <input type="text" value={row.newName} onChange={e => updateRow(i, { newName: e.target.value })}
+                  <input type="text" value={row.newName} onChange={e => updateRow(row.uid, { newName: e.target.value })}
                     placeholder="new player name"
                     className="flex-1 bg-surface border border-accent text-white text-sm px-4 py-2.5 outline-none focus:border-white transition-colors placeholder:text-muted" />
                 ) : (
@@ -144,19 +152,19 @@ export default function SessionForm({ mode, sessionId }: Props) {
                     value={row.playerId}
                     players={players.filter(p => !usedIds.includes(p.id) || p.id === row.playerId)}
                     onChange={val => val === '__new__'
-                      ? updateRow(i, { isNew: true, playerId: '', newName: '' })
-                      : updateRow(i, { playerId: val })}
+                      ? updateRow(row.uid, { isNew: true, playerId: '', newName: '' })
+                      : updateRow(row.uid, { playerId: val })}
                     className="flex-1"
                   />
                 )}
-                <input type="number" value={row.chips} onChange={e => updateRow(i, { chips: e.target.value })}
+                <input type="number" value={row.chips} onChange={e => updateRow(row.uid, { chips: e.target.value })}
                   placeholder="chips (±)"
                   className="w-28 bg-surface border border-border text-white text-sm px-4 py-2.5 outline-none focus:border-white transition-colors placeholder:text-muted" />
-                <button type="button" onClick={() => setRows(r => r.filter((_, idx) => idx !== i))}
+                <button type="button" onClick={() => setRows(r => r.filter(x => x.uid !== row.uid))}
                   className="text-muted hover:text-danger text-xs px-2 py-2.5 transition-colors">✕</button>
               </div>
             ))}
-            <button type="button" onClick={() => setRows(r => [...r, { playerId: '', chips: '', isNew: false, newName: '' }])}
+            <button type="button" onClick={() => setRows(r => [...r, newRow()])}
               className="text-xs text-muted hover:text-white tracking-widest text-left py-2 transition-colors">
               + ADD PLAYER
             </button>

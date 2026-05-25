@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import ChipValue from '@/components/ChipValue'
 import LeaderboardChart from '@/components/LeaderboardChart'
 import type { PlayerStats, LeaderboardSession } from '@/types'
@@ -32,7 +31,6 @@ function buildChartData(sessions: LeaderboardSession[], stats: PlayerStats[], mo
 export default function LeaderboardView({ stats, sessions }: { stats: PlayerStats[]; sessions: LeaderboardSession[] }) {
   const [view, setView] = useState<'table' | 'chart'>('table')
   const [chartMode, setChartMode] = useState<'chips' | 'cny'>('cny')
-  const router = useRouter()
   const playerNames = stats.map(s => s.player.name)
   const chartData = useMemo(() => buildChartData(sessions, stats, chartMode), [sessions, stats, chartMode])
 
@@ -69,18 +67,34 @@ export default function LeaderboardView({ stats, sessions }: { stats: PlayerStat
             </tr>
           </thead>
           <tbody>
+            {stats.length === 0 && (
+              <tr>
+                <td colSpan={7} className="py-12 text-center text-xs text-muted tracking-widest">NO PLAYERS YET</td>
+              </tr>
+            )}
             {stats.map((s, i) => (
-              <tr key={s.player.id} onClick={() => router.push(`/players/${s.player.id}`)}
-                className="border-b border-border hover:bg-surface transition-colors cursor-pointer">
-                <td className="py-4 text-muted text-xs">{i + 1}</td>
-                <td className="py-4">{s.player.name}</td>
-                <td className="py-4 text-right">
-                  <ChipValue chips={s.total_yuan} prefix="¥" />
+              <tr key={s.player.id} className="border-b border-border hover:bg-surface transition-colors">
+                <td className="py-4 text-muted text-xs">
+                  <Link href={`/players/${s.player.id}`} className="block">{i + 1}</Link>
                 </td>
-                <td className="py-4 text-right"><ChipValue chips={s.total_chips} /></td>
-                <td className="py-4 text-right text-muted">{s.sessions_played}</td>
-                <td className="py-4 text-right text-muted">{(s.win_rate * 100).toFixed(0)}%</td>
-                <td className="py-4 text-right text-muted">{s.pog_count}</td>
+                <td className="py-4">
+                  <Link href={`/players/${s.player.id}`} className="block">{s.player.name}</Link>
+                </td>
+                <td className="py-4 text-right">
+                  <Link href={`/players/${s.player.id}`} className="block"><ChipValue chips={s.total_yuan} prefix="¥" /></Link>
+                </td>
+                <td className="py-4 text-right">
+                  <Link href={`/players/${s.player.id}`} className="block"><ChipValue chips={s.total_chips} /></Link>
+                </td>
+                <td className="py-4 text-right text-muted">
+                  <Link href={`/players/${s.player.id}`} className="block">{s.sessions_played}</Link>
+                </td>
+                <td className="py-4 text-right text-muted">
+                  <Link href={`/players/${s.player.id}`} className="block">{(s.win_rate * 100).toFixed(0)}%</Link>
+                </td>
+                <td className="py-4 text-right text-muted">
+                  <Link href={`/players/${s.player.id}`} className="block">{s.pog_count}</Link>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -101,7 +115,7 @@ export default function LeaderboardView({ stats, sessions }: { stats: PlayerStat
             </div>
           </div>
           {sessions.length < 2 ? (
-            <p className="text-muted text-xs tracking-widest px-2">Need at least 2 sessions to show chart.</p>
+            <p className="text-muted text-xs tracking-widest px-2">NEED AT LEAST 2 SESSIONS TO SHOW CHART.</p>
           ) : (
             <LeaderboardChart data={chartData} players={playerNames} mode={chartMode} />
           )}

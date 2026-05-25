@@ -10,12 +10,17 @@ export default function PlayerNameEditor({ id, initialName }: { id: string; init
   const [savedName, setSavedName] = useState(initialName)
   const [saving, setSaving] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const cancelRef = useRef(false)
 
   useEffect(() => {
     if (editing) inputRef.current?.select()
   }, [editing])
 
   async function save() {
+    if (cancelRef.current) {
+      cancelRef.current = false
+      return
+    }
     const trimmed = name.trim()
     if (!trimmed || trimmed === savedName) {
       setName(savedName)
@@ -38,7 +43,11 @@ export default function PlayerNameEditor({ id, initialName }: { id: string; init
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Enter') save()
-    if (e.key === 'Escape') { setName(savedName); setEditing(false) }
+    if (e.key === 'Escape') {
+      cancelRef.current = true
+      setName(savedName)
+      setEditing(false)
+    }
   }
 
   if (editing) {

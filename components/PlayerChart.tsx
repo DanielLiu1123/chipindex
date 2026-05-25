@@ -1,5 +1,6 @@
 'use client'
 
+import { useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 
@@ -19,10 +20,10 @@ export default function PlayerChart({ data, positive, mode }: { data: Point[]; p
   const sessionKey = mode === 'cny' ? 'cny' : 'chips'
   const color = positive ? '#00ff88' : '#ff4444'
 
-  const bestIdx = data.reduce((bi, p, i) => (p[sessionKey] > data[bi][sessionKey] ? i : bi), 0)
-  const worstIdx = data.reduce((wi, p, i) => (p[sessionKey] < data[wi][sessionKey] ? i : wi), 0)
+  const bestIdx = useMemo(() => data.reduce((bi, p, i) => (p[sessionKey] > data[bi][sessionKey] ? i : bi), 0), [data, sessionKey])
+  const worstIdx = useMemo(() => data.reduce((wi, p, i) => (p[sessionKey] < data[wi][sessionKey] ? i : wi), 0), [data, sessionKey])
 
-  const CustomDot = (props: any) => {
+  const CustomDot = useCallback((props: any) => {
     const { cx, cy, index, payload } = props
     const isBest = index === bestIdx
     const isWorst = index === worstIdx
@@ -51,9 +52,9 @@ export default function PlayerChart({ data, positive, mode }: { data: Point[]; p
         )}
       </g>
     )
-  }
+  }, [bestIdx, worstIdx, color, router])
 
-  const CustomActiveDot = (props: any) => {
+  const CustomActiveDot = useCallback((props: any) => {
     const { cx, cy, payload } = props
     return (
       <circle
@@ -65,7 +66,7 @@ export default function PlayerChart({ data, positive, mode }: { data: Point[]; p
         onClick={() => router.push(`/sessions/${payload.session_id}`)}
       />
     )
-  }
+  }, [color, router])
 
   return (
     <ResponsiveContainer width="100%" height={220}>
@@ -112,8 +113,8 @@ export default function PlayerChart({ data, positive, mode }: { data: Point[]; p
           dataKey={dataKey}
           stroke={color}
           strokeWidth={1.5}
-          dot={<CustomDot />}
-          activeDot={<CustomActiveDot />}
+          dot={CustomDot}
+          activeDot={CustomActiveDot}
         />
       </LineChart>
     </ResponsiveContainer>
