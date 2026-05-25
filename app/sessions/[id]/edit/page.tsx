@@ -12,6 +12,7 @@ export default function EditSessionPage() {
   const { id } = useParams<{ id: string }>()
   const [date, setDate] = useState('')
   const [exchangeRate, setExchangeRate] = useState('')
+  const [description, setDescription] = useState('')
   const [rows, setRows] = useState<EntryRow[]>([])
   const [players, setPlayers] = useState<Player[]>([])
   const [submitting, setSubmitting] = useState(false)
@@ -26,6 +27,7 @@ export default function EditSessionPage() {
       setPlayers(ps)
       setDate(session.date ?? '')
       setExchangeRate(session.exchange_rate ? String(session.exchange_rate) : '')
+      setDescription(session.description ?? '')
       setRows((session.session_entries ?? []).map((e: any) => ({
         playerId: e.player_id,
         chips: String(e.chips),
@@ -62,7 +64,7 @@ export default function EditSessionPage() {
       const res = await fetch(`/api/sessions/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date, exchange_rate: exchangeRate ? Number(exchangeRate) : null, entries }),
+        body: JSON.stringify({ date, exchange_rate: exchangeRate ? Number(exchangeRate) : null, description: description || null, entries }),
       })
       if (!res.ok) {
         const body = await res.json()
@@ -99,6 +101,11 @@ export default function EditSessionPage() {
             <input type="number" value={exchangeRate} onChange={e => setExchangeRate(e.target.value)} placeholder="40" min="1"
               className="w-full bg-surface border border-border text-white text-sm px-4 py-3 outline-none focus:border-white transition-colors placeholder:text-muted" />
           </div>
+        </div>
+        <div>
+          <label className="text-xs text-muted tracking-widest block mb-2">DESCRIPTION <span className="text-muted">(opt)</span></label>
+          <input type="text" value={description} onChange={e => setDescription(e.target.value)} placeholder="e.g. 周五局"
+            className="w-full bg-surface border border-border text-white text-sm px-4 py-3 outline-none focus:border-white transition-colors placeholder:text-muted" />
         </div>
         <div>
           <label className="text-xs text-muted tracking-widest block mb-3">PLAYERS</label>

@@ -16,15 +16,16 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   if (!await isAuthenticated()) return Response.json({ error: 'Unauthorized' }, { status: 401 })
   const { id } = await params
-  const { date, exchange_rate, entries } = await req.json() as {
+  const { date, exchange_rate, description, entries } = await req.json() as {
     date: string
     exchange_rate: number | null
+    description: string | null
     entries: { player_id: string; chips: number }[]
   }
 
   const { error: updateError } = await db
     .from('sessions')
-    .update({ date, exchange_rate })
+    .update({ date, exchange_rate, description: description || null })
     .eq('id', id)
   if (updateError) return Response.json({ error: updateError.message }, { status: 500 })
 
