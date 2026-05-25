@@ -4,22 +4,33 @@ import type { Player, PlayerStats } from '@/types'
 
 export const dynamic = 'force-dynamic'
 
+interface SessionEntry {
+  player_id: string
+  chips: number
+}
+
+interface Session {
+  id: string
+  date: string
+  exchange_rate: number
+  session_entries: SessionEntry[]
+}
+
 export default async function LeaderboardPage() {
   const [{ data: players }, { data: sessions }] = await Promise.all([
     db.from('players').select('*').is('deleted_at', null),
     db.from('sessions').select('id, date, exchange_rate, session_entries(player_id, chips)').is('deleted_at', null).order('date', { ascending: true }),
   ])
 
-  const allSessions = (sessions ?? []) as any[]
+  const allSessions = (sessions ?? []) as unknown as Session[]
 
-  // precompute max chips per session to identify top winner
   const sessionMaxChips = new Map<string, number>()
   for (const session of allSessions) {
-    const chips = (session.session_entries ?? []).map((e: any) => e.chips)
+    const chips = session.session_entries.map(e => e.chips)
     sessionMaxChips.set(session.id, chips.length > 0 ? Math.max(...chips) : 0)
   }
 
-  const stats: PlayerStats[] = (players ?? [])
+  const stats: PlayerStats[] = (players ?? [] as Player[])
     .map((player: Player) => {
       let total_chips = 0
       let total_yuan = 0
@@ -28,7 +39,7 @@ export default async function LeaderboardPage() {
       let pog_count = 0
 
       for (const session of allSessions) {
-        const entry = (session.session_entries ?? []).find((e: any) => e.player_id === player.id)
+        const entry = session.session_entries.find(e => e.player_id === player.id)
         if (!entry) continue
         sessions_played++
         total_chips += entry.chips
@@ -47,11 +58,11 @@ export default async function LeaderboardPage() {
         pog_count,
       }
     })
-    .sort((a: PlayerStats, b: PlayerStats) => {
+    .sort((a, b) => {
       if (b.total_yuan !== a.total_yuan) return b.total_yuan - a.total_yuan
       if (b.total_chips !== a.total_chips) return b.total_chips - a.total_chips
       return a.player.name.localeCompare(b.player.name)
     })
 
-  return <LeaderboardView stats={stats} sessions={sessions ?? []} />
+  return <LeaderboardView stats={stats} sessions={allSessions} />
 }

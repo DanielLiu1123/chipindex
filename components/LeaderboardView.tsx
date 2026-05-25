@@ -19,20 +19,18 @@ function buildChartData(sessions: Session[], stats: PlayerStats[], mode: 'chips'
   const playerNames = stats.map(s => s.player.name)
   const playerIds = stats.map(s => s.player.id)
 
+  const cumulative = new Map<string, number>()
+  playerIds.forEach(pid => cumulative.set(pid, 0))
+
   return sorted.map(session => {
     const row: { date: string; [k: string]: string | number } = { date: session.date }
     playerIds.forEach((pid, i) => {
-      const allSessions = sorted.filter(s => s.date <= session.date)
-      const allEntries = allSessions.flatMap(s =>
-        s.session_entries
-          .filter(e => e.player_id === pid)
-          .map(e => ({ chips: e.chips, exchange_rate: s.exchange_rate }))
-      )
-      if (mode === 'cny') {
-        row[playerNames[i]] = Math.round(allEntries.reduce((sum, e) => sum + e.chips / e.exchange_rate, 0))
-      } else {
-        row[playerNames[i]] = allEntries.reduce((sum, e) => sum + e.chips, 0)
+      const entry = session.session_entries.find(e => e.player_id === pid)
+      if (entry) {
+        const delta = mode === 'cny' ? entry.chips / session.exchange_rate : entry.chips
+        cumulative.set(pid, (cumulative.get(pid) ?? 0) + delta)
       }
+      row[playerNames[i]] = mode === 'cny' ? Math.round(cumulative.get(pid) ?? 0) : (cumulative.get(pid) ?? 0)
     })
     return row
   })

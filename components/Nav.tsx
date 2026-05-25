@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 
 export default function Nav() {
@@ -16,7 +17,7 @@ export default function Nav() {
     <header className="border-b border-border">
       <div className="max-w-4xl mx-auto px-6 h-12 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 text-accent font-medium tracking-widest text-sm">
-          <img src="/icon.svg" alt="" width={20} height={20} />
+          <Image src="/icon.svg" alt="" width={20} height={20} />
           CHIPINDEX
         </Link>
         <nav className="flex items-center gap-6">
