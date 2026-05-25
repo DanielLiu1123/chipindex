@@ -464,3 +464,5 @@ dist/
 
 .mcp.json
 .env*
+
+.claude/
