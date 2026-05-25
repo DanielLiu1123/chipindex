@@ -2,7 +2,10 @@ import { cookies } from 'next/headers'
 
 const COOKIE = 'chipindex_auth'
 
+let cachedToken: string | null = null
+
 export async function generateToken(): Promise<string> {
+  if (cachedToken) return cachedToken
   const key = await crypto.subtle.importKey(
     'raw',
     new TextEncoder().encode('chipindex'),
@@ -15,9 +18,10 @@ export async function generateToken(): Promise<string> {
     key,
     new TextEncoder().encode(process.env.SHARED_PASSWORD!)
   )
-  return Array.from(new Uint8Array(sig))
+  cachedToken = Array.from(new Uint8Array(sig))
     .map(b => b.toString(16).padStart(2, '0'))
     .join('')
+  return cachedToken
 }
 
 export async function isAuthenticated(): Promise<boolean> {

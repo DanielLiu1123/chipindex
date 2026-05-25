@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import ChipValue from '@/components/ChipValue'
@@ -41,7 +41,7 @@ export default function LeaderboardView({ stats, sessions }: { stats: PlayerStat
   const [chartMode, setChartMode] = useState<'chips' | 'cny'>('cny')
   const router = useRouter()
   const playerNames = stats.map(s => s.player.name)
-  const chartData = buildChartData(sessions, stats, chartMode)
+  const chartData = useMemo(() => buildChartData(sessions, stats, chartMode), [sessions, stats, chartMode])
 
   return (
     <>
