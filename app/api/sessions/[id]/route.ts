@@ -18,7 +18,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   const { id } = await params
   const { date, exchange_rate, description, entries } = await req.json() as {
     date: string
-    exchange_rate: number | null
+    exchange_rate: number
     description: string | null
     entries: { player_id: string; chips: number }[]
   }

@@ -10,7 +10,7 @@ const COLORS = [
 
 interface ChartPoint { date: string; [player: string]: string | number }
 
-export default function LeaderboardChart({ data, players }: { data: ChartPoint[]; players: string[] }) {
+export default function LeaderboardChart({ data, players, mode }: { data: ChartPoint[]; players: string[]; mode: 'chips' | 'cny' }) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
 
   function toggle(name: string) {
@@ -39,7 +39,10 @@ export default function LeaderboardChart({ data, players }: { data: ChartPoint[]
             axisLine={false}
             tickLine={false}
             width={60}
-            tickFormatter={v => (v > 0 ? `+${v.toLocaleString()}` : v.toLocaleString())}
+            tickFormatter={v => mode === 'cny'
+              ? (v >= 0 ? `¥${v.toLocaleString()}` : `-¥${Math.abs(v).toLocaleString()}`)
+              : (v > 0 ? `+${v.toLocaleString()}` : v.toLocaleString())
+            }
           />
           <ReferenceLine y={0} stroke="#333333" strokeDasharray="3 3" />
           <Tooltip
@@ -54,6 +57,10 @@ export default function LeaderboardChart({ data, players }: { data: ChartPoint[]
             formatter={(v, name) => {
               if (!visible.has(name as string)) return [null, null]
               const n = Number(v)
+              if (mode === 'cny') {
+                const formatted = n >= 0 ? `¥${n.toLocaleString()}` : `-¥${Math.abs(n).toLocaleString()}`
+                return [formatted, name as string]
+              }
               return [n > 0 ? `+${n.toLocaleString()}` : n.toLocaleString(), name as string]
             }}
             labelStyle={{ color: '#666666', marginBottom: 4 }}

@@ -14,7 +14,7 @@ interface Session {
   id: string
   date: string
   description: string | null
-  exchange_rate: number | null
+  exchange_rate: number
   session_entries: SessionEntry[]
 }
 

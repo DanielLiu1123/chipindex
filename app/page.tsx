@@ -23,7 +23,7 @@ export default async function LeaderboardPage() {
         sessions_played++
         total_chips += entry.chips
         if (entry.chips > 0) wins++
-        if (session.exchange_rate) total_yuan += entry.chips / session.exchange_rate
+        total_yuan += entry.chips / session.exchange_rate
       }
 
       return {

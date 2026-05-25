@@ -9,10 +9,11 @@ import type { PlayerStats } from '@/types'
 interface Session {
   id: string
   date: string
+  exchange_rate: number
   session_entries: { player_id: string; chips: number }[]
 }
 
-function buildChartData(sessions: Session[], stats: PlayerStats[]) {
+function buildChartData(sessions: Session[], stats: PlayerStats[], mode: 'chips' | 'cny') {
   const sorted = [...sessions].sort((a, b) => a.date.localeCompare(b.date))
   const playerNames = stats.map(s => s.player.name)
   const playerIds = stats.map(s => s.player.id)
@@ -20,11 +21,17 @@ function buildChartData(sessions: Session[], stats: PlayerStats[]) {
   return sorted.map(session => {
     const row: { date: string; [k: string]: string | number } = { date: session.date }
     playerIds.forEach((pid, i) => {
-      const allEntries = sorted
-        .filter(s => s.date <= session.date)
-        .flatMap(s => s.session_entries)
-        .filter(e => e.player_id === pid)
-      row[playerNames[i]] = allEntries.reduce((sum, e) => sum + e.chips, 0)
+      const allSessions = sorted.filter(s => s.date <= session.date)
+      const allEntries = allSessions.flatMap(s =>
+        s.session_entries
+          .filter(e => e.player_id === pid)
+          .map(e => ({ chips: e.chips, exchange_rate: s.exchange_rate }))
+      )
+      if (mode === 'cny') {
+        row[playerNames[i]] = Math.round(allEntries.reduce((sum, e) => sum + e.chips / e.exchange_rate, 0))
+      } else {
+        row[playerNames[i]] = allEntries.reduce((sum, e) => sum + e.chips, 0)
+      }
     })
     return row
   })
@@ -32,8 +39,9 @@ function buildChartData(sessions: Session[], stats: PlayerStats[]) {
 
 export default function LeaderboardView({ stats, sessions }: { stats: PlayerStats[]; sessions: Session[] }) {
   const [view, setView] = useState<'table' | 'chart'>('table')
+  const [chartMode, setChartMode] = useState<'chips' | 'cny'>('cny')
   const playerNames = stats.map(s => s.player.name)
-  const chartData = buildChartData(sessions, stats)
+  const chartData = buildChartData(sessions, stats, chartMode)
 
   return (
     <>
@@ -60,8 +68,8 @@ export default function LeaderboardView({ stats, sessions }: { stats: PlayerStat
             <tr className="border-b border-border text-muted text-xs tracking-widest">
               <th className="text-left py-3 font-normal w-8">#</th>
               <th className="text-left py-3 font-normal">PLAYER</th>
-              <th className="text-right py-3 font-normal">CHIPS</th>
               <th className="text-right py-3 font-normal">CNY</th>
+              <th className="text-right py-3 font-normal">CHIPS</th>
               <th className="text-right py-3 font-normal">SESSIONS</th>
               <th className="text-right py-3 font-normal">WIN%</th>
             </tr>
@@ -75,10 +83,10 @@ export default function LeaderboardView({ stats, sessions }: { stats: PlayerStat
                     {s.player.name}
                   </Link>
                 </td>
-                <td className="py-4 text-right"><ChipValue chips={s.total_chips} /></td>
                 <td className="py-4 text-right">
                   <ChipValue chips={s.total_yuan} prefix="¥" />
                 </td>
+                <td className="py-4 text-right"><ChipValue chips={s.total_chips} /></td>
                 <td className="py-4 text-right text-muted">{s.sessions_played}</td>
                 <td className="py-4 text-right text-muted">{(s.win_rate * 100).toFixed(0)}%</td>
               </tr>
@@ -87,10 +95,23 @@ export default function LeaderboardView({ stats, sessions }: { stats: PlayerStat
         </table>
       ) : (
         <div className="-mx-2">
+          <div className="flex justify-end px-2 mb-4">
+            <div className="flex gap-3">
+              <button onClick={() => setChartMode('cny')}
+                className={`text-xs tracking-widest transition-colors ${chartMode === 'cny' ? 'text-white' : 'text-muted hover:text-white'}`}>
+                CNY
+              </button>
+              <span className="text-muted text-xs">/</span>
+              <button onClick={() => setChartMode('chips')}
+                className={`text-xs tracking-widest transition-colors ${chartMode === 'chips' ? 'text-white' : 'text-muted hover:text-white'}`}>
+                CHIPS
+              </button>
+            </div>
+          </div>
           {sessions.length < 2 ? (
             <p className="text-muted text-xs tracking-widest px-2">Need at least 2 sessions to show chart.</p>
           ) : (
-            <LeaderboardChart data={chartData} players={playerNames} />
+            <LeaderboardChart data={chartData} players={playerNames} mode={chartMode} />
           )}
         </div>
       )}

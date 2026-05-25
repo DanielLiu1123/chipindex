@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   if (!await isAuthenticated()) return Response.json({ error: 'Unauthorized' }, { status: 401 })
   const { date, exchange_rate, description, entries } = await req.json() as {
     date: string
-    exchange_rate: number | null
+    exchange_rate: number
     description: string | null
     entries: { player_id: string; chips: number }[]
   }

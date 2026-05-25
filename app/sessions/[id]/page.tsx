@@ -26,7 +26,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
       </div>
       <div className="mb-2">
         <span className="text-xs text-muted">
-          {session?.exchange_rate ? `${session.exchange_rate} chips = 1 yuan` : 'no rate set'}
+          {session?.exchange_rate} chips = 1 CNY
         </span>
       </div>
       <div className="mb-6">
@@ -37,7 +37,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
           <tr className="border-b border-border text-muted text-xs tracking-widest">
             <th className="text-left py-3 font-normal">PLAYER</th>
             <th className="text-right py-3 font-normal">CHIPS</th>
-            {session?.exchange_rate && <th className="text-right py-3 font-normal">YUAN</th>}
+            <th className="text-right py-3 font-normal">CNY</th>
           </tr>
         </thead>
         <tbody>
@@ -49,11 +49,9 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
                 </Link>
               </td>
               <td className="py-4 text-right"><ChipValue chips={e.chips} /></td>
-              {session?.exchange_rate && (
-                <td className="py-4 text-right text-muted">
-                  <ChipValue chips={Math.round(e.chips / session.exchange_rate)} />
-                </td>
-              )}
+              <td className="py-4 text-right text-muted">
+                <ChipValue chips={Math.round(e.chips / session!.exchange_rate)} />
+              </td>
             </tr>
           ))}
         </tbody>
@@ -61,7 +59,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
           <tr className="text-muted text-xs">
             <td className="pt-4">SUM</td>
             <td className="pt-4 text-right"><ChipValue chips={total} /></td>
-            {session?.exchange_rate && <td />}
+            <td />
           </tr>
         </tfoot>
       </table>

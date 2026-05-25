@@ -64,7 +64,7 @@ export default function EditSessionPage() {
       const res = await fetch(`/api/sessions/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date, exchange_rate: exchangeRate ? Number(exchangeRate) : null, description: description || null, entries }),
+        body: JSON.stringify({ date, exchange_rate: Number(exchangeRate), description: description || null, entries }),
       })
       if (!res.ok) {
         const body = await res.json()

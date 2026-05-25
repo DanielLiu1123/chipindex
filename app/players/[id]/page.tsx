@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { db } from '@/lib/db'
 import ChipValue from '@/components/ChipValue'
-import PlayerChart from '@/components/PlayerChart'
+import PlayerChartSection from '@/components/PlayerChartSection'
 import PlayerNameEditor from '@/components/PlayerNameEditor'
 
 export const dynamic = 'force-dynamic'
@@ -19,11 +19,15 @@ export default async function PlayerDetailPage({ params }: { params: Promise<{ i
     .sort((a: any, b: any) => a.sessions.date.localeCompare(b.sessions.date))
 
   let cumulative = 0
+  let cumulativeCny = 0
   const history = sessionsSorted.map((e: any) => {
     cumulative += e.chips
-    return { date: e.sessions.date, chips: e.chips, cumulative }
+    const cny = Math.round(e.chips / e.sessions.exchange_rate)
+    cumulativeCny += cny
+    return { date: e.sessions.date, chips: e.chips, cumulative, cny, cumulative_cny: cumulativeCny }
   })
 
+  const totalCny = history.length > 0 ? history[history.length - 1].cumulative_cny : 0
   const totalChips = history.length > 0 ? history[history.length - 1].cumulative : 0
   const wins = sessionsSorted.filter((e: any) => e.chips > 0).length
 
@@ -37,15 +41,12 @@ export default async function PlayerDetailPage({ params }: { params: Promise<{ i
         <div className="flex gap-6 text-xs text-muted">
           <span>{sessionsSorted.length} sessions</span>
           <span>{wins} wins</span>
-          <ChipValue chips={totalChips} className="text-sm" />
+          <ChipValue chips={totalCny} prefix="¥" className="text-sm" />
         </div>
       </div>
 
       {history.length > 1 && (
-        <div className="mb-10 -mx-2">
-          <p className="text-xs text-muted tracking-widest mb-4 mx-2">CUMULATIVE CHIPS</p>
-          <PlayerChart data={history} positive={totalChips >= 0} />
-        </div>
+        <PlayerChartSection data={history} totalCny={totalCny} totalChips={totalChips} />
       )}
 
       <p className="text-xs text-muted tracking-widest mb-4">SESSION HISTORY</p>
@@ -53,8 +54,9 @@ export default async function PlayerDetailPage({ params }: { params: Promise<{ i
         <thead>
           <tr className="border-b border-border text-muted text-xs tracking-widest">
             <th className="text-left py-3 font-normal">DATE</th>
+            <th className="text-right py-3 font-normal">CNY</th>
             <th className="text-right py-3 font-normal">CHIPS</th>
-            <th className="text-right py-3 font-normal">CUMULATIVE</th>
+            <th className="text-right py-3 font-normal">CUMULATIVE CNY</th>
           </tr>
         </thead>
         <tbody>
@@ -67,8 +69,9 @@ export default async function PlayerDetailPage({ params }: { params: Promise<{ i
                     {row.date}
                   </Link>
                 </td>
+                <td className="py-4 text-right"><ChipValue chips={row.cny} prefix="¥" /></td>
                 <td className="py-4 text-right"><ChipValue chips={row.chips} /></td>
-                <td className="py-4 text-right"><ChipValue chips={row.cumulative} /></td>
+                <td className="py-4 text-right"><ChipValue chips={row.cumulative_cny} prefix="¥" /></td>
               </tr>
             )
           })}
