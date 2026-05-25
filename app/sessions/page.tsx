@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import ConfirmModal from '@/components/ConfirmModal'
 
 interface SessionEntry {
   chips: number
@@ -27,6 +28,7 @@ function getWinner(entries: SessionEntry[]): { name: string; player_id: string }
 export default function SessionsPage() {
   const router = useRouter()
   const [sessions, setSessions] = useState<Session[]>([])
+  const [confirmId, setConfirmId] = useState<string | null>(null)
 
   useEffect(() => {
     fetchSessions()
@@ -39,13 +41,20 @@ export default function SessionsPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!window.confirm('Delete this session?')) return
     await fetch(`/api/sessions/${id}`, { method: 'DELETE' })
     setSessions(s => s.filter(session => session.id !== id))
+    setConfirmId(null)
   }
 
   return (
     <>
+      <ConfirmModal
+        open={confirmId !== null}
+        title="Delete this session?"
+        description="This action cannot be undone."
+        onConfirm={() => confirmId && handleDelete(confirmId)}
+        onCancel={() => setConfirmId(null)}
+      />
       <div className="flex items-baseline justify-end mb-6">
         <Link href="/sessions/new" className="text-xs text-accent tracking-widest hover:underline">+ NEW SESSION</Link>
       </div>
@@ -79,7 +88,7 @@ export default function SessionsPage() {
               <td className="py-4 text-right text-muted">{s.exchange_rate ? `${s.exchange_rate}:1` : '—'}</td>
               <td className="py-4 text-right">
                 <button
-                  onClick={e => { e.stopPropagation(); handleDelete(s.id) }}
+                  onClick={e => { e.stopPropagation(); setConfirmId(s.id) }}
                   className="text-xs font-medium tracking-widest text-red-500 hover:text-red-400 border border-red-500/40 hover:border-red-400 px-2.5 py-1 transition-colors">
                   DELETE
                 </button>
