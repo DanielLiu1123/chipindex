@@ -5,7 +5,7 @@ export async function GET() {
   if (!await isAuthenticated()) return Response.json({ error: 'Unauthorized' }, { status: 401 })
   const { data, error } = await db
     .from('sessions')
-    .select('*, session_entries(count)')
+    .select('*, session_entries(chips, player_id, players(name))')
     .is('deleted_at', null)
     .order('date', { ascending: false })
   if (error) return Response.json({ error: error.message }, { status: 500 })

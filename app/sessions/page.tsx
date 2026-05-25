@@ -4,12 +4,24 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
+interface SessionEntry {
+  chips: number
+  player_id: string
+  players: { name: string } | null
+}
+
 interface Session {
   id: string
   date: string
   description: string | null
   exchange_rate: number | null
-  session_entries: { count: number }[]
+  session_entries: SessionEntry[]
+}
+
+function getWinner(entries: SessionEntry[]): { name: string; player_id: string } | null {
+  if (!entries || entries.length === 0) return null
+  const top = entries.reduce((best, e) => e.chips > best.chips ? e : best, entries[0])
+  return top.players ? { name: top.players.name, player_id: top.player_id } : null
 }
 
 export default function SessionsPage() {
@@ -42,6 +54,7 @@ export default function SessionsPage() {
           <tr className="border-b border-border text-muted text-xs tracking-widest">
             <th className="text-left py-3 font-normal">DATE</th>
             <th className="text-right py-3 font-normal">PLAYERS</th>
+            <th className="text-right py-3 font-normal">WINNER</th>
             <th className="text-right py-3 font-normal">RATE</th>
             <th className="text-right py-3 font-normal"></th>
           </tr>
@@ -54,7 +67,15 @@ export default function SessionsPage() {
                 <div>{s.date}</div>
                 {s.description && <div className="text-xs text-muted mt-0.5">{s.description}</div>}
               </td>
-              <td className="py-4 text-right text-muted">{s.session_entries?.[0]?.count ?? 0}</td>
+              <td className="py-4 text-right text-muted">{s.session_entries?.length ?? 0}</td>
+              <td className="py-4 text-right">
+                {(() => {
+                  const w = getWinner(s.session_entries)
+                  return w
+                    ? <Link href={`/players/${w.player_id}`} onClick={e => e.stopPropagation()} className="text-muted hover:text-accent transition-colors">{w.name}</Link>
+                    : <span className="text-muted">—</span>
+                })()}
+              </td>
               <td className="py-4 text-right text-muted">{s.exchange_rate ? `${s.exchange_rate}:1` : '—'}</td>
               <td className="py-4 text-right">
                 <button
