@@ -15,7 +15,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  if (!authed) return NextResponse.redirect(new URL('/login', request.url))
+  if (!authed) {
+    const loginUrl = new URL('/login', request.url)
+    loginUrl.searchParams.set('next', pathname)
+    return NextResponse.redirect(loginUrl)
+  }
   return NextResponse.next()
 }
 
