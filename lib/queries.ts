@@ -2,10 +2,9 @@ import { db } from './db'
 import { BUY_IN_UNIT } from './synth'
 import type { Player } from '@/types'
 
-// ── Central place for all table reads. Net result chips come from the
-//    session_result view (chips = final_chips - Σ buy_in.amount). The view
-//    does not carry session.deleted_at/status, so we always filter on the session
-//    table first and then join the view results by session_id.
+// ── Central place for all table reads. Net result chips are computed as
+//    final_chips - Σ buy_in.amount over non-deleted rows (see resultsBySession).
+//    Session-level deleted_at/status is filtered on the session table first.
 
 export interface ResultEntry {
   player_id: string
@@ -20,17 +19,24 @@ export interface LeaderboardSessionRow {
   session_entries: ResultEntry[]
 }
 
+// Net chips per (session, player) = final_chips - Σ buy_in.amount, over non-deleted rows.
 async function resultsBySession(sessionIds: string[]): Promise<Map<string, ResultEntry[]>> {
   const map = new Map<string, ResultEntry[]>()
   if (sessionIds.length === 0) return map
-  const { data } = await db
-    .from('session_result')
-    .select('session_id, player_id, chips')
-    .in('session_id', sessionIds)
-  for (const r of (data ?? []) as { session_id: string; player_id: string; chips: number }[]) {
-    const arr = map.get(r.session_id) ?? []
-    arr.push({ player_id: r.player_id, chips: r.chips })
-    map.set(r.session_id, arr)
+  const [{ data: parts }, { data: buyins }] = await Promise.all([
+    db.from('session_participant').select('session_id, player_id, final_chips').is('deleted_at', null).in('session_id', sessionIds),
+    db.from('buy_in').select('session_id, player_id, amount').is('deleted_at', null).in('session_id', sessionIds),
+  ])
+  const buyinByKey = new Map<string, number>()
+  for (const b of (buyins ?? []) as { session_id: string; player_id: string; amount: number }[]) {
+    const key = `${b.session_id}|${b.player_id}`
+    buyinByKey.set(key, (buyinByKey.get(key) ?? 0) + b.amount)
+  }
+  for (const p of (parts ?? []) as { session_id: string; player_id: string; final_chips: number | null }[]) {
+    const chips = (p.final_chips ?? 0) - (buyinByKey.get(`${p.session_id}|${p.player_id}`) ?? 0)
+    const arr = map.get(p.session_id) ?? []
+    arr.push({ player_id: p.player_id, chips })
+    map.set(p.session_id, arr)
   }
   return map
 }
@@ -193,13 +199,11 @@ export async function getSessionDetail(id: string): Promise<SessionDetail | null
     .eq('id', id)
     .single()
   if (!session) return null
-  const [{ data: parts }, { data: buyins }, results, names] = await Promise.all([
+  const [{ data: parts }, { data: buyins }, names] = await Promise.all([
     db.from('session_participant').select('id, player_id, final_chips').is('deleted_at', null).eq('session_id', id),
     db.from('buy_in').select('player_id, amount, created_at').is('deleted_at', null).eq('session_id', id).order('created_at', { ascending: true }),
-    resultsBySession([id]),
     playerNameMap(),
   ])
-  const chipsByPlayer = new Map((results.get(id) ?? []).map(e => [e.player_id, e.chips]))
   const flowByPlayer = new Map<string, number[]>()
   for (const b of (buyins ?? []) as { player_id: string; amount: number }[]) {
     const arr = flowByPlayer.get(b.player_id) ?? []
@@ -208,12 +212,13 @@ export async function getSessionDetail(id: string): Promise<SessionDetail | null
   }
   const entries: SessionDetailEntry[] = ((parts ?? []) as { id: string; player_id: string; final_chips: number | null }[]).map(p => {
     const flow = flowByPlayer.get(p.player_id) ?? []
+    const total_buyin = flow.reduce((s, a) => s + a, 0)
     return {
       id: p.id,
       player_id: p.player_id,
-      chips: chipsByPlayer.get(p.player_id) ?? 0,
+      chips: (p.final_chips ?? 0) - total_buyin,
       final_chips: p.final_chips,
-      total_buyin: flow.reduce((s, a) => s + a, 0),
+      total_buyin,
       buy_ins: flow,
       players: { name: names.get(p.player_id) ?? p.player_id },
     }
@@ -354,32 +359,30 @@ export async function getPlayerDetail(id: string): Promise<PlayerDetail | null> 
   if (!player) return null
 
   // sessions this player took part in that are settled and not deleted
-  const { data: myResults } = await db
-    .from('session_result')
-    .select('session_id, chips')
+  const { data: myParts } = await db
+    .from('session_participant')
+    .select('session_id')
     .eq('player_id', id)
-  const myRows = (myResults ?? []) as { session_id: string; chips: number }[]
-  if (myRows.length === 0) return { id: player.id, name: player.name, entries: [] }
+    .is('deleted_at', null)
+  const mySessionIds = ((myParts ?? []) as { session_id: string }[]).map(p => p.session_id)
+  if (mySessionIds.length === 0) return { id: player.id, name: player.name, entries: [] }
 
   const { data: sessions } = await db
     .from('session')
     .select('id, date, description, exchange_rate')
     .is('deleted_at', null)
     .eq('status', 'SETTLED')
-    .in('id', myRows.map(r => r.session_id))
+    .in('id', mySessionIds)
   const sessionRows = (sessions ?? []) as { id: string; date: string; description: string | null; exchange_rate: number }[]
-  const validIds = new Set(sessionRows.map(s => s.id))
-  const allBySession = await resultsBySession([...validIds])
+  const allBySession = await resultsBySession(sessionRows.map(s => s.id))
 
-  const entries: PlayerHistoryEntry[] = myRows
-    .filter(r => validIds.has(r.session_id))
-    .map(r => {
-      const s = sessionRows.find(x => x.id === r.session_id)!
-      return {
-        session_id: r.session_id,
-        chips: r.chips,
-        sessions: { ...s, session_entries: allBySession.get(r.session_id) ?? [] },
-      }
-    })
+  const entries: PlayerHistoryEntry[] = sessionRows.map(s => {
+    const all = allBySession.get(s.id) ?? []
+    return {
+      session_id: s.id,
+      chips: all.find(e => e.player_id === id)?.chips ?? 0,
+      sessions: { ...s, session_entries: all },
+    }
+  })
   return { id: player.id, name: player.name, entries }
 }
