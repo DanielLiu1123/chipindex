@@ -1,9 +1,10 @@
-// 把"净结果 net"合成为一条 buy_in + final_chips。
-// 用于事后录入/导入：只知道净输赢时，构造满足以下条件的买入与最终筹码——
-//   - amount 永远是 BUY_IN_UNIT 的整数倍
-//   - final_chips 永远 >= 0
-//   - final_chips - amount === net （净结果零误差）
-// 单局守恒（Σfinal === Σamount）在 Σnet === 0 时自动成立。
+// Synthesize a "net result" into a single buy_in + final_chips.
+// Used for after-the-fact entry/import: when only the net win/loss is known,
+// construct a buy-in and final chips satisfying:
+//   - amount is always an integer multiple of BUY_IN_UNIT
+//   - final_chips is always >= 0
+//   - final_chips - amount === net (zero error on the net result)
+// Per-session conservation (Σfinal === Σamount) holds automatically when Σnet === 0.
 export const BUY_IN_UNIT = 2000
 
 export function synthFromNet(net: number): { amount: number; final_chips: number } {

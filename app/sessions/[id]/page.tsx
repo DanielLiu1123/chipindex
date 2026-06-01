@@ -11,14 +11,14 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
   const status = await getSessionStatus(id)
   if (!status) notFound()
 
-  // OPEN 局 → 实时记账界面（与 settled 详情同一个 URL，按状态分流）
+  // OPEN session → live bookkeeping UI (same URL as settled detail, routed by status)
   if (status === 'OPEN') {
     const [session, players] = await Promise.all([getLiveSession(id), getPlayers()])
     if (!session) notFound()
     return <LiveSession session={session} allPlayers={players} />
   }
 
-  // SETTLED → 结算详情
+  // SETTLED → settlement detail
   const typed = await getSessionDetail(id)
   if (!typed) notFound()
 

@@ -13,7 +13,7 @@ function newRow(): EntryRow {
   return { uid: uid(), playerId: '', chips: '', isNew: false, newName: '' }
 }
 
-// 导入一场已结束的局：只录每人净结果 chips（服务端用 synthFromNet 合成 buy_in + final_chips）
+// Import a finished session: record only each player's net result chips (the server uses synthFromNet to build buy_in + final_chips)
 export default function SessionForm() {
   const router = useRouter()
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0])

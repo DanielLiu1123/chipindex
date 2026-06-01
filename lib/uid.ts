@@ -1,6 +1,7 @@
-// 生成表单行的本地 id（仅用作 React key / 临时标识，非安全令牌）。
-// crypto.randomUUID 只在安全上下文(HTTPS/localhost)可用，手机经局域网明文
-// HTTP 访问时不存在，故降级到 Math.random。
+// Generate a local id for form rows (used only as a React key / transient
+// identifier, not a security token). crypto.randomUUID is only available in
+// secure contexts (HTTPS/localhost); it is missing when a phone hits the dev
+// server over plain HTTP on the LAN, so fall back to Math.random.
 export function uid(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID()

@@ -10,8 +10,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   return Response.json(data)
 }
 
-// 编辑已结算的局：直接改买入流水 + 最终筹码。net 由视图派生。
-// 整局重写 participant + buy_in；buy_in 的 created_at 由前端回传以保留原始时间戳。
+// Edit a settled session: directly change the buy-in flow + final chips. Net is derived by the view.
+// Rewrite participant + buy_in for the whole session; buy_in.created_at is sent back by the client to preserve original timestamps.
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   if (!await isAuthenticated()) return Response.json({ error: 'Unauthorized' }, { status: 401 })
   const { id } = await params
@@ -25,7 +25,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
   if (!participants || participants.length === 0) return Response.json({ error: 'At least one player required' }, { status: 400 })
 
-  // 校验
+  // validation
   let totalBuyin = 0
   let totalFinal = 0
   for (const p of participants) {
@@ -42,7 +42,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     totalFinal += p.final_chips
   }
 
-  // 守恒校验
+  // conservation check
   const diff = totalFinal - totalBuyin
   if (diff !== 0 && !force) {
     return Response.json({ error: 'unbalanced', diff, total_buyin: totalBuyin, total_final: totalFinal }, { status: 422 })
@@ -55,7 +55,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     .eq('id', id)
   if (updateError) return Response.json({ error: updateError.message }, { status: 500 })
 
-  // 整局重写
+  // rewrite the whole session
   const [{ error: delP }, { error: delB }] = await Promise.all([
     db.from('session_participant').delete().eq('session_id', id),
     db.from('buy_in').delete().eq('session_id', id),

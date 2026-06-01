@@ -1,7 +1,7 @@
 import { isAuthenticated } from '@/lib/auth'
 import { db } from '@/lib/db'
 
-// 撤销单笔买入（软删除）
+// Revoke a single buy-in (soft delete)
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string; buyinId: string }> }) {
   if (!await isAuthenticated()) return Response.json({ error: 'Unauthorized' }, { status: 401 })
   const { id, buyinId } = await params

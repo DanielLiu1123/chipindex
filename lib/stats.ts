@@ -1,7 +1,8 @@
 import type { Player } from '@/types'
 import type { LeaderboardSessionRow, PlayerDetail } from '@/lib/queries'
 
-// ── 集中所有"派生统计"：POG / wins / 累计。queries.ts 负责"读"，本文件负责"算"。
+// All derived statistics live here: POG / wins / cumulative totals.
+// queries.ts is responsible for reading; this file is responsible for computing.
 
 export interface PlayerStats {
   player: Player
@@ -13,13 +14,14 @@ export interface PlayerStats {
   pog_count: number
 }
 
-// 单局最高筹码（player of the game 的基准）。空局返回 null，从而任何人都不计 POG。
+// Highest chips in a session (the basis for player-of-the-game). Returns null
+// for an empty session, so nobody is counted as POG.
 function topChips(entries: { chips: number }[]): number | null {
   if (entries.length === 0) return null
   return entries.reduce((m, e) => (e.chips > m ? e.chips : m), entries[0].chips)
 }
 
-// 首页排行榜：按 CNY → chips → 名字排序
+// Home leaderboard: sorted by CNY → chips → name
 export function computeLeaderboardStats(players: Player[], sessions: LeaderboardSessionRow[]): PlayerStats[] {
   const sessionTop = new Map<string, number | null>()
   for (const s of sessions) sessionTop.set(s.id, topChips(s.session_entries))
@@ -59,7 +61,7 @@ export function computeLeaderboardStats(players: Player[], sessions: Leaderboard
     })
 }
 
-// ── player 详情：按日期排序的累计曲线 + 汇总
+// Player detail: date-sorted cumulative curve + summary
 export interface HistoryPoint {
   date: string
   session_id: string

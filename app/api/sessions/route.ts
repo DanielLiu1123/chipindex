@@ -13,12 +13,12 @@ export async function POST(req: Request) {
     players?: { player_id: string; initial_buyin: number }[]
   }
 
-  // status === 'OPEN' → 开一局：建 OPEN session + participants + 初始买入（amount>0 才落买入）
+  // status === 'OPEN' → open a session: create OPEN session + participants + initial buy-ins (only persist a buy-in when amount>0)
   if (body.status === 'OPEN') {
     return startSession(body)
   }
 
-  // 否则 → 事后导入一场已完成的局：net 合成 buy_in + final_chips
+  // otherwise → import a finished session after the fact: net synthesizes buy_in + final_chips
   const { date, exchange_rate, description, entries = [] } = body
 
   const { data: session, error } = await db

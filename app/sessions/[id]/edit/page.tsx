@@ -6,7 +6,7 @@ export default async function EditSessionPage({ params }: { params: Promise<{ id
   const { id } = await params
   const status = await getSessionStatus(id)
   if (!status) notFound()
-  // OPEN 局靠实时页编辑，没有 edit 表单
+  // OPEN sessions are edited via the live page; there is no edit form for them
   if (status === 'OPEN') redirect(`/sessions/${id}`)
   return <EditSessionForm sessionId={id} />
 }

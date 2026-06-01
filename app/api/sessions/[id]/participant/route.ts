@@ -1,7 +1,7 @@
 import { isAuthenticated } from '@/lib/auth'
 import { db } from '@/lib/db'
 
-// 把一个玩家加入本局（不带买入）。新建玩家请先调 /api/players。
+// Add a player to the session (without a buy-in). To create a new player, call /api/players first.
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   if (!await isAuthenticated()) return Response.json({ error: 'Unauthorized' }, { status: 401 })
   const { id } = await params
@@ -20,7 +20,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   return Response.json(data?.[0] ?? null, { status: 201 })
 }
 
-// 移除一个误加的玩家（连同其买入一起软删除）
+// Remove a mistakenly added player (soft-delete them along with their buy-ins)
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   if (!await isAuthenticated()) return Response.json({ error: 'Unauthorized' }, { status: 401 })
   const { id } = await params

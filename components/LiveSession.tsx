@@ -74,7 +74,7 @@ export default function LiveSession({ session, allPlayers }: { session: LiveSess
   }
 
   async function addExisting(player_id: string) {
-    // 加入即给一笔初始买入（= buy_in_unit），participant 由买入接口懒创建
+    // Joining grants an initial buy-in (= buy_in_unit); the participant is lazily created by the buy-in endpoint
     await act(() => fetch(`/api/sessions/${session.id}/buyin`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ player_id, amount: unit }),
@@ -117,7 +117,7 @@ export default function LiveSession({ session, allPlayers }: { session: LiveSess
     })
   }
 
-  // ── 结算 ──────────────────────────────────────────────
+  // ── settle ────────────────────────────────────────────
   const totalFinal = session.participants.reduce((s, p) => s + (Number(finals[p.player_id]) || 0), 0)
   const settleDiff = totalFinal - pot
   const allFinalsFilled = session.participants.every(p => finals[p.player_id] !== undefined && finals[p.player_id] !== '')
@@ -176,7 +176,7 @@ export default function LiveSession({ session, allPlayers }: { session: LiveSess
 
       {error && <p className="text-danger text-xs mb-4">{error}</p>}
 
-      {/* 参与者 + 买入 */}
+      {/* participants + buy-ins */}
       <div className="flex flex-col gap-1 mb-6">
         {session.participants.length === 0 && (
           <p className="text-muted text-xs tracking-widest py-6 text-center">NO PLAYERS YET — ADD SOMEONE BELOW</p>
@@ -231,7 +231,7 @@ export default function LiveSession({ session, allPlayers }: { session: LiveSess
         ))}
       </div>
 
-      {/* 加入玩家 */}
+      {/* add player */}
       {!settling && (
         <div className="mb-8">
           {addingNew ? (
@@ -256,7 +256,7 @@ export default function LiveSession({ session, allPlayers }: { session: LiveSess
         </div>
       )}
 
-      {/* 结算 */}
+      {/* settle */}
       {!settling ? (
         <button onClick={() => setSettling(true)} disabled={pending || session.participants.length === 0}
           className="w-full bg-white text-bg text-xs font-medium tracking-widest py-3 hover:bg-accent transition-colors disabled:opacity-40">

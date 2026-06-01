@@ -1,8 +1,8 @@
 import { isAuthenticated } from '@/lib/auth'
 import { db } from '@/lib/db'
 
-// 结算：录每人最终筹码，跑守恒校验（Σfinal === Σbuyin），通过则关局。
-// 守恒不平时默认拒绝（返回差额）；force=true 可强行结算（留下不平的历史，类似旧脏账）。
+// Settle: record each player's final chips, run the conservation check (Σfinal === Σbuyin), and close the session if it passes.
+// When conservation does not balance, reject by default (return the difference); force=true settles anyway (leaving unbalanced history, like old dirty books).
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   if (!await isAuthenticated()) return Response.json({ error: 'Unauthorized' }, { status: 401 })
   const { id } = await params
@@ -15,7 +15,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!session) return Response.json({ error: 'Session not found' }, { status: 404 })
   if (session.status !== 'OPEN') return Response.json({ error: 'Session is not open' }, { status: 409 })
 
-  // 当前参与者
+  // current participants
   const { data: parts } = await db
     .from('session_participant')
     .select('player_id')
@@ -24,7 +24,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const participantIds = new Set(((parts ?? []) as { player_id: string }[]).map(p => p.player_id))
   if (participantIds.size === 0) return Response.json({ error: 'No participants' }, { status: 400 })
 
-  // 校验 finals 覆盖所有参与者且合法
+  // verify finals cover all participants and are valid
   const finalMap = new Map<string, number>()
   for (const f of finals ?? []) {
     if (!Number.isInteger(f.final_chips) || f.final_chips < 0) {
@@ -36,7 +36,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (!finalMap.has(pid)) return Response.json({ error: `Missing final_chips for participant ${pid}` }, { status: 400 })
   }
 
-  // 守恒校验
+  // conservation check
   const { data: buyins } = await db
     .from('buy_in')
     .select('amount')
@@ -54,7 +54,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     )
   }
 
-  // 写入每人 final_chips + 锁定时刻
+  // write each player's final_chips + lock timestamp
   const now = new Date().toISOString()
   for (const pid of participantIds) {
     const { error } = await db

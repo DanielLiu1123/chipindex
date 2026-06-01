@@ -2,16 +2,17 @@ import { db } from './db'
 import { BUY_IN_UNIT } from './synth'
 import type { Player } from '@/types'
 
-// ── 集中所有"新表"读取。净结果 chips 取自 session_result 视图
-//    (chips = final_chips - Σ buy_in.amount)。视图不含 session.deleted_at/status，
-//    因此这里始终先按 session 表过滤，再用 session_id 关联视图结果。
+// ── Central place for all reads from the new tables. Net result chips come from
+//    the session_result view (chips = final_chips - Σ buy_in.amount). The view
+//    does not carry session.deleted_at/status, so we always filter on the session
+//    table first and then join the view results by session_id.
 
 export interface ResultEntry {
   player_id: string
   chips: number
 }
 
-// 排行榜 / 图表用：只含已结算、未删除的局
+// For leaderboard / charts: only settled, non-deleted sessions
 export interface LeaderboardSessionRow {
   id: string
   date: string
@@ -56,7 +57,7 @@ export async function getLeaderboardSessions(): Promise<LeaderboardSessionRow[]>
   return rows.map(s => ({ ...s, session_entries: byId.get(s.id) ?? [] }))
 }
 
-// ── sessions 列表 ──────────────────────────────────────────────
+// ── sessions list ──────────────────────────────────────────────
 export interface SessionListEntry {
   chips: number
   player_id: string
@@ -120,7 +121,7 @@ export async function getOpenSessions(): Promise<OpenSessionRow[]> {
   return rows.map(s => ({ ...s, player_count: counts.get(s.id) ?? 0, total_buyin: totals.get(s.id) ?? 0 }))
 }
 
-// 列表统一行：OPEN 置顶 + SETTLED 按日期倒序。OPEN 行 winner 为 null。
+// Unified list row: OPEN pinned on top + SETTLED by date descending. OPEN rows have winner = null.
 export interface SessionRow {
   id: string
   date: string
@@ -161,7 +162,7 @@ export async function getSessionsList(): Promise<SessionRow[]> {
   return [...openRows, ...settledRows]
 }
 
-// ── session 详情 ───────────────────────────────────────────────
+// ── session detail ─────────────────────────────────────────────
 export interface SessionDetailEntry {
   id: string
   player_id: string
@@ -220,7 +221,7 @@ export async function getSessionDetail(id: string): Promise<SessionDetail | null
   return { ...(session as Omit<SessionDetail, 'session_entries'>), session_entries: entries }
 }
 
-// 编辑表单加载用：返回每人的买入流水 + 最终筹码（net 在前端派生）
+// For loading the edit form: returns each player's buy-in flow + final chips (net is derived on the client)
 export interface EditBuyIn { amount: number; created_at: string }
 export interface EditParticipant {
   player_id: string
@@ -267,7 +268,7 @@ export async function getSessionForEdit(id: string): Promise<SessionForEdit | nu
   return { ...(session as Omit<SessionForEdit, 'participants'>), participants }
 }
 
-// ── 实时局（OPEN） ─────────────────────────────────────────────
+// ── live session (OPEN) ────────────────────────────────────────
 export interface LiveBuyIn {
   id: string
   player_id: string
@@ -329,13 +330,13 @@ export async function getLiveSession(id: string): Promise<LiveSessionData | null
   }
 }
 
-// ── player 详情 ────────────────────────────────────────────────
+// ── player detail ──────────────────────────────────────────────
 export interface PlayerHistorySession {
   id: string
   date: string
   description: string | null
   exchange_rate: number
-  session_entries: ResultEntry[] // 该局全员，用于 POG 计算
+  session_entries: ResultEntry[] // all players in the session, for POG computation
 }
 export interface PlayerHistoryEntry {
   session_id: string
@@ -352,7 +353,7 @@ export async function getPlayerDetail(id: string): Promise<PlayerDetail | null> 
   const { data: player } = await db.from('player').select('id, name').eq('id', id).single()
   if (!player) return null
 
-  // 该玩家参与过、且已结算未删除的局
+  // sessions this player took part in that are settled and not deleted
   const { data: myResults } = await db
     .from('session_result')
     .select('session_id, chips')
