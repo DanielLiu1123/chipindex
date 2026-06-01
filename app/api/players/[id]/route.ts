@@ -7,8 +7,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const { name } = await req.json() as { name: string }
   if (!name?.trim()) return Response.json({ error: 'Name required' }, { status: 400 })
   const { data, error } = await db
-    .from('players')
-    .update({ name: name.trim() })
+    .from('player')
+    .update({ name: name.trim(), updated_at: new Date().toISOString() })
     .eq('id', id)
     .select()
     .single()

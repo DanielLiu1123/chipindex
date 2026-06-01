@@ -1,5 +1,5 @@
-import SessionForm from '@/components/SessionForm'
+import NewSessionForm from '@/components/NewSessionForm'
 
 export default function NewSessionPage() {
-  return <SessionForm mode="new" />
+  return <NewSessionForm />
 }

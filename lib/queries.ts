@@ -1,0 +1,384 @@
+import { db } from './db'
+import { BUY_IN_UNIT } from './synth'
+import type { Player } from '@/types'
+
+// ── 集中所有"新表"读取。净结果 chips 取自 session_result 视图
+//    (chips = final_chips - Σ buy_in.amount)。视图不含 session.deleted_at/status，
+//    因此这里始终先按 session 表过滤，再用 session_id 关联视图结果。
+
+export interface ResultEntry {
+  player_id: string
+  chips: number
+}
+
+// 排行榜 / 图表用：只含已结算、未删除的局
+export interface LeaderboardSessionRow {
+  id: string
+  date: string
+  exchange_rate: number
+  session_entries: ResultEntry[]
+}
+
+async function resultsBySession(sessionIds: string[]): Promise<Map<string, ResultEntry[]>> {
+  const map = new Map<string, ResultEntry[]>()
+  if (sessionIds.length === 0) return map
+  const { data } = await db
+    .from('session_result')
+    .select('session_id, player_id, chips')
+    .in('session_id', sessionIds)
+  for (const r of (data ?? []) as { session_id: string; player_id: string; chips: number }[]) {
+    const arr = map.get(r.session_id) ?? []
+    arr.push({ player_id: r.player_id, chips: r.chips })
+    map.set(r.session_id, arr)
+  }
+  return map
+}
+
+async function playerNameMap(): Promise<Map<string, string>> {
+  const { data } = await db.from('player').select('id, name').is('deleted_at', null)
+  return new Map((data ?? []).map((p: { id: string; name: string }) => [p.id, p.name]))
+}
+
+export async function getPlayers(): Promise<Player[]> {
+  const { data } = await db.from('player').select('*').is('deleted_at', null).order('name')
+  return (data ?? []) as Player[]
+}
+
+export async function getLeaderboardSessions(): Promise<LeaderboardSessionRow[]> {
+  const { data: sessions } = await db
+    .from('session')
+    .select('id, date, exchange_rate')
+    .is('deleted_at', null)
+    .eq('status', 'SETTLED')
+    .order('date', { ascending: true })
+  const rows = (sessions ?? []) as { id: string; date: string; exchange_rate: number }[]
+  const byId = await resultsBySession(rows.map(s => s.id))
+  return rows.map(s => ({ ...s, session_entries: byId.get(s.id) ?? [] }))
+}
+
+// ── sessions 列表 ──────────────────────────────────────────────
+export interface SessionListEntry {
+  chips: number
+  player_id: string
+  players: { name: string } | null
+}
+export interface SessionListRow {
+  id: string
+  date: string
+  description: string | null
+  exchange_rate: number
+  session_entries: SessionListEntry[]
+}
+
+export async function getSettledSessionsList(): Promise<SessionListRow[]> {
+  const { data: sessions } = await db
+    .from('session')
+    .select('id, date, description, exchange_rate')
+    .is('deleted_at', null)
+    .eq('status', 'SETTLED')
+    .order('date', { ascending: false })
+  const rows = (sessions ?? []) as Omit<SessionListRow, 'session_entries'>[]
+  const [byId, names] = await Promise.all([resultsBySession(rows.map(s => s.id)), playerNameMap()])
+  return rows.map(s => ({
+    ...s,
+    session_entries: (byId.get(s.id) ?? []).map(e => ({
+      chips: e.chips,
+      player_id: e.player_id,
+      players: { name: names.get(e.player_id) ?? e.player_id },
+    })),
+  }))
+}
+
+export interface OpenSessionRow {
+  id: string
+  date: string
+  description: string | null
+  exchange_rate: number
+  started_at: string | null
+  player_count: number
+  total_buyin: number
+}
+
+export async function getOpenSessions(): Promise<OpenSessionRow[]> {
+  const { data: sessions } = await db
+    .from('session')
+    .select('id, date, description, exchange_rate, started_at')
+    .is('deleted_at', null)
+    .eq('status', 'OPEN')
+    .order('started_at', { ascending: false })
+  const rows = (sessions ?? []) as Omit<OpenSessionRow, 'player_count' | 'total_buyin'>[]
+  if (rows.length === 0) return []
+  const ids = rows.map(s => s.id)
+  const [{ data: parts }, { data: buyins }] = await Promise.all([
+    db.from('session_participant').select('session_id, player_id').is('deleted_at', null).in('session_id', ids),
+    db.from('buy_in').select('session_id, amount').is('deleted_at', null).in('session_id', ids),
+  ])
+  const counts = new Map<string, number>()
+  for (const p of (parts ?? []) as { session_id: string }[]) counts.set(p.session_id, (counts.get(p.session_id) ?? 0) + 1)
+  const totals = new Map<string, number>()
+  for (const b of (buyins ?? []) as { session_id: string; amount: number }[]) totals.set(b.session_id, (totals.get(b.session_id) ?? 0) + b.amount)
+  return rows.map(s => ({ ...s, player_count: counts.get(s.id) ?? 0, total_buyin: totals.get(s.id) ?? 0 }))
+}
+
+// 列表统一行：OPEN 置顶 + SETTLED 按日期倒序。OPEN 行 winner 为 null。
+export interface SessionRow {
+  id: string
+  date: string
+  description: string | null
+  exchange_rate: number
+  status: 'OPEN' | 'SETTLED'
+  player_count: number
+  winner: { name: string; player_id: string } | null
+}
+
+export async function getSessionsList(): Promise<SessionRow[]> {
+  const [settled, open] = await Promise.all([getSettledSessionsList(), getOpenSessions()])
+
+  const openRows: SessionRow[] = open.map(s => ({
+    id: s.id,
+    date: s.date,
+    description: s.description,
+    exchange_rate: s.exchange_rate,
+    status: 'OPEN',
+    player_count: s.player_count,
+    winner: null,
+  }))
+
+  const settledRows: SessionRow[] = settled.map(s => {
+    const entries = s.session_entries
+    const top = entries.length > 0 ? entries.reduce((best, e) => (e.chips > best.chips ? e : best), entries[0]) : null
+    return {
+      id: s.id,
+      date: s.date,
+      description: s.description,
+      exchange_rate: s.exchange_rate,
+      status: 'SETTLED',
+      player_count: entries.length,
+      winner: top && top.players ? { name: top.players.name, player_id: top.player_id } : null,
+    }
+  })
+
+  return [...openRows, ...settledRows]
+}
+
+// ── session 详情 ───────────────────────────────────────────────
+export interface SessionDetailEntry {
+  id: string
+  player_id: string
+  chips: number
+  final_chips: number | null
+  total_buyin: number
+  buy_ins: number[]
+  players: { name: string } | null
+}
+export interface SessionDetail {
+  id: string
+  date: string
+  description: string | null
+  exchange_rate: number
+  status: string
+  session_entries: SessionDetailEntry[]
+}
+
+export async function getSessionStatus(id: string): Promise<string | null> {
+  const { data } = await db.from('session').select('status').eq('id', id).is('deleted_at', null).single()
+  return data?.status ?? null
+}
+
+export async function getSessionDetail(id: string): Promise<SessionDetail | null> {
+  const { data: session } = await db
+    .from('session')
+    .select('id, date, description, exchange_rate, status')
+    .eq('id', id)
+    .single()
+  if (!session) return null
+  const [{ data: parts }, { data: buyins }, results, names] = await Promise.all([
+    db.from('session_participant').select('id, player_id, final_chips').is('deleted_at', null).eq('session_id', id),
+    db.from('buy_in').select('player_id, amount, created_at').is('deleted_at', null).eq('session_id', id).order('created_at', { ascending: true }),
+    resultsBySession([id]),
+    playerNameMap(),
+  ])
+  const chipsByPlayer = new Map((results.get(id) ?? []).map(e => [e.player_id, e.chips]))
+  const flowByPlayer = new Map<string, number[]>()
+  for (const b of (buyins ?? []) as { player_id: string; amount: number }[]) {
+    const arr = flowByPlayer.get(b.player_id) ?? []
+    arr.push(b.amount)
+    flowByPlayer.set(b.player_id, arr)
+  }
+  const entries: SessionDetailEntry[] = ((parts ?? []) as { id: string; player_id: string; final_chips: number | null }[]).map(p => {
+    const flow = flowByPlayer.get(p.player_id) ?? []
+    return {
+      id: p.id,
+      player_id: p.player_id,
+      chips: chipsByPlayer.get(p.player_id) ?? 0,
+      final_chips: p.final_chips,
+      total_buyin: flow.reduce((s, a) => s + a, 0),
+      buy_ins: flow,
+      players: { name: names.get(p.player_id) ?? p.player_id },
+    }
+  })
+  return { ...(session as Omit<SessionDetail, 'session_entries'>), session_entries: entries }
+}
+
+// 编辑表单加载用：返回每人的买入流水 + 最终筹码（net 在前端派生）
+export interface EditBuyIn { amount: number; created_at: string }
+export interface EditParticipant {
+  player_id: string
+  name: string
+  final_chips: number | null
+  buy_ins: EditBuyIn[]
+}
+export interface SessionForEdit {
+  date: string
+  exchange_rate: number
+  description: string | null
+  status: string
+  participants: EditParticipant[]
+}
+
+export async function getSessionForEdit(id: string): Promise<SessionForEdit | null> {
+  const { data: session } = await db
+    .from('session')
+    .select('date, exchange_rate, description, status')
+    .eq('id', id)
+    .single()
+  if (!session) return null
+
+  const [{ data: parts }, { data: buyins }, names] = await Promise.all([
+    db.from('session_participant').select('player_id, final_chips').is('deleted_at', null).eq('session_id', id).order('created_at', { ascending: true }),
+    db.from('buy_in').select('player_id, amount, created_at').is('deleted_at', null).eq('session_id', id).order('created_at', { ascending: true }),
+    playerNameMap(),
+  ])
+
+  const flowByPlayer = new Map<string, EditBuyIn[]>()
+  for (const b of (buyins ?? []) as { player_id: string; amount: number; created_at: string }[]) {
+    const arr = flowByPlayer.get(b.player_id) ?? []
+    arr.push({ amount: b.amount, created_at: b.created_at })
+    flowByPlayer.set(b.player_id, arr)
+  }
+
+  const participants: EditParticipant[] = ((parts ?? []) as { player_id: string; final_chips: number | null }[]).map(p => ({
+    player_id: p.player_id,
+    name: names.get(p.player_id) ?? p.player_id,
+    final_chips: p.final_chips,
+    buy_ins: flowByPlayer.get(p.player_id) ?? [],
+  }))
+
+  return { ...(session as Omit<SessionForEdit, 'participants'>), participants }
+}
+
+// ── 实时局（OPEN） ─────────────────────────────────────────────
+export interface LiveBuyIn {
+  id: string
+  player_id: string
+  amount: number
+  created_at: string
+}
+export interface LiveParticipant {
+  player_id: string
+  name: string
+  total_buyin: number
+  buy_ins: LiveBuyIn[]
+}
+export interface LiveSessionData {
+  id: string
+  date: string
+  description: string | null
+  exchange_rate: number
+  buy_in_unit: number
+  started_at: string | null
+  status: string
+  participants: LiveParticipant[]
+}
+
+export async function getLiveSession(id: string): Promise<LiveSessionData | null> {
+  const { data: session } = await db
+    .from('session')
+    .select('id, date, description, exchange_rate, buy_in_unit, started_at, status')
+    .eq('id', id)
+    .single()
+  if (!session) return null
+
+  const [{ data: parts }, { data: buyins }, names] = await Promise.all([
+    db.from('session_participant').select('player_id').is('deleted_at', null).eq('session_id', id).order('created_at', { ascending: true }),
+    db.from('buy_in').select('id, player_id, amount, created_at').is('deleted_at', null).eq('session_id', id).order('created_at', { ascending: true }),
+    playerNameMap(),
+  ])
+
+  const flowByPlayer = new Map<string, LiveBuyIn[]>()
+  for (const b of (buyins ?? []) as LiveBuyIn[]) {
+    const arr = flowByPlayer.get(b.player_id) ?? []
+    arr.push(b)
+    flowByPlayer.set(b.player_id, arr)
+  }
+
+  const participants: LiveParticipant[] = ((parts ?? []) as { player_id: string }[]).map(p => {
+    const flow = flowByPlayer.get(p.player_id) ?? []
+    return {
+      player_id: p.player_id,
+      name: names.get(p.player_id) ?? p.player_id,
+      total_buyin: flow.reduce((s, b) => s + b.amount, 0),
+      buy_ins: flow,
+    }
+  })
+
+  return {
+    ...(session as Omit<LiveSessionData, 'participants'>),
+    buy_in_unit: session.buy_in_unit ?? BUY_IN_UNIT,
+    participants,
+  }
+}
+
+// ── player 详情 ────────────────────────────────────────────────
+export interface PlayerHistorySession {
+  id: string
+  date: string
+  description: string | null
+  exchange_rate: number
+  session_entries: ResultEntry[] // 该局全员，用于 POG 计算
+}
+export interface PlayerHistoryEntry {
+  session_id: string
+  chips: number
+  sessions: PlayerHistorySession
+}
+export interface PlayerDetail {
+  id: string
+  name: string
+  entries: PlayerHistoryEntry[]
+}
+
+export async function getPlayerDetail(id: string): Promise<PlayerDetail | null> {
+  const { data: player } = await db.from('player').select('id, name').eq('id', id).single()
+  if (!player) return null
+
+  // 该玩家参与过、且已结算未删除的局
+  const { data: myResults } = await db
+    .from('session_result')
+    .select('session_id, chips')
+    .eq('player_id', id)
+  const myRows = (myResults ?? []) as { session_id: string; chips: number }[]
+  if (myRows.length === 0) return { id: player.id, name: player.name, entries: [] }
+
+  const { data: sessions } = await db
+    .from('session')
+    .select('id, date, description, exchange_rate')
+    .is('deleted_at', null)
+    .eq('status', 'SETTLED')
+    .in('id', myRows.map(r => r.session_id))
+  const sessionRows = (sessions ?? []) as { id: string; date: string; description: string | null; exchange_rate: number }[]
+  const validIds = new Set(sessionRows.map(s => s.id))
+  const allBySession = await resultsBySession([...validIds])
+
+  const entries: PlayerHistoryEntry[] = myRows
+    .filter(r => validIds.has(r.session_id))
+    .map(r => {
+      const s = sessionRows.find(x => x.id === r.session_id)!
+      return {
+        session_id: r.session_id,
+        chips: r.chips,
+        sessions: { ...s, session_entries: allBySession.get(r.session_id) ?? [] },
+      }
+    })
+  return { id: player.id, name: player.name, entries }
+}

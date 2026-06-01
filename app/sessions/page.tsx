@@ -1,43 +1,20 @@
 import Link from 'next/link'
-import { db } from '@/lib/db'
 import DeleteSessionButton from '@/components/DeleteSessionButton'
+import { getSessionsList } from '@/lib/queries'
 
 export const dynamic = 'force-dynamic'
 
-interface SessionEntry {
-  chips: number
-  player_id: string
-  players: { name: string } | null
-}
-
-interface Session {
-  id: string
-  date: string
-  description: string | null
-  exchange_rate: number
-  session_entries: SessionEntry[]
-}
-
-function getWinner(entries: SessionEntry[]): { name: string; player_id: string } | null {
-  if (!entries || entries.length === 0) return null
-  const top = entries.reduce((best, e) => e.chips > best.chips ? e : best, entries[0])
-  return top.players ? { name: top.players.name, player_id: top.player_id } : null
-}
-
 export default async function SessionsPage() {
-  const { data } = await db
-    .from('sessions')
-    .select('id, date, description, exchange_rate, session_entries(chips, player_id, players(name))')
-    .is('deleted_at', null)
-    .order('date', { ascending: false })
-
-  const sessions = (data ?? []) as unknown as Session[]
+  const sessions = await getSessionsList()
 
   return (
     <>
       <div className="flex items-baseline justify-between mb-6">
         <span className="text-xs text-muted tracking-widest">{sessions.length} SESSIONS</span>
-        <Link href="/sessions/new" className="text-xs text-accent tracking-widest hover:underline">+ NEW SESSION</Link>
+        <div className="flex items-center gap-4">
+          <Link href="/sessions/new" className="text-xs text-accent tracking-widest hover:underline">+ NEW SESSION</Link>
+          <Link href="/sessions/import" className="text-xs text-accent tracking-widest hover:underline">IMPORT SESSION</Link>
+        </div>
       </div>
       <table className="w-full text-sm">
         <thead>
@@ -56,21 +33,24 @@ export default async function SessionsPage() {
             </tr>
           )}
           {sessions.map(s => {
-            const winner = getWinner(s.session_entries)
+            const isOpen = s.status === 'OPEN'
             return (
-              <tr key={s.id} className="border-b border-border hover:bg-surface transition-colors">
+              <tr key={s.id} className={`border-b border-border transition-colors ${isOpen ? 'bg-accent/5 hover:bg-accent/10' : 'hover:bg-surface'}`}>
                 <td className="py-4">
                   <Link href={`/sessions/${s.id}`} className="block">
-                    <div>{s.date}</div>
+                    <div className={`flex items-center gap-2 ${isOpen ? 'text-accent' : ''}`}>
+                      {isOpen && <span className="inline-block w-2 h-2 rounded-full bg-accent animate-pulse shrink-0" />}
+                      {s.date}
+                    </div>
                     {s.description && <div className="text-xs text-muted mt-0.5">{s.description}</div>}
                   </Link>
                 </td>
                 <td className="py-4 text-right text-muted">
-                  <Link href={`/sessions/${s.id}`} className="block">{s.session_entries?.length ?? 0}</Link>
+                  <Link href={`/sessions/${s.id}`} className="block">{s.player_count}</Link>
                 </td>
                 <td className="py-4 text-right">
-                  {winner
-                    ? <Link href={`/players/${winner.player_id}`} className="text-muted hover:text-accent transition-colors">{winner.name}</Link>
+                  {!isOpen && s.winner
+                    ? <Link href={`/players/${s.winner.player_id}`} className="text-muted hover:text-accent transition-colors">{s.winner.name}</Link>
                     : <span className="text-muted">—</span>}
                 </td>
                 <td className="py-4 text-right text-muted">

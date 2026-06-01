@@ -1,57 +1,96 @@
 import { isAuthenticated } from '@/lib/auth'
 import { db } from '@/lib/db'
+import { getSessionForEdit } from '@/lib/queries'
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   if (!await isAuthenticated()) return Response.json({ error: 'Unauthorized' }, { status: 401 })
   const { id } = await params
-  const { data, error } = await db
-    .from('sessions')
-    .select('*, session_entries(*)')
-    .eq('id', id)
-    .single()
-  if (error) return Response.json({ error: error.message }, { status: 500 })
+  const data = await getSessionForEdit(id)
+  if (!data) return Response.json({ error: 'Not found' }, { status: 404 })
   return Response.json(data)
 }
 
+// 编辑已结算的局：直接改买入流水 + 最终筹码。net 由视图派生。
+// 整局重写 participant + buy_in；buy_in 的 created_at 由前端回传以保留原始时间戳。
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   if (!await isAuthenticated()) return Response.json({ error: 'Unauthorized' }, { status: 401 })
   const { id } = await params
-  const { date, exchange_rate, description, entries } = await req.json() as {
+  const { date, exchange_rate, description, participants, force } = await req.json() as {
     date: string
     exchange_rate: number
     description: string | null
-    entries: { player_id: string; chips: number }[]
+    participants: { player_id: string; final_chips: number; buy_ins: { amount: number; created_at?: string }[] }[]
+    force?: boolean
   }
 
+  if (!participants || participants.length === 0) return Response.json({ error: 'At least one player required' }, { status: 400 })
+
+  // 校验
+  let totalBuyin = 0
+  let totalFinal = 0
+  for (const p of participants) {
+    if (!p.player_id) return Response.json({ error: 'player_id required' }, { status: 400 })
+    if (!Number.isInteger(p.final_chips) || p.final_chips < 0) {
+      return Response.json({ error: `Invalid final_chips for ${p.player_id}` }, { status: 400 })
+    }
+    for (const b of p.buy_ins) {
+      if (!Number.isInteger(b.amount) || b.amount <= 0) {
+        return Response.json({ error: `Invalid buy-in amount for ${p.player_id}` }, { status: 400 })
+      }
+      totalBuyin += b.amount
+    }
+    totalFinal += p.final_chips
+  }
+
+  // 守恒校验
+  const diff = totalFinal - totalBuyin
+  if (diff !== 0 && !force) {
+    return Response.json({ error: 'unbalanced', diff, total_buyin: totalBuyin, total_final: totalFinal }, { status: 422 })
+  }
+
+  const now = new Date().toISOString()
   const { error: updateError } = await db
-    .from('sessions')
-    .update({ date, exchange_rate, description: description || null })
+    .from('session')
+    .update({ date, exchange_rate, description: description || null, updated_at: now })
     .eq('id', id)
   if (updateError) return Response.json({ error: updateError.message }, { status: 500 })
 
-  const { error: deleteError } = await db
-    .from('session_entries')
-    .delete()
-    .eq('session_id', id)
-  if (deleteError) return Response.json({ error: deleteError.message }, { status: 500 })
+  // 整局重写
+  const [{ error: delP }, { error: delB }] = await Promise.all([
+    db.from('session_participant').delete().eq('session_id', id),
+    db.from('buy_in').delete().eq('session_id', id),
+  ])
+  if (delP) return Response.json({ error: delP.message }, { status: 500 })
+  if (delB) return Response.json({ error: delB.message }, { status: 500 })
 
-  const { error: insertError } = await db
-    .from('session_entries')
-    .insert(entries.map(e => ({ session_id: id, player_id: e.player_id, chips: e.chips })))
-  if (insertError) return Response.json({ error: insertError.message }, { status: 500 })
+  const participantRows = participants.map(p => ({
+    session_id: id, player_id: p.player_id, final_chips: p.final_chips, settled_at: now,
+  }))
+  const buyinRows = participants.flatMap(p =>
+    p.buy_ins.map(b => ({
+      session_id: id,
+      player_id: p.player_id,
+      amount: b.amount,
+      ...(b.created_at ? { created_at: b.created_at } : {}),
+    }))
+  )
+  const { error: pErr } = await db.from('session_participant').insert(participantRows)
+  if (pErr) return Response.json({ error: pErr.message }, { status: 500 })
+  if (buyinRows.length > 0) {
+    const { error: bErr } = await db.from('buy_in').insert(buyinRows)
+    if (bErr) return Response.json({ error: bErr.message }, { status: 500 })
+  }
 
-  return Response.json({ id })
+  return Response.json({ id, diff })
 }
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   if (!await isAuthenticated()) return Response.json({ error: 'Unauthorized' }, { status: 401 })
   const { id } = await params
-
   const { error } = await db
-    .from('sessions')
-    .update({ deleted_at: new Date().toISOString() })
+    .from('session')
+    .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
     .eq('id', id)
   if (error) return Response.json({ error: error.message }, { status: 500 })
-
   return new Response(null, { status: 204 })
 }

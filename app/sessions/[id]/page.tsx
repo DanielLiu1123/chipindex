@@ -1,36 +1,27 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { db } from '@/lib/db'
 import SessionEntriesTable from '@/components/SessionEntriesTable'
+import LiveSession from '@/components/LiveSession'
+import { getSessionStatus, getSessionDetail, getLiveSession, getPlayers } from '@/lib/queries'
 
 export const dynamic = 'force-dynamic'
 
-interface SessionEntry {
-  id: string
-  player_id: string
-  chips: number
-  players: { name: string } | null
-}
-
-interface Session {
-  id: string
-  date: string
-  description: string | null
-  exchange_rate: number
-  session_entries: SessionEntry[]
-}
-
 export default async function SessionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const { data: session } = await db
-    .from('sessions')
-    .select('*, session_entries(*, players(*))')
-    .eq('id', id)
-    .single()
+  const status = await getSessionStatus(id)
+  if (!status) notFound()
 
-  if (!session) notFound()
+  // OPEN 局 → 实时记账界面（与 settled 详情同一个 URL，按状态分流）
+  if (status === 'OPEN') {
+    const [session, players] = await Promise.all([getLiveSession(id), getPlayers()])
+    if (!session) notFound()
+    return <LiveSession session={session} allPlayers={players} />
+  }
 
-  const typed = session as unknown as Session
+  // SETTLED → 结算详情
+  const typed = await getSessionDetail(id)
+  if (!typed) notFound()
+
   const entries = [...typed.session_entries].sort((a, b) => b.chips - a.chips)
   const total = entries.reduce((s, e) => s + e.chips, 0)
 

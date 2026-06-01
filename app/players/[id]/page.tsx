@@ -1,43 +1,18 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { db } from '@/lib/db'
 import PlayerStatsChart from '@/components/PlayerStatsChart'
 import PlayerSessionHistoryTable from '@/components/PlayerSessionHistoryTable'
+import { getPlayerDetail } from '@/lib/queries'
 
 export const dynamic = 'force-dynamic'
 
-interface SessionSummaryEntry {
-  player_id: string
-  chips: number
-}
-
-interface SessionData {
-  id: string
-  date: string
-  description: string | null
-  exchange_rate: number
-  deleted_at: string | null
-  session_entries: SessionSummaryEntry[]
-}
-
-interface PlayerEntry {
-  session_id: string
-  chips: number
-  sessions: SessionData
-}
-
 export default async function PlayerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const { data: player } = await db
-    .from('players')
-    .select('*, session_entries(*, sessions(*, session_entries(player_id, chips)))')
-    .eq('id', id)
-    .single()
+  const player = await getPlayerDetail(id)
 
   if (!player) notFound()
 
-  const sessionsSorted = ([...(player.session_entries ?? [])] as unknown as PlayerEntry[])
-    .filter(e => e.sessions && !e.sessions.deleted_at)
+  const sessionsSorted = [...player.entries]
     .sort((a, b) => a.sessions.date.localeCompare(b.sessions.date))
 
   let cumulative = 0
