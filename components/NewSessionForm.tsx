@@ -6,11 +6,12 @@ import Link from 'next/link'
 import type { Player } from '@/types'
 import PlayerSelect from '@/components/PlayerSelect'
 import { BUY_IN_UNIT } from '@/lib/synth'
+import { uid } from '@/lib/uid'
 
 interface PlayerRow { uid: string; playerId: string; buyin: string; isNew: boolean; newName: string }
 
 function newRow(): PlayerRow {
-  return { uid: crypto.randomUUID(), playerId: '', buyin: String(BUY_IN_UNIT), isNew: false, newName: '' }
+  return { uid: uid(), playerId: '', buyin: String(BUY_IN_UNIT), isNew: false, newName: '' }
 }
 
 export default function NewSessionForm() {

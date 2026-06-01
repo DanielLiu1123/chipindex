@@ -9,6 +9,7 @@ import PlayerSelect from '@/components/PlayerSelect'
 import ConfirmModal from '@/components/ConfirmModal'
 import ChipValue from '@/components/ChipValue'
 import { BUY_IN_UNIT } from '@/lib/synth'
+import { uid } from '@/lib/uid'
 
 interface BuyInRow { amount: string; created_at?: string }
 interface ParticipantRow {
@@ -47,7 +48,7 @@ export default function EditSessionForm({ sessionId }: { sessionId: string }) {
         setExchangeRate(s.exchange_rate ? String(s.exchange_rate) : '')
         setDescription(s.description ?? '')
         setRows(s.participants.map(p => ({
-          uid: crypto.randomUUID(),
+          uid: uid(),
           playerId: p.player_id,
           name: p.name,
           isNew: false,
@@ -73,7 +74,7 @@ export default function EditSessionForm({ sessionId }: { sessionId: string }) {
   }
 
   function addRow() {
-    setRows(r => [...r, { uid: crypto.randomUUID(), playerId: '', name: '', isNew: false, newName: '', final: '', buyins: [{ amount: String(BUY_IN_UNIT) }] }])
+    setRows(r => [...r, { uid: uid(), playerId: '', name: '', isNew: false, newName: '', final: '', buyins: [{ amount: String(BUY_IN_UNIT) }] }])
   }
 
   function buyinTotal(row: ParticipantRow) {

@@ -5,11 +5,12 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import type { Player } from '@/types'
 import PlayerSelect from '@/components/PlayerSelect'
+import { uid } from '@/lib/uid'
 
 interface EntryRow { uid: string; playerId: string; chips: string; isNew: boolean; newName: string }
 
 function newRow(): EntryRow {
-  return { uid: crypto.randomUUID(), playerId: '', chips: '', isNew: false, newName: '' }
+  return { uid: uid(), playerId: '', chips: '', isNew: false, newName: '' }
 }
 
 // 导入一场已结束的局：只录每人净结果 chips（服务端用 synthFromNet 合成 buy_in + final_chips）
