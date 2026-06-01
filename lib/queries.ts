@@ -2,8 +2,8 @@ import { db } from './db'
 import { BUY_IN_UNIT } from './synth'
 import type { Player } from '@/types'
 
-// ── Central place for all reads from the new tables. Net result chips come from
-//    the session_result view (chips = final_chips - Σ buy_in.amount). The view
+// ── Central place for all table reads. Net result chips come from the
+//    session_result view (chips = final_chips - Σ buy_in.amount). The view
 //    does not carry session.deleted_at/status, so we always filter on the session
 //    table first and then join the view results by session_id.
 

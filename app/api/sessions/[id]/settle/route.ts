@@ -2,7 +2,7 @@ import { isAuthenticated } from '@/lib/auth'
 import { db } from '@/lib/db'
 
 // Settle: record each player's final chips, run the conservation check (Σfinal === Σbuyin), and close the session if it passes.
-// When conservation does not balance, reject by default (return the difference); force=true settles anyway (leaving unbalanced history, like old dirty books).
+// When conservation does not balance, reject by default (return the difference); force=true settles anyway, leaving an unbalanced record.
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   if (!await isAuthenticated()) return Response.json({ error: 'Unauthorized' }, { status: 401 })
   const { id } = await params
