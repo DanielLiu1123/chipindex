@@ -10,16 +10,17 @@ import { uid } from '@/lib/uid'
 
 interface PlayerRow { uid: string; playerId: string; buyin: string; isNew: boolean; newName: string }
 
-function newRow(): PlayerRow {
-  return { uid: uid(), playerId: '', buyin: String(BUY_IN_UNIT), isNew: false, newName: '' }
+function newRow(buyin: string): PlayerRow {
+  return { uid: uid(), playerId: '', buyin, isNew: false, newName: '' }
 }
 
 export default function NewSessionForm() {
   const router = useRouter()
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0])
   const [exchangeRate, setExchangeRate] = useState('40')
+  const [buyInUnit, setBuyInUnit] = useState(String(BUY_IN_UNIT))
   const [description, setDescription] = useState('')
-  const [rows, setRows] = useState<PlayerRow[]>([newRow()])
+  const [rows, setRows] = useState<PlayerRow[]>(() => [newRow(String(BUY_IN_UNIT))])
   const [players, setPlayers] = useState<Player[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -66,6 +67,7 @@ export default function NewSessionForm() {
           status: 'OPEN',
           date,
           exchange_rate: exchangeRate ? Number(exchangeRate) : 40,
+          buy_in_unit: buyInUnit ? Number(buyInUnit) : BUY_IN_UNIT,
           description: description || null,
           players: playersPayload,
         }),
@@ -95,9 +97,14 @@ export default function NewSessionForm() {
             <input type="date" value={date} onChange={e => setDate(e.target.value)} required
               className="w-full bg-surface border border-border text-white text-sm px-4 py-3 outline-none focus:border-white transition-colors" />
           </div>
-          <div className="w-32">
+          <div className="w-28">
             <label className="text-xs text-muted tracking-widest block mb-2">RATE <span className="text-muted">(opt)</span></label>
             <input type="number" value={exchangeRate} onChange={e => setExchangeRate(e.target.value)} placeholder="40" min="1"
+              className="w-full bg-surface border border-border text-white text-sm px-4 py-3 outline-none focus:border-white transition-colors placeholder:text-muted" />
+          </div>
+          <div className="w-28">
+            <label className="text-xs text-muted tracking-widest block mb-2">UNIT</label>
+            <input type="number" value={buyInUnit} onChange={e => setBuyInUnit(e.target.value)} placeholder={String(BUY_IN_UNIT)} min="1"
               className="w-full bg-surface border border-border text-white text-sm px-4 py-3 outline-none focus:border-white transition-colors placeholder:text-muted" />
           </div>
         </div>
@@ -132,7 +139,7 @@ export default function NewSessionForm() {
                   className="text-muted hover:text-danger text-xs px-2 py-2.5 transition-colors">✕</button>
               </div>
             ))}
-            <button type="button" onClick={() => setRows(r => [...r, newRow()])}
+            <button type="button" onClick={() => setRows(r => [...r, newRow(buyInUnit)])}
               className="text-xs text-muted hover:text-white tracking-widest text-left py-2 transition-colors">
               + ADD PLAYER
             </button>

@@ -9,6 +9,7 @@ export async function POST(req: Request) {
     exchange_rate: number
     description: string | null
     status?: string
+    buy_in_unit?: number
     entries?: { player_id: string; chips: number }[]
     players?: { player_id: string; initial_buyin: number }[]
   }
@@ -50,9 +51,14 @@ async function startSession(body: {
   date: string
   exchange_rate: number
   description: string | null
+  buy_in_unit?: number
   players?: { player_id: string; initial_buyin: number }[]
 }) {
   const { date, exchange_rate, description, players = [] } = body
+  const buyInUnit = body.buy_in_unit ?? BUY_IN_UNIT
+  if (!Number.isInteger(buyInUnit) || buyInUnit <= 0) {
+    return Response.json({ error: 'buy_in_unit must be a positive integer' }, { status: 400 })
+  }
   if (players.length === 0) return Response.json({ error: 'At least one player required' }, { status: 400 })
   for (const p of players) {
     if (!p.player_id) return Response.json({ error: 'player_id required' }, { status: 400 })
@@ -68,7 +74,7 @@ async function startSession(body: {
       exchange_rate: exchange_rate ?? 40,
       description: description || null,
       status: 'OPEN',
-      buy_in_unit: BUY_IN_UNIT,
+      buy_in_unit: buyInUnit,
       started_at: new Date().toISOString(),
     })
     .select()
