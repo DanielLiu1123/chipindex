@@ -4,9 +4,10 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import ChipValue from '@/components/ChipValue'
 import LeaderboardChart from '@/components/LeaderboardChart'
-import type { PlayerStats, LeaderboardSession } from '@/types'
+import type { PlayerStats } from '@/lib/stats'
+import type { LeaderboardSessionRow } from '@/lib/queries'
 
-function buildChartData(sessions: LeaderboardSession[], stats: PlayerStats[], mode: 'chips' | 'cny'): { date: string; [player: string]: string | number }[] {
+function buildChartData(sessions: LeaderboardSessionRow[], stats: PlayerStats[], mode: 'chips' | 'cny'): { date: string; [player: string]: string | number }[] {
   const sorted = [...sessions].sort((a, b) => a.date.localeCompare(b.date))
   const playerNames = stats.map(s => s.player.name)
   const playerIds = stats.map(s => s.player.id)
@@ -28,7 +29,7 @@ function buildChartData(sessions: LeaderboardSession[], stats: PlayerStats[], mo
   })
 }
 
-export default function LeaderboardView({ stats, sessions }: { stats: PlayerStats[]; sessions: LeaderboardSession[] }) {
+export default function LeaderboardView({ stats, sessions }: { stats: PlayerStats[]; sessions: LeaderboardSessionRow[] }) {
   const [view, setView] = useState<'table' | 'chart'>('table')
   const [chartMode, setChartMode] = useState<'chips' | 'cny'>('cny')
   const playerNames = stats.map(s => s.player.name)

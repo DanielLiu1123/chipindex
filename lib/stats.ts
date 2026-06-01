@@ -1,0 +1,108 @@
+import type { Player } from '@/types'
+import type { LeaderboardSessionRow, PlayerDetail } from '@/lib/queries'
+
+// ── 集中所有"派生统计"：POG / wins / 累计。queries.ts 负责"读"，本文件负责"算"。
+
+export interface PlayerStats {
+  player: Player
+  total_chips: number
+  total_yuan: number
+  sessions_played: number
+  wins: number
+  win_rate: number
+  pog_count: number
+}
+
+// 单局最高筹码（player of the game 的基准）。空局返回 null，从而任何人都不计 POG。
+function topChips(entries: { chips: number }[]): number | null {
+  if (entries.length === 0) return null
+  return entries.reduce((m, e) => (e.chips > m ? e.chips : m), entries[0].chips)
+}
+
+// 首页排行榜：按 CNY → chips → 名字排序
+export function computeLeaderboardStats(players: Player[], sessions: LeaderboardSessionRow[]): PlayerStats[] {
+  const sessionTop = new Map<string, number | null>()
+  for (const s of sessions) sessionTop.set(s.id, topChips(s.session_entries))
+
+  return players
+    .map(player => {
+      let total_chips = 0
+      let total_yuan = 0
+      let sessions_played = 0
+      let wins = 0
+      let pog_count = 0
+
+      for (const s of sessions) {
+        const entry = s.session_entries.find(e => e.player_id === player.id)
+        if (!entry) continue
+        sessions_played++
+        total_chips += entry.chips
+        if (entry.chips > 0) wins++
+        total_yuan += entry.chips / s.exchange_rate
+        if (entry.chips === sessionTop.get(s.id)) pog_count++
+      }
+
+      return {
+        player,
+        total_chips,
+        total_yuan: Math.round(total_yuan),
+        sessions_played,
+        wins,
+        win_rate: sessions_played > 0 ? wins / sessions_played : 0,
+        pog_count,
+      }
+    })
+    .sort((a, b) => {
+      if (b.total_yuan !== a.total_yuan) return b.total_yuan - a.total_yuan
+      if (b.total_chips !== a.total_chips) return b.total_chips - a.total_chips
+      return a.player.name.localeCompare(b.player.name)
+    })
+}
+
+// ── player 详情：按日期排序的累计曲线 + 汇总
+export interface HistoryPoint {
+  date: string
+  session_id: string
+  chips: number
+  cumulative: number
+  cny: number
+  cumulative_cny: number
+  description: string | null
+}
+
+export interface PlayerHistory {
+  history: HistoryPoint[]
+  totalCny: number
+  totalChips: number
+  wins: number
+  pogCount: number
+}
+
+export function computePlayerHistory(detail: PlayerDetail): PlayerHistory {
+  const sorted = [...detail.entries].sort((a, b) => a.sessions.date.localeCompare(b.sessions.date))
+
+  let cumulative = 0
+  let cumulativeCny = 0
+  const history: HistoryPoint[] = sorted.map(e => {
+    cumulative += e.chips
+    const cny = Math.round(e.chips / e.sessions.exchange_rate)
+    cumulativeCny += cny
+    return {
+      date: e.sessions.date,
+      session_id: e.session_id,
+      chips: e.chips,
+      cumulative,
+      cny,
+      cumulative_cny: cumulativeCny,
+      description: e.sessions.description,
+    }
+  })
+
+  return {
+    history,
+    totalCny: history.length > 0 ? history[history.length - 1].cumulative_cny : 0,
+    totalChips: history.length > 0 ? history[history.length - 1].cumulative : 0,
+    wins: sorted.filter(e => e.chips > 0).length,
+    pogCount: sorted.filter(e => e.chips === topChips(e.sessions.session_entries)).length,
+  }
+}

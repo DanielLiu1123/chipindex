@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import PlayerStatsChart from '@/components/PlayerStatsChart'
 import PlayerSessionHistoryTable from '@/components/PlayerSessionHistoryTable'
 import { getPlayerDetail } from '@/lib/queries'
+import { computePlayerHistory } from '@/lib/stats'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,25 +13,7 @@ export default async function PlayerDetailPage({ params }: { params: Promise<{ i
 
   if (!player) notFound()
 
-  const sessionsSorted = [...player.entries]
-    .sort((a, b) => a.sessions.date.localeCompare(b.sessions.date))
-
-  let cumulative = 0
-  let cumulativeCny = 0
-  const history = sessionsSorted.map(e => {
-    cumulative += e.chips
-    const cny = Math.round(e.chips / e.sessions.exchange_rate)
-    cumulativeCny += cny
-    return { date: e.sessions.date, session_id: e.session_id, chips: e.chips, cumulative, cny, cumulative_cny: cumulativeCny, description: e.sessions.description }
-  })
-
-  const totalCny = history.length > 0 ? history[history.length - 1].cumulative_cny : 0
-  const totalChips = history.length > 0 ? history[history.length - 1].cumulative : 0
-  const wins = sessionsSorted.filter(e => e.chips > 0).length
-  const pogCount = sessionsSorted.filter(e => {
-    const allChips = e.sessions.session_entries.map(x => x.chips)
-    return allChips.length > 0 && e.chips === Math.max(...allChips)
-  }).length
+  const { history, totalCny, totalChips, wins, pogCount } = computePlayerHistory(player)
 
   return (
     <>
@@ -43,7 +26,7 @@ export default async function PlayerDetailPage({ params }: { params: Promise<{ i
         data={history}
         totalCny={totalCny}
         totalChips={totalChips}
-        sessions={sessionsSorted.length}
+        sessions={history.length}
         wins={wins}
         pogCount={pogCount}
       />
