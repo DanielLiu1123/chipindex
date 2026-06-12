@@ -1,16 +1,8 @@
-import { isAuthenticated } from '@/lib/auth'
-import { db } from '@/lib/db'
+import { withAuth } from '@/lib/http'
+import { revokeBuyin } from '@/lib/mutations'
 
-// Revoke a single buy-in (soft delete)
-export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string; buyinId: string }> }) {
-  if (!await isAuthenticated()) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+export const DELETE = withAuth(async (_req, { params }: { params: Promise<{ id: string; buyinId: string }> }) => {
   const { id, buyinId } = await params
-  const now = new Date().toISOString()
-  const { error } = await db
-    .from('buy_in')
-    .update({ deleted_at: now, updated_at: now })
-    .eq('id', buyinId)
-    .eq('session_id', id)
-  if (error) return Response.json({ error: error.message }, { status: 500 })
+  await revokeBuyin(id, buyinId)
   return new Response(null, { status: 204 })
-}
+})

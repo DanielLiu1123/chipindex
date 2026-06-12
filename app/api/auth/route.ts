@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server'
-import { generateToken } from '@/lib/auth'
-
-const COOKIE = 'chipindex_auth'
+import { generateToken, AUTH_COOKIE } from '@/lib/auth'
 
 export async function POST(req: Request) {
   const { password } = await req.json() as { password: string }
@@ -9,7 +7,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Wrong password' }, { status: 401 })
   }
   const res = NextResponse.json({ ok: true })
-  res.cookies.set(COOKIE, await generateToken(), {
+  res.cookies.set(AUTH_COOKIE, await generateToken(), {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
@@ -21,6 +19,6 @@ export async function POST(req: Request) {
 
 export async function DELETE() {
   const res = NextResponse.json({ ok: true })
-  res.cookies.delete(COOKIE)
+  res.cookies.delete(AUTH_COOKIE)
   return res
 }

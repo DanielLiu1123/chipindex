@@ -7,6 +7,7 @@ import PlayerSelect from '@/components/PlayerSelect'
 import ConfirmModal from '@/components/ConfirmModal'
 import type { Player } from '@/types'
 import type { LiveSessionData, LiveParticipant } from '@/lib/queries'
+import { api, ApiClientError } from '@/lib/client'
 
 export default function LiveSession({ session, allPlayers }: { session: LiveSessionData; allPlayers: Player[] }) {
   const router = useRouter()
@@ -27,15 +28,13 @@ export default function LiveSession({ session, allPlayers }: { session: LiveSess
   const usedIds = session.participants.map(p => p.player_id)
   const availablePlayers = allPlayers.filter(p => !usedIds.includes(p.id))
 
-  async function act(fn: () => Promise<Response>) {
+  // Runs a mutation against the API, refreshing the page data on success and
+  // surfacing the error message on failure.
+  async function act(fn: () => Promise<unknown>) {
     setPending(true)
     setError('')
     try {
-      const res = await fn()
-      if (!res.ok && res.status !== 204) {
-        const body = await res.json().catch(() => ({}))
-        throw new Error(body.error ?? 'Request failed')
-      }
+      await fn()
       router.refresh()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Request failed')
@@ -45,19 +44,13 @@ export default function LiveSession({ session, allPlayers }: { session: LiveSess
   }
 
   const addBuyIn = (player_id: string, amount: number) =>
-    act(() => fetch(`/api/sessions/${session.id}/buyin`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ player_id, amount }),
-    }))
+    act(() => api('POST', `/api/sessions/${session.id}/buyin`, { player_id, amount }))
 
   const undoBuyIn = (buyinId: string) =>
-    act(() => fetch(`/api/sessions/${session.id}/buyin/${buyinId}`, { method: 'DELETE' }))
+    act(() => api('DELETE', `/api/sessions/${session.id}/buyin/${buyinId}`))
 
   const removeParticipant = (player_id: string) =>
-    act(() => fetch(`/api/sessions/${session.id}/participant`, {
-      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ player_id }),
-    }))
+    act(() => api('DELETE', `/api/sessions/${session.id}/participant`, { player_id }))
 
   async function doRemove() {
     if (!confirmRemove) return
@@ -75,37 +68,19 @@ export default function LiveSession({ session, allPlayers }: { session: LiveSess
 
   async function addExisting(player_id: string) {
     // Joining grants an initial buy-in (= buy_in_unit); the participant is lazily created by the buy-in endpoint
-    await act(() => fetch(`/api/sessions/${session.id}/buyin`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ player_id, amount: unit }),
-    }))
+    await act(() => api('POST', `/api/sessions/${session.id}/buyin`, { player_id, amount: unit }))
     setAddId('')
   }
 
   async function addNewPlayer() {
     const name = newName.trim()
     if (!name) return
-    setPending(true)
-    setError('')
-    try {
-      const res = await fetch('/api/players', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name }),
-      })
-      if (!res.ok) throw new Error((await res.json()).error ?? 'Failed')
-      const p = await res.json()
-      await fetch(`/api/sessions/${session.id}/buyin`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ player_id: p.id, amount: unit }),
-      })
+    await act(async () => {
+      const p = await api<Player>('POST', '/api/players', { name })
+      await api('POST', `/api/sessions/${session.id}/buyin`, { player_id: p.id, amount: unit })
       setNewName('')
       setAddingNew(false)
-      router.refresh()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed')
-    } finally {
-      setPending(false)
-    }
+    })
   }
 
   function toggleExpand(player_id: string) {
@@ -127,23 +102,17 @@ export default function LiveSession({ session, allPlayers }: { session: LiveSess
     setError('')
     setSettleError(null)
     try {
-      const res = await fetch(`/api/sessions/${session.id}/settle`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          finals: session.participants.map(p => ({ player_id: p.player_id, final_chips: Number(finals[p.player_id]) })),
-          force,
-        }),
+      await api('POST', `/api/sessions/${session.id}/settle`, {
+        finals: session.participants.map(p => ({ player_id: p.player_id, final_chips: Number(finals[p.player_id]) })),
+        force,
       })
-      if (res.status === 422) {
-        const body = await res.json()
-        setSettleError({ diff: body.diff })
-        setPending(false)
-        return
-      }
-      if (!res.ok) throw new Error((await res.json()).error ?? 'Settle failed')
       router.push(`/sessions/${session.id}`)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Settle failed')
+      if (e instanceof ApiClientError && e.status === 422) {
+        setSettleError({ diff: Number(e.payload.diff) })
+      } else {
+        setError(e instanceof Error ? e.message : 'Settle failed')
+      }
       setPending(false)
     }
   }

@@ -4,16 +4,7 @@ import { useState } from 'react'
 import ChipValue from '@/components/ChipValue'
 import PlayerChart from '@/components/PlayerChart'
 import PlayerNameEditor from '@/components/PlayerNameEditor'
-
-interface Point {
-  date: string
-  session_id: string
-  chips: number
-  cumulative: number
-  cny: number
-  cumulative_cny: number
-  description: string | null
-}
+import type { HistoryPoint } from '@/lib/stats'
 
 export default function PlayerStatsChart({
   id,
@@ -27,7 +18,7 @@ export default function PlayerStatsChart({
 }: {
   id: string
   initialName: string
-  data: Point[]
+  data: HistoryPoint[]
   totalCny: number
   totalChips: number
   sessions: number

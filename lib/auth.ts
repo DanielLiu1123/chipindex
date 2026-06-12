@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers'
 
-const COOKIE = 'chipindex_auth'
+export const AUTH_COOKIE = 'chipindex_auth'
 
 let cachedToken: string | null = null
 
@@ -26,5 +26,5 @@ export async function generateToken(): Promise<string> {
 
 export async function isAuthenticated(): Promise<boolean> {
   const store = await cookies()
-  return store.get(COOKIE)?.value === await generateToken()
+  return store.get(AUTH_COOKIE)?.value === await generateToken()
 }

@@ -3,18 +3,9 @@
 import { useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
+import type { HistoryPoint } from '@/lib/stats'
 
-interface Point {
-  date: string
-  session_id: string
-  cumulative_cny: number
-  cumulative: number
-  cny: number
-  chips: number
-  description: string | null
-}
-
-export default function PlayerChart({ data, positive, mode }: { data: Point[]; positive: boolean; mode: 'chips' | 'cny' }) {
+export default function PlayerChart({ data, positive, mode }: { data: HistoryPoint[]; positive: boolean; mode: 'chips' | 'cny' }) {
   const router = useRouter()
   const dataKey = mode === 'cny' ? 'cumulative_cny' : 'cumulative'
   const sessionKey = mode === 'cny' ? 'cny' : 'chips'
@@ -91,7 +82,7 @@ export default function PlayerChart({ data, positive, mode }: { data: Point[]; p
         <Tooltip
           content={({ active, payload }) => {
             if (!active || !payload?.length) return null
-            const p: Point = payload[0].payload
+            const p: HistoryPoint = payload[0].payload
             const val = mode === 'cny' ? p.cny : p.chips
             const cumVal = mode === 'cny' ? p.cumulative_cny : p.cumulative
             const fmtVal = (n: number, cny: boolean) =>

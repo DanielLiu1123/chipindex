@@ -1,5 +1,6 @@
 import type { Player } from '@/types'
 import type { LeaderboardSessionRow, PlayerDetail } from '@/lib/queries'
+import { toCny } from '@/lib/settlement'
 
 // All derived statistics live here: POG / wins / cumulative totals.
 // queries.ts is responsible for reading; this file is responsible for computing.
@@ -87,7 +88,7 @@ export function computePlayerHistory(detail: PlayerDetail): PlayerHistory {
   let cumulativeCny = 0
   const history: HistoryPoint[] = sorted.map(e => {
     cumulative += e.chips
-    const cny = Math.round(e.chips / e.sessions.exchange_rate)
+    const cny = toCny(e.chips, e.sessions.exchange_rate)
     cumulativeCny += cny
     return {
       date: e.sessions.date,
