@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
+import { api } from '@/lib/client'
 
 function LoginForm() {
   const [password, setPassword] = useState('')
@@ -14,19 +15,16 @@ function LoginForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
-    const res = await fetch('/api/auth', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password }),
-    })
-    setLoading(false)
-    if (res.ok) {
+    try {
+      await api('POST', '/api/auth', { password })
       const next = searchParams.get('next') || '/'
       router.push(next)
       router.refresh()
-    } else {
+    } catch {
       setError(true)
       setPassword('')
+    } finally {
+      setLoading(false)
     }
   }
 

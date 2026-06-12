@@ -3,21 +3,20 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import type { Player } from '@/types'
 import type { SessionForEdit } from '@/lib/queries'
-import PlayerSelect from '@/components/PlayerSelect'
+import PlayerRowPicker from '@/components/PlayerRowPicker'
+import SessionMetaFields from '@/components/SessionMetaFields'
 import ConfirmModal from '@/components/ConfirmModal'
 import ChipValue from '@/components/ChipValue'
+import { usePlayerRows, resolvePlayerId, type PlayerRowBase } from '@/hooks/usePlayerRows'
+import { api, ApiClientError } from '@/lib/client'
+import { buyinSum, netChips } from '@/lib/settlement'
 import { BUY_IN_UNIT } from '@/lib/synth'
 import { uid } from '@/lib/uid'
 
 interface BuyInRow { amount: string; created_at?: string }
-interface ParticipantRow {
-  uid: string
-  playerId: string
+interface ParticipantRow extends PlayerRowBase {
   name: string
-  isNew: boolean
-  newName: string
   final: string
   buyins: BuyInRow[]
 }
@@ -27,23 +26,18 @@ export default function EditSessionForm({ sessionId }: { sessionId: string }) {
   const [date, setDate] = useState('')
   const [exchangeRate, setExchangeRate] = useState('')
   const [description, setDescription] = useState('')
-  const [rows, setRows] = useState<ParticipantRow[]>([])
-  const [players, setPlayers] = useState<Player[]>([])
+  const { rows, setRows, updateRow, usedIds, players, playersLoading, playersError } = usePlayerRows<ParticipantRow>([])
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
-  const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState('')
+  const [sessionLoading, setSessionLoading] = useState(true)
+  const [sessionError, setSessionError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [saveError, setSaveError] = useState<{ diff: number } | null>(null)
   const [confirmRemove, setConfirmRemove] = useState<ParticipantRow | null>(null)
 
   useEffect(() => {
-    Promise.all([
-      fetch('/api/players').then(r => r.json()),
-      fetch(`/api/sessions/${sessionId}`).then(r => r.json()),
-    ])
-      .then(([ps, s]: [Player[], SessionForEdit]) => {
-        setPlayers(ps)
+    api<SessionForEdit>('GET', `/api/sessions/${sessionId}`)
+      .then(s => {
         setDate(s.date ?? '')
         setExchangeRate(s.exchange_rate ? String(s.exchange_rate) : '')
         setDescription(s.description ?? '')
@@ -56,13 +50,10 @@ export default function EditSessionForm({ sessionId }: { sessionId: string }) {
           final: p.final_chips != null ? String(p.final_chips) : '',
           buyins: p.buy_ins.map(b => ({ amount: String(b.amount), created_at: b.created_at })),
         })))
-        setLoading(false)
       })
-      .catch(() => { setLoadError('Failed to load session.'); setLoading(false) })
-  }, [sessionId])
-
-  const updateRow = (uid: string, patch: Partial<ParticipantRow>) =>
-    setRows(r => r.map(row => row.uid === uid ? { ...row, ...patch } : row))
+      .catch(() => setSessionError('Failed to load session.'))
+      .finally(() => setSessionLoading(false))
+  }, [sessionId, setRows])
 
   function toggle(uid: string) {
     setExpanded(s => {
@@ -78,10 +69,9 @@ export default function EditSessionForm({ sessionId }: { sessionId: string }) {
   }
 
   function buyinTotal(row: ParticipantRow) {
-    return row.buyins.reduce((s, b) => s + (Number(b.amount) || 0), 0)
+    return buyinSum(row.buyins.map(b => ({ amount: Number(b.amount) || 0 })))
   }
 
-  const usedIds = rows.map(r => r.playerId).filter(Boolean)
   const totalBuyin = rows.reduce((s, r) => s + buyinTotal(r), 0)
   const totalFinal = rows.reduce((s, r) => s + (Number(r.final) || 0), 0)
   const diff = totalFinal - totalBuyin
@@ -94,42 +84,29 @@ export default function EditSessionForm({ sessionId }: { sessionId: string }) {
     if (valid.length === 0) { setError('Add at least one player.'); return }
     setSubmitting(true)
     try {
-      const participants = await Promise.all(valid.map(async row => {
-        let player_id = row.playerId
-        if (row.isNew && row.newName.trim()) {
-          const res = await fetch('/api/players', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: row.newName.trim() }),
-          })
-          player_id = (await res.json()).id
-        }
-        return {
-          player_id,
-          final_chips: Number(row.final),
-          buy_ins: row.buyins
-            .filter(b => Number(b.amount) > 0)
-            .map(b => ({ amount: Number(b.amount), ...(b.created_at ? { created_at: b.created_at } : {}) })),
-        }
-      }))
+      const participants = await Promise.all(valid.map(async row => ({
+        player_id: await resolvePlayerId(row),
+        final_chips: Number(row.final),
+        buy_ins: row.buyins
+          .filter(b => Number(b.amount) > 0)
+          .map(b => ({ amount: Number(b.amount), ...(b.created_at ? { created_at: b.created_at } : {}) })),
+      })))
 
-      const res = await fetch(`/api/sessions/${sessionId}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          date, exchange_rate: exchangeRate ? Number(exchangeRate) : 40,
-          description: description || null, participants, force,
-        }),
+      await api('PUT', `/api/sessions/${sessionId}`, {
+        date,
+        exchange_rate: exchangeRate ? Number(exchangeRate) : 40,
+        description: description || null,
+        participants,
+        force,
       })
-      if (res.status === 422) {
-        const body = await res.json()
-        setSaveError({ diff: body.diff })
-        setSubmitting(false)
-        return
-      }
-      if (!res.ok) throw new Error((await res.json()).error ?? 'Save failed')
       router.push(`/sessions/${sessionId}`)
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Save failed')
+      if (err instanceof ApiClientError && err.status === 422) {
+        setSaveError({ diff: Number(err.payload.diff) })
+      } else {
+        setError(err instanceof Error ? err.message : 'Save failed')
+      }
       setSubmitting(false)
     }
   }
@@ -147,8 +124,8 @@ export default function EditSessionForm({ sessionId }: { sessionId: string }) {
     setConfirmRemove(null)
   }
 
-  if (loading) return <p className="text-muted text-xs tracking-widest">LOADING...</p>
-  if (loadError) return <p className="text-danger text-xs tracking-widest">{loadError}</p>
+  if (playersLoading || sessionLoading) return <p className="text-muted text-xs tracking-widest">LOADING...</p>
+  if (playersError || sessionError) return <p className="text-danger text-xs tracking-widest">{playersError || sessionError}</p>
 
   return (
     <>
@@ -167,43 +144,28 @@ export default function EditSessionForm({ sessionId }: { sessionId: string }) {
       <h1 className="text-xs text-muted tracking-widest mb-6">EDIT SESSION</h1>
 
       <div className="flex flex-col gap-6 max-w-lg">
-        <div className="flex gap-4">
-          <div className="flex-1">
-            <label className="text-xs text-muted tracking-widest block mb-2">DATE</label>
-            <input type="date" value={date} onChange={e => setDate(e.target.value)} required
-              className="w-full bg-surface border border-border text-white text-sm px-4 py-3 outline-none focus:border-white transition-colors" />
-          </div>
-          <div className="w-32">
-            <label className="text-xs text-muted tracking-widest block mb-2">RATE <span className="text-muted">(opt)</span></label>
-            <input type="number" value={exchangeRate} onChange={e => setExchangeRate(e.target.value)} placeholder="40" min="1"
-              className="w-full bg-surface border border-border text-white text-sm px-4 py-3 outline-none focus:border-white transition-colors placeholder:text-muted" />
-          </div>
-        </div>
-        <div>
-          <label className="text-xs text-muted tracking-widest block mb-2">DESCRIPTION <span className="text-muted">(opt)</span></label>
-          <input type="text" value={description} onChange={e => setDescription(e.target.value)} placeholder="e.g. Friday game"
-            className="w-full bg-surface border border-border text-white text-sm px-4 py-3 outline-none focus:border-white transition-colors placeholder:text-muted" />
-        </div>
+        <SessionMetaFields
+          date={date} setDate={setDate}
+          exchangeRate={exchangeRate} setExchangeRate={setExchangeRate}
+          description={description} setDescription={setDescription}
+        />
 
         <div>
           <label className="text-xs text-muted tracking-widest block mb-3">PLAYERS <span className="text-muted">(buy-in · final · net)</span></label>
           <div className="flex flex-col gap-2">
             {rows.map(row => {
               const total = buyinTotal(row)
-              const net = (Number(row.final) || 0) - total
+              const net = netChips(Number(row.final) || 0, total)
               const chosen = !!row.playerId || (row.isNew && !!row.newName.trim())
               return (
                 <div key={row.uid} className="border border-border">
                   {!chosen && !row.isNew ? (
                     <div className="flex gap-2 items-center p-2">
-                      <PlayerSelect
-                        value={row.playerId}
-                        players={players.filter(p => !usedIds.includes(p.id) || p.id === row.playerId)}
-                        onChange={val => val === '__new__'
-                          ? updateRow(row.uid, { isNew: true, playerId: '', newName: '' })
-                          : updateRow(row.uid, { playerId: val, name: players.find(p => p.id === val)?.name ?? '' })}
-                        className="flex-1"
-                      />
+                      <PlayerRowPicker row={row} players={players} usedIds={usedIds}
+                        onPatch={patch => updateRow(row.uid, {
+                          ...patch,
+                          ...(patch.playerId ? { name: players.find(p => p.id === patch.playerId)?.name ?? '' } : {}),
+                        })} />
                       <button type="button" onClick={() => requestRemove(row)} className="text-muted hover:text-danger text-xs px-2 py-2.5 transition-colors">✕</button>
                     </div>
                   ) : (

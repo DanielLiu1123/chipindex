@@ -3,13 +3,14 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
+import { api } from '@/lib/client'
 
 export default function Nav() {
   const pathname = usePathname()
   const router = useRouter()
 
   async function handleLogout() {
-    await fetch('/api/auth', { method: 'DELETE' })
+    await api('DELETE', '/api/auth').catch(() => {})
     router.push('/login')
   }
 

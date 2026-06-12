@@ -3,6 +3,7 @@
 import { Fragment, useState } from 'react'
 import Link from 'next/link'
 import ChipValue from '@/components/ChipValue'
+import { toCny } from '@/lib/settlement'
 
 interface Entry {
   id: string
@@ -56,7 +57,7 @@ export default function SessionEntriesTable({ entries, exchangeRate, total }: {
                   </span>
                 </td>
                 <td className="py-4 text-right text-muted">
-                  <ChipValue chips={Math.round(e.chips / exchangeRate)} prefix="¥" />
+                  <ChipValue chips={toCny(e.chips, exchangeRate)} prefix="¥" />
                 </td>
                 <td className="py-4 text-right">
                   <ChipValue chips={e.chips} />

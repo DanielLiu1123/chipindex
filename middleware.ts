@@ -1,12 +1,10 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { generateToken } from '@/lib/auth'
-
-const COOKIE = 'chipindex_auth'
+import { generateToken, AUTH_COOKIE } from '@/lib/auth'
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
-  const token = request.cookies.get(COOKIE)?.value
+  const token = request.cookies.get(AUTH_COOKIE)?.value
   const expected = await generateToken()
   const authed = token === expected
 

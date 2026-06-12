@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { api } from '@/lib/client'
 
 export default function PlayerNameEditor({ id, initialName }: { id: string; initialName: string }) {
   const router = useRouter()
@@ -28,16 +29,15 @@ export default function PlayerNameEditor({ id, initialName }: { id: string; init
       return
     }
     setSaving(true)
-    const res = await fetch(`/api/players/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: trimmed }),
-    })
-    setSaving(false)
-    if (res.ok) {
+    try {
+      await api('PATCH', `/api/players/${id}`, { name: trimmed })
       setSavedName(trimmed)
       setEditing(false)
       router.refresh()
+    } catch {
+      // Keep editing so the rename can be retried.
+    } finally {
+      setSaving(false)
     }
   }
 

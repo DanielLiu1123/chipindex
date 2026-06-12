@@ -1,14 +1,16 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import type { Player } from '@/types'
-import PlayerSelect from '@/components/PlayerSelect'
+import PlayerRowPicker from '@/components/PlayerRowPicker'
+import SessionMetaFields from '@/components/SessionMetaFields'
+import { usePlayerRows, resolvePlayerId, type PlayerRowBase } from '@/hooks/usePlayerRows'
+import { api } from '@/lib/client'
 import { BUY_IN_UNIT } from '@/lib/synth'
 import { uid } from '@/lib/uid'
 
-interface PlayerRow { uid: string; playerId: string; buyin: string; isNew: boolean; newName: string }
+interface PlayerRow extends PlayerRowBase { buyin: string }
 
 function newRow(): PlayerRow {
   return { uid: uid(), playerId: '', buyin: String(BUY_IN_UNIT), isNew: false, newName: '' }
@@ -19,24 +21,10 @@ export default function NewSessionForm() {
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0])
   const [exchangeRate, setExchangeRate] = useState('40')
   const [description, setDescription] = useState('')
-  const [rows, setRows] = useState<PlayerRow[]>([newRow()])
-  const [players, setPlayers] = useState<Player[]>([])
-  const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState('')
+  const { rows, setRows, updateRow, removeRow, usedIds, players, playersLoading, playersError } = usePlayerRows<PlayerRow>([newRow()])
   const [starting, setStarting] = useState(false)
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    fetch('/api/players')
-      .then(r => r.json())
-      .then((ps: Player[]) => { setPlayers(ps); setLoading(false) })
-      .catch(() => { setLoadError('Failed to load players.'); setLoading(false) })
-  }, [])
-
-  const updateRow = (uid: string, patch: Partial<PlayerRow>) =>
-    setRows(r => r.map(row => row.uid === uid ? { ...row, ...patch } : row))
-
-  const usedIds = rows.map(r => r.playerId).filter(Boolean)
   const validRows = rows.filter(r => (r.playerId || r.newName.trim()) && r.buyin !== '' && Number(r.buyin) >= 0)
 
   async function handleStart(e: React.FormEvent) {
@@ -45,33 +33,17 @@ export default function NewSessionForm() {
     if (validRows.length === 0) { setError('Add at least one player.'); return }
     setStarting(true)
     try {
-      const playersPayload = await Promise.all(validRows.map(async row => {
-        let player_id = row.playerId
-        if (row.isNew && row.newName.trim()) {
-          const res = await fetch('/api/players', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: row.newName.trim() }),
-          })
-          const p = await res.json()
-          player_id = p.id
-        }
-        return { player_id, initial_buyin: Number(row.buyin) }
-      }))
-
-      const res = await fetch('/api/sessions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status: 'OPEN',
-          date,
-          exchange_rate: exchangeRate ? Number(exchangeRate) : 40,
-          description: description || null,
-          players: playersPayload,
-        }),
+      const playersPayload = await Promise.all(validRows.map(async row => ({
+        player_id: await resolvePlayerId(row),
+        initial_buyin: Number(row.buyin),
+      })))
+      const session = await api<{ id: string }>('POST', '/api/sessions', {
+        status: 'OPEN',
+        date,
+        exchange_rate: exchangeRate ? Number(exchangeRate) : 40,
+        description: description || null,
+        players: playersPayload,
       })
-      if (!res.ok) throw new Error((await res.json()).error ?? 'Failed to start session')
-      const session = await res.json()
       router.push(`/sessions/${session.id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start session')
@@ -79,8 +51,8 @@ export default function NewSessionForm() {
     }
   }
 
-  if (loading) return <p className="text-muted text-xs tracking-widest">LOADING...</p>
-  if (loadError) return <p className="text-danger text-xs tracking-widest">{loadError}</p>
+  if (playersLoading) return <p className="text-muted text-xs tracking-widest">LOADING...</p>
+  if (playersError) return <p className="text-danger text-xs tracking-widest">{playersError}</p>
 
   return (
     <>
@@ -89,46 +61,22 @@ export default function NewSessionForm() {
       </div>
       <h1 className="text-xs text-muted tracking-widest mb-6">NEW SESSION</h1>
       <form onSubmit={handleStart} className="flex flex-col gap-6 max-w-lg">
-        <div className="flex gap-4">
-          <div className="flex-1">
-            <label className="text-xs text-muted tracking-widest block mb-2">DATE</label>
-            <input type="date" value={date} onChange={e => setDate(e.target.value)} required
-              className="w-full bg-surface border border-border text-white text-sm px-4 py-3 outline-none focus:border-white transition-colors" />
-          </div>
-          <div className="w-32">
-            <label className="text-xs text-muted tracking-widest block mb-2">RATE <span className="text-muted">(opt)</span></label>
-            <input type="number" value={exchangeRate} onChange={e => setExchangeRate(e.target.value)} placeholder="40" min="1"
-              className="w-full bg-surface border border-border text-white text-sm px-4 py-3 outline-none focus:border-white transition-colors placeholder:text-muted" />
-          </div>
-        </div>
-        <div>
-          <label className="text-xs text-muted tracking-widest block mb-2">DESCRIPTION <span className="text-muted">(opt)</span></label>
-          <input type="text" value={description} onChange={e => setDescription(e.target.value)} placeholder="e.g. Friday game"
-            className="w-full bg-surface border border-border text-white text-sm px-4 py-3 outline-none focus:border-white transition-colors placeholder:text-muted" />
-        </div>
+        <SessionMetaFields
+          date={date} setDate={setDate}
+          exchangeRate={exchangeRate} setExchangeRate={setExchangeRate}
+          description={description} setDescription={setDescription}
+        />
         <div>
           <label className="text-xs text-muted tracking-widest block mb-3">PLAYERS <span className="text-muted">(buy-in)</span></label>
           <div className="flex flex-col gap-2">
             {rows.map(row => (
               <div key={row.uid} className="flex gap-2 items-center">
-                {row.isNew ? (
-                  <input type="text" value={row.newName} onChange={e => updateRow(row.uid, { newName: e.target.value })}
-                    placeholder="new player name"
-                    className="flex-1 bg-surface border border-accent text-white text-sm px-4 py-2.5 outline-none focus:border-white transition-colors placeholder:text-muted" />
-                ) : (
-                  <PlayerSelect
-                    value={row.playerId}
-                    players={players.filter(p => !usedIds.includes(p.id) || p.id === row.playerId)}
-                    onChange={val => val === '__new__'
-                      ? updateRow(row.uid, { isNew: true, playerId: '', newName: '' })
-                      : updateRow(row.uid, { playerId: val })}
-                    className="flex-1"
-                  />
-                )}
+                <PlayerRowPicker row={row} players={players} usedIds={usedIds}
+                  onPatch={patch => updateRow(row.uid, patch)} />
                 <input type="number" value={row.buyin} onChange={e => updateRow(row.uid, { buyin: e.target.value })}
                   placeholder="buy-in" min="0"
                   className="w-28 bg-surface border border-border text-white text-sm px-4 py-2.5 outline-none focus:border-white transition-colors placeholder:text-muted text-right" />
-                <button type="button" onClick={() => setRows(r => r.filter(x => x.uid !== row.uid))}
+                <button type="button" onClick={() => removeRow(row.uid)}
                   className="text-muted hover:text-danger text-xs px-2 py-2.5 transition-colors">✕</button>
               </div>
             ))}
