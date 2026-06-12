@@ -98,9 +98,11 @@ export async function importSession(meta: SessionMeta, entries: ImportEntry[]) {
     return { session_id: session.id, player_id: e.player_id, amount }
   })
 
-  const { error: pErr } = await db.from('session_participant').insert(participants)
+  const [{ error: pErr }, { error: bErr }] = await Promise.all([
+    db.from('session_participant').insert(participants),
+    db.from('buy_in').insert(buyins),
+  ])
   ensure(pErr)
-  const { error: bErr } = await db.from('buy_in').insert(buyins)
   ensure(bErr)
 
   return session
@@ -136,18 +138,15 @@ export async function startSession(meta: SessionMeta, players: StartingPlayer[])
     .single()
   ensure(error)
 
-  const { error: pErr } = await db
-    .from('session_participant')
-    .insert(players.map(p => ({ session_id: session.id, player_id: p.player_id })))
-  ensure(pErr)
-
   const buyins = players
     .filter(p => p.initial_buyin > 0)
     .map(p => ({ session_id: session.id, player_id: p.player_id, amount: p.initial_buyin }))
-  if (buyins.length > 0) {
-    const { error: bErr } = await db.from('buy_in').insert(buyins)
-    ensure(bErr)
-  }
+  const [{ error: pErr }, bRes] = await Promise.all([
+    db.from('session_participant').insert(players.map(p => ({ session_id: session.id, player_id: p.player_id }))),
+    buyins.length > 0 ? db.from('buy_in').insert(buyins) : Promise.resolve({ error: null }),
+  ])
+  ensure(pErr)
+  ensure(bRes.error)
 
   return session
 }
@@ -186,22 +185,22 @@ export async function updateSettledSession(
   const totalFinal = participants.reduce((s, p) => s + p.final_chips, 0)
   const diff = requireConservation(totalBuyin, totalFinal, force)
 
+  // The deletes must finish before the inserts below; the session metadata
+  // update is independent, so it joins the same round trip.
   const ts = now()
-  const { error: updateError } = await db
-    .from('session')
-    .update({
-      date: meta.date,
-      exchange_rate: meta.exchange_rate,
-      description: meta.description || null,
-      updated_at: ts,
-    })
-    .eq('id', id)
-  ensure(updateError)
-
-  const [{ error: delP }, { error: delB }] = await Promise.all([
+  const [{ error: updateError }, { error: delP }, { error: delB }] = await Promise.all([
+    db.from('session')
+      .update({
+        date: meta.date,
+        exchange_rate: meta.exchange_rate,
+        description: meta.description || null,
+        updated_at: ts,
+      })
+      .eq('id', id),
     db.from('session_participant').delete().eq('session_id', id),
     db.from('buy_in').delete().eq('session_id', id),
   ])
+  ensure(updateError)
   ensure(delP)
   ensure(delB)
 
@@ -219,12 +218,12 @@ export async function updateSettledSession(
       ...(b.created_at ? { created_at: b.created_at } : {}),
     }))
   )
-  const { error: pErr } = await db.from('session_participant').insert(participantRows)
+  const [{ error: pErr }, bRes] = await Promise.all([
+    db.from('session_participant').insert(participantRows),
+    buyinRows.length > 0 ? db.from('buy_in').insert(buyinRows) : Promise.resolve({ error: null }),
+  ])
   ensure(pErr)
-  if (buyinRows.length > 0) {
-    const { error: bErr } = await db.from('buy_in').insert(buyinRows)
-    ensure(bErr)
-  }
+  ensure(bRes.error)
 
   return { id, diff }
 }
@@ -339,16 +338,19 @@ export async function settleSession(
   for (const pid of participantIds) totalFinal += finalMap.get(pid)!
   const diff = requireConservation(totalBuyin, totalFinal, force)
 
+  // Each player gets a different final_chips value, so this is one update per
+  // participant; run them concurrently instead of serially.
   const ts = now()
-  for (const pid of participantIds) {
-    const { error } = await db
-      .from('session_participant')
-      .update({ final_chips: finalMap.get(pid)!, settled_at: ts, updated_at: ts })
-      .eq('session_id', sessionId)
-      .eq('player_id', pid)
-      .is('deleted_at', null)
-    ensure(error)
-  }
+  const results = await Promise.all(
+    [...participantIds].map(pid =>
+      db.from('session_participant')
+        .update({ final_chips: finalMap.get(pid)!, settled_at: ts, updated_at: ts })
+        .eq('session_id', sessionId)
+        .eq('player_id', pid)
+        .is('deleted_at', null)
+    )
+  )
+  for (const { error } of results) ensure(error)
 
   const { error: sErr } = await db
     .from('session')

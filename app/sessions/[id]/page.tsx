@@ -2,19 +2,21 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import SessionEntriesTable from '@/components/SessionEntriesTable'
 import LiveSession from '@/components/LiveSession'
-import { getSessionStatus, getSessionDetail, getLiveSession, getPlayers } from '@/lib/queries'
+import { getSessionDetail, getLiveSession, getPlayers } from '@/lib/queries'
 
 export const dynamic = 'force-dynamic'
 
 export default async function SessionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const status = await getSessionStatus(id)
-  if (!status) notFound()
+
+  // Fetch the live view optimistically: it carries the status, and OPEN is the
+  // hot path (the live UI refetches this page after every buy-in). Only a
+  // settled session pays for the extra detail fetch below.
+  const [session, players] = await Promise.all([getLiveSession(id), getPlayers()])
+  if (!session) notFound()
 
   // OPEN session → live bookkeeping UI (same URL as settled detail, routed by status)
-  if (status === 'OPEN') {
-    const [session, players] = await Promise.all([getLiveSession(id), getPlayers()])
-    if (!session) notFound()
+  if (session.status === 'OPEN') {
     return <LiveSession session={session} allPlayers={players} />
   }
 
