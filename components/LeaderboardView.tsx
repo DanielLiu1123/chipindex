@@ -23,7 +23,7 @@ function buildChartData(sessions: LeaderboardSessionRow[], stats: PlayerStats[],
         const delta = mode === 'cny' ? entry.chips / session.exchange_rate : entry.chips
         cumulative.set(pid, (cumulative.get(pid) ?? 0) + delta)
       }
-      row[playerNames[i]] = mode === 'cny' ? Math.round(cumulative.get(pid) ?? 0) : (cumulative.get(pid) ?? 0)
+      row[playerNames[i]] = mode === 'cny' ? Math.round((cumulative.get(pid) ?? 0) * 100) / 100 : (cumulative.get(pid) ?? 0)
     })
     return row
   })

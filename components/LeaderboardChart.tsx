@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
+import { formatAmount } from '@/lib/format'
 
 const COLORS = [
   '#00ff88', '#6bcfff', '#ffd93d', '#ff6b6b',
@@ -40,7 +41,7 @@ export default function LeaderboardChart({ data, players, mode }: { data: ChartP
             tickLine={false}
             width={60}
             tickFormatter={v => mode === 'cny'
-              ? (v >= 0 ? `¥${v.toLocaleString()}` : `-¥${Math.abs(v).toLocaleString()}`)
+              ? (v >= 0 ? `¥${formatAmount(v)}` : `-¥${formatAmount(Math.abs(v))}`)
               : (v > 0 ? `+${v.toLocaleString()}` : v.toLocaleString())
             }
           />
@@ -58,7 +59,7 @@ export default function LeaderboardChart({ data, players, mode }: { data: ChartP
               if (!visible.has(name as string)) return [null, null]
               const n = Number(v)
               if (mode === 'cny') {
-                const formatted = n >= 0 ? `¥${n.toLocaleString()}` : `-¥${Math.abs(n).toLocaleString()}`
+                const formatted = n >= 0 ? `¥${formatAmount(n)}` : `-¥${formatAmount(Math.abs(n))}`
                 return [formatted, name as string]
               }
               return [n > 0 ? `+${n.toLocaleString()}` : n.toLocaleString(), name as string]

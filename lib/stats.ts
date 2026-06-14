@@ -48,7 +48,7 @@ export function computeLeaderboardStats(players: Player[], sessions: Leaderboard
       return {
         player,
         total_chips,
-        total_yuan: Math.round(total_yuan),
+        total_yuan: Math.round(total_yuan * 100) / 100,
         sessions_played,
         wins,
         win_rate: sessions_played > 0 ? wins / sessions_played : 0,

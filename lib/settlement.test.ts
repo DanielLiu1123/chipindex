@@ -23,11 +23,11 @@ describe('netChips', () => {
 })
 
 describe('toCny', () => {
-  it('converts at the exchange rate and rounds to whole yuan', () => {
+  it('converts at the exchange rate and rounds to 2 decimals', () => {
     expect(toCny(4000, 40)).toBe(100)
     expect(toCny(-4000, 40)).toBe(-100)
-    expect(toCny(50, 40)).toBe(1)
-    expect(toCny(-50, 40)).toBe(-1)
+    expect(toCny(50, 40)).toBe(1.25)
+    expect(toCny(-50, 40)).toBe(-1.25)
   })
 })
 
