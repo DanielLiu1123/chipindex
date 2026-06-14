@@ -4,6 +4,7 @@ import { useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import type { HistoryPoint } from '@/lib/stats'
+import { formatAmount } from '@/lib/format'
 
 export default function PlayerChart({ data, positive, mode }: { data: HistoryPoint[]; positive: boolean; mode: 'chips' | 'cny' }) {
   const router = useRouter()
@@ -74,7 +75,7 @@ export default function PlayerChart({ data, positive, mode }: { data: HistoryPoi
           tickLine={false}
           width={50}
           tickFormatter={v => mode === 'cny'
-            ? (v >= 0 ? `¥${v.toLocaleString()}` : `-¥${Math.abs(v).toLocaleString()}`)
+            ? (v >= 0 ? `¥${formatAmount(v)}` : `-¥${formatAmount(Math.abs(v))}`)
             : (v > 0 ? `+${v.toLocaleString()}` : v.toLocaleString())
           }
         />
@@ -87,7 +88,7 @@ export default function PlayerChart({ data, positive, mode }: { data: HistoryPoi
             const cumVal = mode === 'cny' ? p.cumulative_cny : p.cumulative
             const fmtVal = (n: number, cny: boolean) =>
               cny
-                ? (n >= 0 ? `+¥${n.toLocaleString()}` : `-¥${Math.abs(n).toLocaleString()}`)
+                ? (n >= 0 ? `+¥${formatAmount(n)}` : `-¥${formatAmount(Math.abs(n))}`)
                 : (n >= 0 ? `+${n.toLocaleString()}` : `${n.toLocaleString()}`)
             return (
               <div style={{ background: '#111111', border: '1px solid #222222', fontFamily: 'JetBrains Mono', fontSize: 11, color: '#ffffff', padding: '8px 12px', lineHeight: 1.8 }}>

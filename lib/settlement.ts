@@ -11,9 +11,9 @@ export function netChips(finalChips: number | null, buyinTotal: number): number 
   return (finalChips ?? 0) - buyinTotal
 }
 
-// Chips converted to CNY at the session's exchange rate, rounded to whole yuan.
+// Chips converted to CNY at the session's exchange rate, rounded to 2 decimals.
 export function toCny(chips: number, exchangeRate: number): number {
-  return Math.round(chips / exchangeRate)
+  return Math.round((chips / exchangeRate) * 100) / 100
 }
 
 export interface ConservationResult {
