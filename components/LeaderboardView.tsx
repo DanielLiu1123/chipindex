@@ -29,11 +29,45 @@ function buildChartData(sessions: LeaderboardSessionRow[], stats: PlayerStats[],
   })
 }
 
+type SortKey = 'total_yuan' | 'total_chips' | 'sessions_played' | 'win_rate' | 'pog_count'
+
 export default function LeaderboardView({ stats, sessions }: { stats: PlayerStats[]; sessions: LeaderboardSessionRow[] }) {
   const [view, setView] = useState<'table' | 'chart'>('table')
   const [chartMode, setChartMode] = useState<'chips' | 'cny'>('cny')
+  const [sortKey, setSortKey] = useState<SortKey>('total_yuan')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const playerNames = stats.map(s => s.player.name)
   const chartData = useMemo(() => buildChartData(sessions, stats, chartMode), [sessions, stats, chartMode])
+
+  function toggleSort(key: SortKey) {
+    if (key === sortKey) {
+      setSortDir(d => (d === 'desc' ? 'asc' : 'desc'))
+    } else {
+      setSortKey(key)
+      setSortDir('desc')
+    }
+  }
+
+  const sortedStats = useMemo(() => {
+    const dir = sortDir === 'desc' ? -1 : 1
+    return [...stats].sort((a, b) => {
+      const diff = a[sortKey] - b[sortKey]
+      if (diff !== 0) return dir * diff
+      return a.player.name.localeCompare(b.player.name)
+    })
+  }, [stats, sortKey, sortDir])
+
+  function SortHeader({ label, sortKey: key }: { label: string; sortKey: SortKey }) {
+    const active = sortKey === key
+    return (
+      <th className="text-right py-3 font-normal">
+        <button onClick={() => toggleSort(key)}
+          className={`tracking-widest transition-colors ${active ? 'text-white' : 'text-muted hover:text-white'}`}>
+          {label}{active ? (sortDir === 'desc' ? ' ↓' : ' ↑') : ''}
+        </button>
+      </th>
+    )
+  }
 
   return (
     <>
@@ -60,11 +94,11 @@ export default function LeaderboardView({ stats, sessions }: { stats: PlayerStat
             <tr className="border-b border-border text-muted text-xs tracking-widest">
               <th className="text-left py-3 font-normal w-8">#</th>
               <th className="text-left py-3 font-normal">PLAYER</th>
-              <th className="text-right py-3 font-normal">CNY</th>
-              <th className="text-right py-3 font-normal">CHIPS</th>
-              <th className="text-right py-3 font-normal">SESSIONS</th>
-              <th className="text-right py-3 font-normal">WIN%</th>
-              <th className="text-right py-3 font-normal">POG</th>
+              <SortHeader label="CNY" sortKey="total_yuan" />
+              <SortHeader label="CHIPS" sortKey="total_chips" />
+              <SortHeader label="SESSIONS" sortKey="sessions_played" />
+              <SortHeader label="WIN%" sortKey="win_rate" />
+              <SortHeader label="POG" sortKey="pog_count" />
             </tr>
           </thead>
           <tbody>
@@ -73,7 +107,7 @@ export default function LeaderboardView({ stats, sessions }: { stats: PlayerStat
                 <td colSpan={7} className="py-12 text-center text-xs text-muted tracking-widest">NO PLAYERS YET</td>
               </tr>
             )}
-            {stats.map((s, i) => (
+            {sortedStats.map((s, i) => (
               <tr key={s.player.id} className="border-b border-border hover:bg-surface transition-colors">
                 <td className="py-4 text-muted text-xs">
                   <Link href={`/players/${s.player.id}`} className="block">{i + 1}</Link>
