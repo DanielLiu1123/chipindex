@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseSpaces, spaceForPassword } from './spaces'
+import { parseSpaces, spaceForPassword, makeCookie, verifySpaceCookie } from './spaces'
 
 describe('parseSpaces', () => {
   it('parses multiple space:password pairs', () => {
@@ -28,5 +28,35 @@ describe('spaceForPassword', () => {
   it('returns null for unknown or empty password', () => {
     expect(spaceForPassword('nope', spaces)).toBeNull()
     expect(spaceForPassword('', spaces)).toBeNull()
+  })
+})
+
+describe('cookie sign/verify', () => {
+  const spaces = parseSpaces('游戏A:pa,游戏B:pb')
+
+  it('round-trips a valid cookie back to its space name', async () => {
+    const cookie = await makeCookie('游戏A', 'pa')
+    expect(await verifySpaceCookie(cookie, spaces)).toBe('游戏A')
+  })
+
+  it('rejects a tampered signature', async () => {
+    const cookie = await makeCookie('游戏A', 'pa')
+    const tampered = cookie.slice(0, -1) + (cookie.endsWith('0') ? '1' : '0')
+    expect(await verifySpaceCookie(tampered, spaces)).toBeNull()
+  })
+
+  it('rejects a cookie whose space is no longer configured', async () => {
+    const cookie = await makeCookie('游戏C', 'pc') // not in spaces
+    expect(await verifySpaceCookie(cookie, spaces)).toBeNull()
+  })
+
+  it('rejects a cookie signed with the wrong password', async () => {
+    const cookie = await makeCookie('游戏A', 'WRONG')
+    expect(await verifySpaceCookie(cookie, spaces)).toBeNull()
+  })
+
+  it('returns null for undefined/garbage input', async () => {
+    expect(await verifySpaceCookie(undefined, spaces)).toBeNull()
+    expect(await verifySpaceCookie('garbage', spaces)).toBeNull()
   })
 })
