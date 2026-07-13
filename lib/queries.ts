@@ -2,6 +2,7 @@ import { cache } from 'react'
 import { db } from './db'
 import { BUY_IN_UNIT } from './synth'
 import { buyinSum, netChips } from './settlement'
+import { requireSpace } from './spaces'
 import type { Player } from '@/types'
 
 // ── Central place for all table reads. Net result chips come from
@@ -66,9 +67,11 @@ async function playerNameMap(): Promise<Map<string, string>> {
 }
 
 export async function getLeaderboardSessions(): Promise<LeaderboardSessionRow[]> {
+  const space = await requireSpace()
   const { data: sessions } = await db
     .from('session')
     .select('id, date, exchange_rate')
+    .eq('space', space)
     .is('deleted_at', null)
     .eq('status', 'SETTLED')
     .order('date', { ascending: true })
@@ -99,9 +102,11 @@ interface SessionListSource {
 }
 
 export async function getSessionsList(): Promise<SessionRow[]> {
+  const space = await requireSpace()
   const { data: sessions } = await db
     .from('session')
     .select('id, date, description, exchange_rate, status, started_at')
+    .eq('space', space)
     .is('deleted_at', null)
   const rows = (sessions ?? []) as SessionListSource[]
   if (rows.length === 0) return []
@@ -151,13 +156,15 @@ export interface SessionDetail {
 }
 
 export async function getSessionStatus(id: string): Promise<string | null> {
-  const { data } = await db.from('session').select('status').eq('id', id).is('deleted_at', null).single()
+  const space = await requireSpace()
+  const { data } = await db.from('session').select('status').eq('id', id).eq('space', space).is('deleted_at', null).single()
   return data?.status ?? null
 }
 
 export async function getSessionDetail(id: string): Promise<SessionDetail | null> {
+  const space = await requireSpace()
   const [{ data: session }, { data: parts }, { data: buyins }, names] = await Promise.all([
-    db.from('session').select('id, date, description, exchange_rate, status').eq('id', id).is('deleted_at', null).single(),
+    db.from('session').select('id, date, description, exchange_rate, status').eq('id', id).eq('space', space).is('deleted_at', null).single(),
     db.from('session_participant').select('id, player_id, final_chips').is('deleted_at', null).eq('session_id', id),
     db.from('buy_in').select('player_id, amount, created_at').is('deleted_at', null).eq('session_id', id).order('created_at', { ascending: true }),
     playerNameMap(),
@@ -197,8 +204,9 @@ export interface SessionForEdit {
 }
 
 export async function getSessionForEdit(id: string): Promise<SessionForEdit | null> {
+  const space = await requireSpace()
   const [{ data: session }, { data: parts }, { data: buyins }, names] = await Promise.all([
-    db.from('session').select('date, exchange_rate, description, status').eq('id', id).is('deleted_at', null).single(),
+    db.from('session').select('date, exchange_rate, description, status').eq('id', id).eq('space', space).is('deleted_at', null).single(),
     db.from('session_participant').select('player_id, final_chips').is('deleted_at', null).eq('session_id', id).order('created_at', { ascending: true }),
     db.from('buy_in').select('player_id, amount, created_at').is('deleted_at', null).eq('session_id', id).order('created_at', { ascending: true }),
     playerNameMap(),
@@ -242,8 +250,9 @@ export interface LiveSessionData {
 }
 
 export async function getLiveSession(id: string): Promise<LiveSessionData | null> {
+  const space = await requireSpace()
   const [{ data: session }, { data: parts }, { data: buyins }, names] = await Promise.all([
-    db.from('session').select('id, date, description, exchange_rate, buy_in_unit, started_at, status').eq('id', id).is('deleted_at', null).single(),
+    db.from('session').select('id, date, description, exchange_rate, buy_in_unit, started_at, status').eq('id', id).eq('space', space).is('deleted_at', null).single(),
     db.from('session_participant').select('player_id').is('deleted_at', null).eq('session_id', id).order('created_at', { ascending: true }),
     db.from('buy_in').select('id, player_id, amount, created_at').is('deleted_at', null).eq('session_id', id).order('created_at', { ascending: true }),
     playerNameMap(),
@@ -289,6 +298,7 @@ export interface PlayerDetail {
 }
 
 export async function getPlayerDetail(id: string): Promise<PlayerDetail | null> {
+  const space = await requireSpace()
   // sessions this player took part in that are settled and not deleted
   const [{ data: player }, { data: myParts }] = await Promise.all([
     db.from('player').select('id, name').eq('id', id).single(),
@@ -301,6 +311,7 @@ export async function getPlayerDetail(id: string): Promise<PlayerDetail | null> 
   const { data: sessions } = await db
     .from('session')
     .select('id, date, description, exchange_rate')
+    .eq('space', space)
     .is('deleted_at', null)
     .eq('status', 'SETTLED')
     .in('id', mySessionIds)
