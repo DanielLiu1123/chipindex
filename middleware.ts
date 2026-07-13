@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { generateToken, AUTH_COOKIE } from '@/lib/auth'
+import { verifySpaceCookie, parseSpaces, AUTH_COOKIE } from '@/lib/spaces'
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const token = request.cookies.get(AUTH_COOKIE)?.value
-  const expected = await generateToken()
-  const authed = token === expected
+  const space = await verifySpaceCookie(token, parseSpaces(process.env.SPACES))
+  const authed = space !== null
 
   if (pathname.startsWith('/login')) {
     if (authed) return NextResponse.redirect(new URL('/', request.url))

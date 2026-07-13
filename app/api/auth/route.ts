@@ -1,13 +1,15 @@
 import { NextResponse } from 'next/server'
-import { generateToken, AUTH_COOKIE } from '@/lib/auth'
+import { parseSpaces, spaceForPassword, makeCookie, AUTH_COOKIE } from '@/lib/spaces'
 
 export async function POST(req: Request) {
-  const { password } = await req.json() as { password: string }
-  if (password !== process.env.SHARED_PASSWORD) {
+  const { password } = await req.json() as { password?: string }
+  const spaces = parseSpaces(process.env.SPACES)
+  const name = password ? spaceForPassword(password, spaces) : null
+  if (!name) {
     return NextResponse.json({ error: 'Wrong password' }, { status: 401 })
   }
   const res = NextResponse.json({ ok: true })
-  res.cookies.set(AUTH_COOKIE, await generateToken(), {
+  res.cookies.set(AUTH_COOKIE, await makeCookie(name, spaces.get(name)!), {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
