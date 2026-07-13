@@ -2,6 +2,7 @@ import { db } from './db'
 import { ApiError } from './http'
 import { synthFromNet, BUY_IN_UNIT } from './synth'
 import { buyinSum, checkConservation } from './settlement'
+import { requireSpace } from './spaces'
 import type { Player } from '@/types'
 
 // Write-side counterpart of queries.ts: every table write goes through here.
@@ -17,9 +18,19 @@ function ensure(error: { message: string } | null): void {
 }
 
 async function requireOpenSession(id: string): Promise<void> {
-  const { data: session } = await db.from('session').select('status').eq('id', id).single()
+  const space = await requireSpace()
+  const { data: session } = await db.from('session').select('status').eq('id', id).eq('space', space).single()
   if (!session) throw new ApiError(404, 'Session not found')
   if (session.status !== 'OPEN') throw new ApiError(409, 'Session is not open')
+}
+
+// Guard: the session must belong to the caller's current space. Call this
+// FIRST in any mutation that writes by session id, before any update/delete,
+// to prevent cross-space writes via a guessed id.
+async function requireSessionInSpace(id: string): Promise<void> {
+  const space = await requireSpace()
+  const { data } = await db.from('session').select('id').eq('id', id).eq('space', space).single()
+  if (!data) throw new ApiError(404, 'Session not found')
 }
 
 // Conservation check shared by settle and edit. Throws 422 with the diff
@@ -75,9 +86,11 @@ export interface ImportEntry {
 // Import a finished session after the fact: only each player's net result is
 // known, so synthFromNet constructs a buy-in + final chips pair per player.
 export async function importSession(meta: SessionMeta, entries: ImportEntry[]) {
+  const space = await requireSpace()
   const { data: session, error } = await db
     .from('session')
     .insert({
+      space,
       date: meta.date,
       exchange_rate: meta.exchange_rate,
       description: meta.description || null,
@@ -124,9 +137,11 @@ export async function startSession(meta: SessionMeta, players: StartingPlayer[])
     }
   }
 
+  const space = await requireSpace()
   const { data: session, error } = await db
     .from('session')
     .insert({
+      space,
       date: meta.date,
       exchange_rate: meta.exchange_rate ?? 40,
       description: meta.description || null,
@@ -166,6 +181,7 @@ export async function updateSettledSession(
   participants: EditedParticipant[],
   force: boolean,
 ): Promise<{ id: string; diff: number }> {
+  await requireSessionInSpace(id)
   if (!participants || participants.length === 0) {
     throw new ApiError(400, 'At least one player required')
   }
@@ -229,6 +245,7 @@ export async function updateSettledSession(
 }
 
 export async function softDeleteSession(id: string): Promise<void> {
+  await requireSessionInSpace(id)
   const ts = now()
   const { error } = await db
     .from('session')
@@ -253,6 +270,7 @@ export async function addParticipant(sessionId: string, playerId: string) {
 // Soft-delete the participant together with all their buy-ins.
 export async function removeParticipant(sessionId: string, playerId: string): Promise<void> {
   if (!playerId) throw new ApiError(400, 'player_id required')
+  await requireSessionInSpace(sessionId)
   const ts = now()
   const [{ error: pErr }, { error: bErr }] = await Promise.all([
     db.from('session_participant').update({ deleted_at: ts, updated_at: ts }).eq('session_id', sessionId).eq('player_id', playerId),
