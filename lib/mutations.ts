@@ -304,6 +304,7 @@ export async function addBuyin(sessionId: string, playerId: string, amount: numb
 }
 
 export async function revokeBuyin(sessionId: string, buyinId: string): Promise<void> {
+  await requireOpenSession(sessionId)
   const ts = now()
   const { error } = await db
     .from('buy_in')

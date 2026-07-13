@@ -1,7 +1,7 @@
 -- ChipIndex schema. Run in Supabase → SQL Editor → New query → Run.
 -- Rerunnable: drops and recreates all tables. WARNING: destroys existing data.
 -- App connects with the anon key and enforces access at the app layer
--- (SHARED_PASSWORD), so RLS below is permissive on purpose.
+-- (SPACES-based space scoping), so RLS below is permissive on purpose.
 
 create extension if not exists "pgcrypto";
 
