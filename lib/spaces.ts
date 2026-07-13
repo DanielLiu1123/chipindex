@@ -1,3 +1,6 @@
+import { cache } from 'react'
+import { cookies } from 'next/headers'
+
 export const AUTH_COOKIE = 'chipindex_auth'
 
 // Parse SPACES="name:password,name2:password2" into name→password.
@@ -77,4 +80,16 @@ export async function verifySpaceCookie(
   let diff = 0
   for (let i = 0; i < sig.length; i++) diff |= sig.charCodeAt(i) ^ expected.charCodeAt(i)
   return diff === 0 ? name : null
+}
+
+export const currentSpace = cache(async (): Promise<string | null> => {
+  const store = await cookies()
+  const value = store.get(AUTH_COOKIE)?.value
+  return verifySpaceCookie(value, parseSpaces(process.env.SPACES))
+})
+
+export async function requireSpace(): Promise<string> {
+  const space = await currentSpace()
+  if (!space) throw new Error('No active space')
+  return space
 }
