@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { SortedTooltipContent } from '@/components/LeaderboardChart'
-import { sortTooltipItems } from './chart'
+import { prepareSortedTooltipProps, sortTooltipItems } from './chart'
 
 describe('sortTooltipItems', () => {
   test('sorts tooltip items by value descending and name ascending without mutating input', () => {
@@ -18,8 +17,8 @@ describe('sortTooltipItems', () => {
   })
 })
 
-describe('SortedTooltipContent', () => {
-  test('passes sorted payload and disables the default item sorter', () => {
+describe('prepareSortedTooltipProps', () => {
+  test('returns sorted payload and disables the default item sorter', () => {
     const payload = [
       { name: 'Zulu', value: -100, graphicalItemId: 'zulu' },
       { name: 'Beta', value: 250, graphicalItemId: 'beta' },
@@ -27,9 +26,9 @@ describe('SortedTooltipContent', () => {
       { name: 'Gamma', value: 0, graphicalItemId: 'gamma' },
     ]
 
-    const result = SortedTooltipContent({ payload, itemSorter: 'name' } as unknown as Parameters<typeof SortedTooltipContent>[0])
+    const result = prepareSortedTooltipProps({ payload, itemSorter: 'name' })
 
-    expect(result.props.payload.map((item: { name: string }) => item.name)).toEqual(['Alpha', 'Beta', 'Gamma', 'Zulu'])
-    expect(result.props.itemSorter).toBeUndefined()
+    expect(result.payload.map(item => item.name)).toEqual(['Alpha', 'Beta', 'Gamma', 'Zulu'])
+    expect(result.itemSorter).toBeUndefined()
   })
 })
