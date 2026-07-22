@@ -19,19 +19,15 @@ Leaderboard 的 chart 模式使用 Recharts 默认 Tooltip。当前未配置 Too
 2. 数值相同时，将 `name` 转换为字符串并按升序比较。
 3. 不原地修改 Recharts 传入的 payload。
 
-`LeaderboardChart` 使用自定义 tooltip content 回调。在回调中调用该排序函数，再把排序后的 payload 和其余属性交给 Recharts 的 `DefaultTooltipContent` 渲染。这样可以复用现有默认结构、formatter、颜色和样式，同时支持两级排序。
+`LeaderboardChart` 使用自定义 tooltip content 回调。在回调中调用该排序函数，再把排序后的 payload 和其余属性交给 Recharts 的 `DefaultTooltipContent` 渲染。回调必须在展开 Recharts 传入的 props 后显式设置 `itemSorter={undefined}`，避免 `DefaultTooltipContent` 使用 Recharts 注入的默认 `itemSorter="name"` 对 payload 再次排序。这样可以复用现有默认结构、formatter、颜色和样式，同时支持两级排序。
 
 不采用 Tooltip 的 `itemSorter`，因为当前 Recharts 版本只支持单个排序键，不能可靠表达“数值降序、同值名称升序”。也不完全重写 Tooltip，以避免重复已有的展示逻辑。
 
 ## 数据流
 
-hover 日期 -> Recharts 生成该日期的 payload -> 复制并排序 payload -> `DefaultTooltipContent` 按排序结果执行现有 formatter -> 展示详情。
+hover 日期 -> Recharts 生成该日期的 payload -> 复制并排序 payload -> 清除默认 `itemSorter` -> `DefaultTooltipContent` 按现有顺序执行 formatter -> 展示详情。
 
-## 边界处理
-
-- 缺少或无法转换为有限数值的条目排在有效数值之后。
-- 多个无效数值仍按名称升序排列。
-- 玩家筛选继续由现有 formatter 控制，不在排序函数中重复处理。
+玩家筛选继续由现有 formatter 控制，不在排序函数中重复处理。名称比较沿用仓库现有的 `localeCompare` 规则。
 
 ## 测试
 
@@ -40,5 +36,6 @@ hover 日期 -> Recharts 生成该日期的 payload -> 复制并排序 payload -
 - 正数、零和负数按数值降序排列。
 - 数值相同时按名称升序排列。
 - 输入 payload 的原始顺序不被修改。
+- 自定义 content 传给 `DefaultTooltipContent` 的 payload 已排序，且 `itemSorter` 为 `undefined`，不会发生二次名称排序。
 
 最后运行完整 Vitest 测试和 Next.js 构建。
