@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
+import { DefaultTooltipContent, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, type TooltipContentProps, type TooltipValueType } from 'recharts'
+import { sortTooltipItems } from '@/lib/chart'
 import { formatAmount } from '@/lib/format'
 
 const COLORS = [
@@ -10,6 +11,10 @@ const COLORS = [
 ]
 
 interface ChartPoint { date: string; [player: string]: string | number }
+
+export function SortedTooltipContent(props: TooltipContentProps<TooltipValueType>) {
+  return <DefaultTooltipContent {...props} payload={sortTooltipItems(props.payload)} itemSorter={undefined} />
+}
 
 export default function LeaderboardChart({ data, players, mode }: { data: ChartPoint[]; players: string[]; mode: 'chips' | 'cny' }) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -47,6 +52,7 @@ export default function LeaderboardChart({ data, players, mode }: { data: ChartP
           />
           <ReferenceLine y={0} stroke="#333333" strokeDasharray="3 3" />
           <Tooltip
+            content={SortedTooltipContent}
             contentStyle={{
               background: '#111111',
               border: '1px solid #222222',
