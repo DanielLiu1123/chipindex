@@ -105,16 +105,24 @@ export default function PlayerChart({
     return [candle.low, candle.high]
   }, [mode])
 
-  const renderCandle = useCallback((props: BarShapeProps) => createElement(PlayerCandleShape, {
-    ...props,
-    labelAnchor: props.index === 0
-      ? 'start'
-      : props.index === data.length - 1 ? 'end' : 'middle',
-    mode,
-    showBest: showExtrema && props.index === bestIdx,
-    showWorst: showExtrema && props.index === worstIdx,
-    onActivate: activateSession,
-  }), [activateSession, bestIdx, data.length, mode, showExtrema, worstIdx])
+  const renderCandle = useCallback((props: BarShapeProps) => {
+    const payload = props.payload as HistoryPoint | undefined
+    const index = Number(props.index)
+
+    return createElement(PlayerCandleShape, {
+      ...props,
+      ariaLabel: payload
+        ? `${payload.date} session ${index + 1} of ${data.length}`
+        : undefined,
+      labelAnchor: index === 0
+        ? 'start'
+        : index === data.length - 1 ? 'end' : 'middle',
+      mode,
+      showBest: showExtrema && index === bestIdx,
+      showWorst: showExtrema && index === worstIdx,
+      onActivate: activateSession,
+    })
+  }, [activateSession, bestIdx, data.length, mode, showExtrema, worstIdx])
 
   return createElement(
     ResponsiveContainer,

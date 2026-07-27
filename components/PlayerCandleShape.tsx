@@ -11,6 +11,7 @@ import type { HistoryPoint } from '@/lib/stats'
 type Mode = 'chips' | 'cny'
 
 interface PlayerCandleShapeProps extends BarShapeProps {
+  ariaLabel?: string
   labelAnchor?: 'start' | 'middle' | 'end'
   mode: Mode
   showBest: boolean
@@ -126,7 +127,7 @@ export default function PlayerCandleShape(props: PlayerCandleShapeProps) {
     {
       role: 'button',
       tabIndex: 0,
-      'aria-label': `${payload.date} session`,
+      'aria-label': props.ariaLabel ?? `${payload.date} session`,
       onClick: activate,
       onKeyDown,
       style: { cursor: 'pointer' },

@@ -91,6 +91,7 @@ type LineProps = {
 }
 
 type CandleElementProps = {
+  ariaLabel?: string
   index: number
   labelAnchor: 'start' | 'middle' | 'end'
   mode: 'chips' | 'cny'
@@ -201,11 +202,23 @@ describe('PlayerChart', () => {
     expect(asBarProps().dataKey(point)).toEqual([-75, 112.5])
   })
 
+  it('delegates missing payload handling to the candle shape guard', () => {
+    renderChart({ chartType: 'candle' })
+
+    let candle!: ReactElement<CandleElementProps>
+    expect(() => {
+      candle = asCandleElement(asBarProps().shape({ index: 0, payload: undefined }))
+    }).not.toThrow()
+    expect(candle.props.ariaLabel).toBeUndefined()
+    expect(renderToStaticMarkup(candle)).toBe('')
+  })
+
   it('passes mode, conflict-free extrema, and activation through the candle shape', () => {
     renderChart({ chartType: 'candle' })
 
     const single = asCandleElement(asBarProps().shape({ index: 0, payload: point }))
     expect(single.props).toMatchObject({
+      ariaLabel: '2026-07-25 session 1 of 1',
       index: 0,
       mode: 'chips',
       payload: point,
@@ -217,13 +230,14 @@ describe('PlayerChart', () => {
 
     resetCaptured()
     const tied = [
-      { ...point, session_id: 's1', chips: 10, cny: 1 },
-      { ...point, session_id: 's2', chips: 10, cny: 1 },
+      { ...point, date: '2026-07-02', session_id: 's1', chips: 10, cny: 1 },
+      { ...point, date: '2026-07-02', session_id: 's2', chips: 10, cny: 1 },
     ] satisfies HistoryPoint[]
     renderChart({ chartType: 'candle', data: tied })
     const tiedBar = asBarProps()
     for (const [index, payload] of tied.entries()) {
       expect(asCandleElement(tiedBar.shape({ index, payload })).props).toMatchObject({
+        ariaLabel: `2026-07-02 session ${index + 1} of 2`,
         showBest: false,
         showWorst: false,
       })

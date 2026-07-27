@@ -74,6 +74,13 @@ describe('PlayerCandleShape', () => {
     expect(html).not.toContain('WORST')
   })
 
+  it('uses an explicit accessible label when supplied', () => {
+    const html = render({ ariaLabel: '2026-07-25 session 1 of 2' })
+
+    expect(html).toContain('aria-label="2026-07-25 session 1 of 2"')
+    expect(html).not.toContain('aria-label="2026-07-25 session"')
+  })
+
   it('renders nothing when the Recharts payload is missing', () => {
     expect(render({ payload: undefined })).toBe('')
   })
