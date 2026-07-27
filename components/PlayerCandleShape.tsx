@@ -11,6 +11,7 @@ import type { HistoryPoint } from '@/lib/stats'
 type Mode = 'chips' | 'cny'
 
 interface PlayerCandleShapeProps extends BarShapeProps {
+  labelAnchor?: 'start' | 'middle' | 'end'
   mode: Mode
   showBest: boolean
   showWorst: boolean
@@ -67,6 +68,7 @@ export default function PlayerCandleShape(props: PlayerCandleShapeProps) {
   if (!geometry) return null
 
   const color = COLORS[candleDirection(payload.chips)]
+  const labelAnchor = props.labelAnchor ?? 'middle'
   const bodyTop = Math.min(geometry.openY, geometry.closeY)
   const bodyHeight = Math.max(1, Math.abs(geometry.openY - geometry.closeY))
   const activate = () => props.onActivate(payload.session_id)
@@ -101,7 +103,7 @@ export default function PlayerCandleShape(props: PlayerCandleShapeProps) {
     ? createElement('text', {
         x: geometry.centerX,
         y: bodyTop - 10,
-        textAnchor: 'middle',
+        textAnchor: labelAnchor,
         fill: '#00ff88',
         fontSize: 9,
         fontFamily: 'JetBrains Mono',
@@ -112,7 +114,7 @@ export default function PlayerCandleShape(props: PlayerCandleShapeProps) {
     ? createElement('text', {
         x: geometry.centerX,
         y: bodyTop + bodyHeight + 14,
-        textAnchor: 'middle',
+        textAnchor: labelAnchor,
         fill: '#ff4444',
         fontSize: 9,
         fontFamily: 'JetBrains Mono',

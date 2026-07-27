@@ -167,6 +167,23 @@ describe('PlayerCandleShape', () => {
 
   it.each([
     {
+      label: 'BEST',
+      labelAnchor: 'start',
+      overrides: { showBest: true, showWorst: false },
+    },
+    {
+      label: 'WORST',
+      labelAnchor: 'end',
+      overrides: { showBest: false, showWorst: true },
+    },
+  ] as const)('uses the supplied anchor for the $label label', ({ label, labelAnchor, overrides }) => {
+    const html = render({ ...overrides, labelAnchor })
+
+    expect(html).toMatch(new RegExp(`<text[^>]*text-anchor="${labelAnchor}"[^>]*>${label}</text>`))
+  })
+
+  it.each([
+    {
       name: 'a missing x coordinate',
       overrides: { x: undefined },
     },

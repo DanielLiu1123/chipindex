@@ -107,11 +107,14 @@ export default function PlayerChart({
 
   const renderCandle = useCallback((props: BarShapeProps) => createElement(PlayerCandleShape, {
     ...props,
+    labelAnchor: props.index === 0
+      ? 'start'
+      : props.index === data.length - 1 ? 'end' : 'middle',
     mode,
     showBest: showExtrema && props.index === bestIdx,
     showWorst: showExtrema && props.index === worstIdx,
     onActivate: activateSession,
-  }), [activateSession, bestIdx, mode, showExtrema, worstIdx])
+  }), [activateSession, bestIdx, data.length, mode, showExtrema, worstIdx])
 
   return createElement(
     ResponsiveContainer,

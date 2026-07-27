@@ -92,6 +92,7 @@ type LineProps = {
 
 type CandleElementProps = {
   index: number
+  labelAnchor: 'start' | 'middle' | 'end'
   mode: 'chips' | 'cny'
   onActivate: (sessionId: string) => void
   payload: HistoryPoint
@@ -237,14 +238,17 @@ describe('PlayerChart', () => {
     renderChart({ chartType: 'candle', data: varied })
     const variedBar = asBarProps()
     expect(asCandleElement(variedBar.shape({ index: 0, payload: varied[0] })).props).toMatchObject({
+      labelAnchor: 'start',
       showBest: false,
       showWorst: false,
     })
     expect(asCandleElement(variedBar.shape({ index: 1, payload: varied[1] })).props).toMatchObject({
+      labelAnchor: 'middle',
       showBest: false,
       showWorst: true,
     })
     expect(asCandleElement(variedBar.shape({ index: 2, payload: varied[2] })).props).toMatchObject({
+      labelAnchor: 'end',
       showBest: true,
       showWorst: false,
     })
