@@ -287,11 +287,11 @@ describe('computePlayerHistory', () => {
     expect(customHistory[1].cny_candle.open).toBe(customHistory[1].cny_candle.close)
   })
 
-  it('derives candle net values from final chips and total buy-in', () => {
+  it('normalizes player history net values from final chips and total buy-in', () => {
     const result = computePlayerHistory(makePlayerDetail([
       makeEntry({
         session_id: 'null-final',
-        chips: 0,
+        chips: 1,
         total_buyin: 2000,
         final_chips: null,
         exchange_rate: 40,
@@ -299,7 +299,7 @@ describe('computePlayerHistory', () => {
     ]))
     const point = result.history[0]
 
-    expect(point.chips).toBe(0)
+    expect(point.chips).toBe(-2000)
     expect(point.cny).toBe(-50)
     expect(point.chips_candle).toEqual({ open: 0, high: 0, low: -2000, close: -2000 })
     expect(point.cny_candle).toEqual({ open: 0, high: 0, low: -50, close: -50 })
@@ -309,6 +309,36 @@ describe('computePlayerHistory', () => {
     expect(result.totalCny).toBe(point.cny_candle.close)
     expect(result.wins).toBe(0)
     expect(result.pogCount).toBe(1)
+  })
+
+  it('computes POG from normalized settlement net values', () => {
+    const entry = makeEntry({
+      session_id: 'normalized-pog',
+      chips: 1000,
+      total_buyin: 2000,
+      final_chips: 2000,
+    })
+    entry.sessions.session_entries = [
+      {
+        player_id: 'alice',
+        chips: 1000,
+        final_chips: 2000,
+        total_buyin: 2000,
+        buy_in_count: 1,
+      },
+      {
+        player_id: 'bob',
+        chips: 0,
+        final_chips: 3000,
+        total_buyin: 2000,
+        buy_in_count: 1,
+      },
+    ]
+
+    const result = computePlayerHistory(makePlayerDetail([entry]))
+
+    expect(result.history[0].chips).toBe(0)
+    expect(result.pogCount).toBe(0)
   })
 
   it('builds a neutral doji for a true tie at a different exchange rate', () => {

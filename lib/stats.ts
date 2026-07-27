@@ -124,11 +124,21 @@ function createCandle(open: number, net: number, buyIn: number): CandlePoint {
   }
 }
 
+function topSettledChips(entries: { final_chips: number | null; total_buyin: number }[]): number | null {
+  if (entries.length === 0) return null
+  return entries.reduce((top, entry) => {
+    const chips = netChips(entry.final_chips, entry.total_buyin)
+    return chips > top ? chips : top
+  }, netChips(entries[0].final_chips, entries[0].total_buyin))
+}
+
 export function computePlayerHistory(detail: PlayerDetail): PlayerHistory {
   const sorted = [...detail.entries].sort(compareHistoryEntries)
 
   let cumulative = 0
   let cumulativeCny = 0
+  let wins = 0
+  let pogCount = 0
   const history: HistoryPoint[] = sorted.map(e => {
     const effectiveNet = netChips(e.final_chips, e.total_buyin)
     const chipsCandle = createCandle(cumulative, effectiveNet, e.total_buyin)
@@ -137,11 +147,13 @@ export function computePlayerHistory(detail: PlayerDetail): PlayerHistory {
     const cnyCandle = createCandle(cumulativeCny, cny, buyInCny)
     cumulative = chipsCandle.close
     cumulativeCny = cnyCandle.close
+    if (effectiveNet > 0) wins++
+    if (effectiveNet === topSettledChips(e.sessions.session_entries)) pogCount++
 
     return {
       date: e.sessions.date,
       session_id: e.session_id,
-      chips: e.chips,
+      chips: effectiveNet,
       cumulative,
       cny,
       cumulative_cny: cumulativeCny,
@@ -158,7 +170,7 @@ export function computePlayerHistory(detail: PlayerDetail): PlayerHistory {
     history,
     totalCny: history.length > 0 ? history[history.length - 1].cumulative_cny : 0,
     totalChips: history.length > 0 ? history[history.length - 1].cumulative : 0,
-    wins: sorted.filter(e => e.chips > 0).length,
-    pogCount: sorted.filter(e => e.chips === topChips(e.sessions.session_entries)).length,
+    wins,
+    pogCount,
   }
 }
