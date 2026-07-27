@@ -63,6 +63,32 @@ describe('projectCandleGeometry', () => {
     })
   })
 
+  it('projects a translated range spanning zero without changing its proportions', () => {
+    const geometry = projectCandleGeometry(
+      bounds,
+      { low: -50, high: 150, open: 0, close: 100 },
+    )
+
+    expect(geometry).not.toBeNull()
+    if (geometry === null) throw new Error('Expected valid candle geometry')
+
+    expect(geometry).toMatchObject({
+      centerX: 20,
+      wickTop: 20,
+      wickBottom: 120,
+      openY: 95,
+      closeY: 45,
+      bodyLeft: 14.5,
+      bodyWidth: 11,
+    })
+    expect(geometry.wickTop).toBeGreaterThanOrEqual(bounds.y)
+    expect(geometry.wickBottom).toBeLessThanOrEqual(bounds.y + bounds.height)
+    expect(Math.min(geometry.openY, geometry.closeY)).toBeGreaterThanOrEqual(bounds.y)
+    expect(Math.max(geometry.openY, geometry.closeY)).toBeLessThanOrEqual(bounds.y + bounds.height)
+    expect(geometry.bodyLeft).toBeGreaterThanOrEqual(bounds.x)
+    expect(geometry.bodyLeft + geometry.bodyWidth).toBeLessThanOrEqual(bounds.x + bounds.width)
+  })
+
   it('keeps sub-pixel height coordinates finite', () => {
     const geometry = projectCandleGeometry(
       { x: 10, y: 20, width: 20, height: 0.2 },
@@ -94,15 +120,90 @@ describe('projectCandleGeometry', () => {
     })
   })
 
-  it('caps body and hit widths to extremely narrow bounds', () => {
+  it('projects a non-zero constant candle to the top of the bounds', () => {
     const geometry = projectCandleGeometry(
-      { x: 10, y: 20, width: 0.4, height: 100 },
+      bounds,
+      { low: 42, high: 42, open: 42, close: 42 },
+    )
+
+    expect(geometry).not.toBeNull()
+    if (geometry === null) throw new Error('Expected valid candle geometry')
+
+    const numericValues = Object.values(geometry).filter(value => typeof value === 'number')
+    expect(numericValues.every(Number.isFinite)).toBe(true)
+    expect(geometry).toMatchObject({
+      wickTop: bounds.y,
+      wickBottom: bounds.y,
+      openY: bounds.y,
+      closeY: bounds.y,
+      isDoji: true,
+    })
+  })
+
+  it('caps body and hit widths to extremely narrow bounds', () => {
+    const narrowBounds = { x: 10, y: 20, width: 0.4, height: 100 }
+    const geometry = projectCandleGeometry(
+      narrowBounds,
       { low: 0, high: 100, open: 25, close: 75 },
     )
 
     expect(geometry).not.toBeNull()
-    expect(geometry?.bodyWidth).toBeLessThanOrEqual(0.4)
-    expect(geometry?.hitWidth).toBeLessThanOrEqual(0.4)
+    if (geometry === null) throw new Error('Expected valid candle geometry')
+
+    const categoryRight = narrowBounds.x + narrowBounds.width
+    const bodyRight = geometry.bodyLeft + geometry.bodyWidth
+    const hitRight = geometry.hitX + geometry.hitWidth
+
+    expect(geometry.bodyWidth).toBeGreaterThan(0)
+    expect(geometry.bodyWidth).toBeLessThanOrEqual(narrowBounds.width)
+    expect(geometry.hitWidth).toBeGreaterThan(0)
+    expect(geometry.hitWidth).toBeLessThanOrEqual(narrowBounds.width)
+    expect(geometry.bodyLeft).toBeGreaterThanOrEqual(narrowBounds.x)
+    expect(bodyRight).toBeLessThanOrEqual(categoryRight)
+    expect(geometry.hitX).toBeGreaterThanOrEqual(narrowBounds.x)
+    expect(hitRight).toBeLessThanOrEqual(categoryRight)
+    expect(geometry.centerX).toBeCloseTo(narrowBounds.x + narrowBounds.width / 2)
+    expect(geometry.bodyLeft + geometry.bodyWidth / 2).toBeCloseTo(geometry.centerX)
+    expect(geometry.hitX + geometry.hitWidth / 2).toBeCloseTo(geometry.centerX)
+  })
+
+  it.each<{
+    name: string
+    testBounds: CandleBounds
+    candle: CandlePoint
+  }>([
+    {
+      name: 'candle span overflow',
+      testBounds: bounds,
+      candle: {
+        low: -Number.MAX_VALUE,
+        high: Number.MAX_VALUE,
+        open: 0,
+        close: 0,
+      },
+    },
+    {
+      name: 'bounds right edge overflow',
+      testBounds: {
+        x: Number.MAX_VALUE,
+        y: 20,
+        width: Number.MAX_VALUE,
+        height: 100,
+      },
+      candle: { low: 0, high: 100, open: 25, close: 75 },
+    },
+    {
+      name: 'bounds bottom edge overflow',
+      testBounds: {
+        x: 10,
+        y: Number.MAX_VALUE,
+        width: 20,
+        height: Number.MAX_VALUE,
+      },
+      candle: { low: 0, high: 100, open: 25, close: 75 },
+    },
+  ])('returns null when $name makes derived geometry non-finite', ({ testBounds, candle }) => {
+    expect(projectCandleGeometry(testBounds, candle)).toBeNull()
   })
 
   it.each<{
