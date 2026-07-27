@@ -1,4 +1,4 @@
-import { createElement } from 'react'
+import { createElement, isValidElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import PlayerCandleShape from '@/components/PlayerCandleShape'
@@ -39,6 +39,26 @@ function render(overrides: Record<string, unknown> = {}): string {
   )
 }
 
+interface TestKeyboardEvent {
+  key: string
+  preventDefault: () => void
+  stopPropagation: () => void
+}
+
+interface CandleRootProps {
+  onClick: () => void
+  onKeyDown: (event: TestKeyboardEvent) => void
+}
+
+function getRootProps(overrides: Record<string, unknown> = {}): CandleRootProps {
+  const element = PlayerCandleShape({ ...baseProps, ...overrides } as never)
+  if (!isValidElement<CandleRootProps>(element)) {
+    throw new Error('Expected PlayerCandleShape to return a React element')
+  }
+  expect(element.type).toBe('g')
+  return element.props
+}
+
 describe('PlayerCandleShape', () => {
   it('renders an accessible green rising candle and BEST label', () => {
     const html = render()
@@ -56,6 +76,55 @@ describe('PlayerCandleShape', () => {
 
   it('renders nothing when the Recharts payload is missing', () => {
     expect(render({ payload: undefined })).toBe('')
+  })
+
+  it('activates its session exactly once on click', () => {
+    const onActivate = vi.fn()
+    const rootProps = getRootProps({ onActivate })
+
+    rootProps.onClick()
+
+    expect(onActivate).toHaveBeenCalledTimes(1)
+    expect(onActivate).toHaveBeenCalledWith('s1')
+  })
+
+  it.each([
+    { name: 'Enter', key: 'Enter' },
+    { name: 'Space', key: ' ' },
+  ])('handles $name as an activation key', ({ key }) => {
+    const onActivate = vi.fn()
+    const event = {
+      key,
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
+    }
+    const rootProps = getRootProps({ onActivate })
+
+    rootProps.onKeyDown(event)
+
+    expect(event.preventDefault).toHaveBeenCalledTimes(1)
+    expect(event.stopPropagation).toHaveBeenCalledTimes(1)
+    expect(onActivate).toHaveBeenCalledTimes(1)
+    expect(onActivate).toHaveBeenCalledWith('s1')
+  })
+
+  it.each([
+    { name: 'ArrowRight', key: 'ArrowRight' },
+    { name: 'Escape', key: 'Escape' },
+  ])('ignores the non-activation key $name', ({ key }) => {
+    const onActivate = vi.fn()
+    const event = {
+      key,
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
+    }
+    const rootProps = getRootProps({ onActivate })
+
+    rootProps.onKeyDown(event)
+
+    expect(event.preventDefault).not.toHaveBeenCalled()
+    expect(event.stopPropagation).not.toHaveBeenCalled()
+    expect(onActivate).not.toHaveBeenCalled()
   })
 
   it('uses raw negative chips for a red CNY doji', () => {
@@ -112,5 +181,42 @@ describe('PlayerCandleShape', () => {
     },
   ])('renders nothing for $name', ({ overrides }) => {
     expect(render(overrides)).toBe('')
+  })
+
+  it.each([
+    {
+      name: 'a truthy malformed payload',
+      overrides: { payload: {} },
+    },
+    {
+      name: 'a non-string date',
+      overrides: { payload: { ...payload, date: null } },
+    },
+    {
+      name: 'an empty session id',
+      overrides: { payload: { ...payload, session_id: '' } },
+    },
+    {
+      name: 'non-finite raw chips',
+      overrides: { payload: { ...payload, chips: Number.NaN } },
+    },
+    {
+      name: 'a missing chips candle in chips mode',
+      overrides: { payload: { ...payload, chips_candle: undefined } },
+    },
+    {
+      name: 'a missing CNY candle in CNY mode',
+      overrides: {
+        mode: 'cny',
+        payload: { ...payload, cny_candle: undefined },
+      },
+    },
+  ])('renders nothing without throwing for $name', ({ overrides }) => {
+    let html: string | undefined
+
+    expect(() => {
+      html = render(overrides)
+    }).not.toThrow()
+    expect(html).toBe('')
   })
 })

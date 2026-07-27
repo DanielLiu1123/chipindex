@@ -23,11 +23,41 @@ const COLORS = {
   flat: '#888888',
 } as const
 
+interface ShapePayload {
+  date: string
+  session_id: string
+  chips: number
+  candle: HistoryPoint['chips_candle']
+}
+
+function readShapePayload(value: unknown, mode: Mode): ShapePayload | null {
+  if (typeof value !== 'object' || value === null) return null
+
+  const candidate = value as Record<string, unknown>
+  if (
+    typeof candidate.date !== 'string'
+    || typeof candidate.session_id !== 'string'
+    || candidate.session_id.length === 0
+    || typeof candidate.chips !== 'number'
+    || !Number.isFinite(candidate.chips)
+  ) return null
+
+  const candle = candidate[mode === 'cny' ? 'cny_candle' : 'chips_candle']
+  if (typeof candle !== 'object' || candle === null) return null
+
+  return {
+    date: candidate.date,
+    session_id: candidate.session_id,
+    chips: candidate.chips,
+    candle: candle as HistoryPoint['chips_candle'],
+  }
+}
+
 export default function PlayerCandleShape(props: PlayerCandleShapeProps) {
-  const payload = props.payload as HistoryPoint | undefined
+  const payload = readShapePayload(props.payload, props.mode)
   if (!payload) return null
 
-  const candle = props.mode === 'cny' ? payload.cny_candle : payload.chips_candle
+  const candle = payload.candle
   const geometry = projectCandleGeometry({
     x: Number(props.x),
     y: Number(props.y),
@@ -43,6 +73,7 @@ export default function PlayerCandleShape(props: PlayerCandleShapeProps) {
   const onKeyDown = (event: KeyboardEvent<SVGGElement>) => {
     if (!isActivationKey(event.key)) return
     event.preventDefault()
+    event.stopPropagation()
     activate()
   }
 
