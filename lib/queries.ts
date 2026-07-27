@@ -2,16 +2,19 @@ import { cache } from 'react'
 import { db } from './db'
 import { BUY_IN_UNIT } from './synth'
 import { buyinSum, netChips } from './settlement'
+import {
+  buildResultsBySession,
+  type BuyInResultRow,
+  type ParticipantResultRow,
+  type ResultEntry,
+} from './session-results'
 import type { Player } from '@/types'
+
+export type { ResultEntry } from './session-results'
 
 // ── Central place for all table reads. Net result chips come from
 //    lib/settlement.ts, computed over non-deleted rows (see resultsBySession).
 //    Session-level deleted_at/status is filtered on the session table first.
-
-export interface ResultEntry {
-  player_id: string
-  chips: number
-}
 
 // For leaderboard / charts: only settled, non-deleted sessions
 export interface LeaderboardSessionRow {
@@ -34,24 +37,14 @@ function groupByPlayer<T extends { player_id: string }>(rows: T[]): Map<string, 
 
 // Net chips per (session, player), over non-deleted rows.
 async function resultsBySession(sessionIds: string[]): Promise<Map<string, ResultEntry[]>> {
-  const map = new Map<string, ResultEntry[]>()
-  if (sessionIds.length === 0) return map
+  if (sessionIds.length === 0) return new Map()
   const [{ data: parts }, { data: buyins }] = await Promise.all([
     db.from('session_participant').select('session_id, player_id, final_chips').is('deleted_at', null).in('session_id', sessionIds),
     db.from('buy_in').select('session_id, player_id, amount').is('deleted_at', null).in('session_id', sessionIds),
   ])
-  const buyinByKey = new Map<string, number>()
-  for (const b of (buyins ?? []) as { session_id: string; player_id: string; amount: number }[]) {
-    const key = `${b.session_id}|${b.player_id}`
-    buyinByKey.set(key, (buyinByKey.get(key) ?? 0) + b.amount)
-  }
-  for (const p of (parts ?? []) as { session_id: string; player_id: string; final_chips: number | null }[]) {
-    const chips = netChips(p.final_chips, buyinByKey.get(`${p.session_id}|${p.player_id}`) ?? 0)
-    const arr = map.get(p.session_id) ?? []
-    arr.push({ player_id: p.player_id, chips })
-    map.set(p.session_id, arr)
-  }
-  return map
+  const participantRows = (parts ?? []) as ParticipantResultRow[]
+  const buyInRows = (buyins ?? []) as BuyInResultRow[]
+  return buildResultsBySession(participantRows, buyInRows)
 }
 
 // cache() dedupes the player fetch within a single request, so pages that
@@ -275,11 +268,15 @@ export interface PlayerHistorySession {
   date: string
   description: string | null
   exchange_rate: number
+  started_at: string | null
   session_entries: ResultEntry[] // all players in the session, for POG computation
 }
 export interface PlayerHistoryEntry {
   session_id: string
   chips: number
+  final_chips: number | null
+  total_buyin: number
+  buy_in_count: number
   sessions: PlayerHistorySession
 }
 export interface PlayerDetail {
@@ -300,18 +297,22 @@ export async function getPlayerDetail(id: string): Promise<PlayerDetail | null> 
 
   const { data: sessions } = await db
     .from('session')
-    .select('id, date, description, exchange_rate')
+    .select('id, date, description, exchange_rate, started_at')
     .is('deleted_at', null)
     .eq('status', 'SETTLED')
     .in('id', mySessionIds)
-  const sessionRows = (sessions ?? []) as { id: string; date: string; description: string | null; exchange_rate: number }[]
+  const sessionRows = (sessions ?? []) as { id: string; date: string; description: string | null; exchange_rate: number; started_at: string | null }[]
   const allBySession = await resultsBySession(sessionRows.map(s => s.id))
 
   const entries: PlayerHistoryEntry[] = sessionRows.map(s => {
     const all = allBySession.get(s.id) ?? []
+    const mine = all.find(e => e.player_id === id)
     return {
       session_id: s.id,
-      chips: all.find(e => e.player_id === id)?.chips ?? 0,
+      chips: mine?.chips ?? 0,
+      final_chips: mine?.final_chips ?? null,
+      total_buyin: mine?.total_buyin ?? 0,
+      buy_in_count: mine?.buy_in_count ?? 0,
       sessions: { ...s, session_entries: all },
     }
   })

@@ -15,8 +15,8 @@ const sessions: LeaderboardSessionRow[] = [
     date: '2026-01-10',
     exchange_rate: 40,
     session_entries: [
-      { player_id: 'alice', chips: 4000 },
-      { player_id: 'bob', chips: -4000 },
+      { player_id: 'alice', chips: 4000, final_chips: 6000, total_buyin: 2000, buy_in_count: 1 },
+      { player_id: 'bob', chips: -4000, final_chips: 0, total_buyin: 4000, buy_in_count: 2 },
     ],
   },
   {
@@ -24,8 +24,8 @@ const sessions: LeaderboardSessionRow[] = [
     date: '2026-01-17',
     exchange_rate: 40,
     session_entries: [
-      { player_id: 'alice', chips: -2000 },
-      { player_id: 'bob', chips: 2000 },
+      { player_id: 'alice', chips: -2000, final_chips: 0, total_buyin: 2000, buy_in_count: 1 },
+      { player_id: 'bob', chips: 2000, final_chips: 4000, total_buyin: 2000, buy_in_count: 1 },
     ],
   },
 ]
@@ -68,22 +68,30 @@ describe('computePlayerHistory', () => {
       {
         session_id: 's2',
         chips: -2000,
+        final_chips: 0,
+        total_buyin: 2000,
+        buy_in_count: 1,
         sessions: {
           id: 's2',
           date: '2026-01-17',
           description: null,
           exchange_rate: 40,
+          started_at: '2026-01-17T12:00:00Z',
           session_entries: sessions[1].session_entries,
         },
       },
       {
         session_id: 's1',
         chips: 4000,
+        final_chips: 6000,
+        total_buyin: 2000,
+        buy_in_count: 1,
         sessions: {
           id: 's1',
           date: '2026-01-10',
           description: 'first game',
           exchange_rate: 40,
+          started_at: '2026-01-10T12:00:00Z',
           session_entries: sessions[0].session_entries,
         },
       },
