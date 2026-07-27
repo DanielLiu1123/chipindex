@@ -77,6 +77,7 @@ type BarProps = {
   activeBar: boolean
   dataKey: (value: HistoryPoint) => [number, number]
   isAnimationActive: boolean
+  maxBarSize: number
   shape: (props: CapturedProps) => ReactNode
 }
 
@@ -190,6 +191,7 @@ describe('PlayerChart', () => {
     expect(bar.dataKey(point)).toEqual([-3000, 4500])
     expect(bar.activeBar).toBe(false)
     expect(bar.isAnimationActive).toBe(false)
+    expect(bar.maxBarSize).toBe(24)
   })
 
   it('uses the CNY candle low-high range', () => {

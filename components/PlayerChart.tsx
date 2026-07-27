@@ -183,6 +183,7 @@ export default function PlayerChart({
               shape: renderCandle,
               activeBar: false,
               isAnimationActive: false,
+              maxBarSize: 24,
             }),
       ),
     },
