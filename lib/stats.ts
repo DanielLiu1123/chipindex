@@ -1,6 +1,6 @@
 import type { Player } from '@/types'
 import type { LeaderboardSessionRow, PlayerDetail, PlayerHistoryEntry } from '@/lib/queries'
-import { toCny } from '@/lib/settlement'
+import { netChips, toCny } from '@/lib/settlement'
 
 // All derived statistics live here: POG / wins / cumulative totals.
 // queries.ts is responsible for reading; this file is responsible for computing.
@@ -130,8 +130,9 @@ export function computePlayerHistory(detail: PlayerDetail): PlayerHistory {
   let cumulative = 0
   let cumulativeCny = 0
   const history: HistoryPoint[] = sorted.map(e => {
-    const chipsCandle = createCandle(cumulative, e.chips, e.total_buyin)
-    const cny = toCny(e.chips, e.sessions.exchange_rate)
+    const effectiveNet = netChips(e.final_chips, e.total_buyin)
+    const chipsCandle = createCandle(cumulative, effectiveNet, e.total_buyin)
+    const cny = toCny(effectiveNet, e.sessions.exchange_rate)
     const buyInCny = toCny(e.total_buyin, e.sessions.exchange_rate)
     const cnyCandle = createCandle(cumulativeCny, cny, buyInCny)
     cumulative = chipsCandle.close
