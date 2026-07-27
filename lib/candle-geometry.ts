@@ -68,7 +68,7 @@ export function projectCandleGeometry(
 
   const centerX = bounds.x + bounds.width / 2
   const bodyWidth = Math.min(bounds.width, Math.max(0.5, bounds.width * 0.55))
-  const hitWidth = Math.min(bounds.width, Math.max(bodyWidth, 16))
+  const hitWidth = Math.min(bounds.width, Math.max(bodyWidth, 24))
   const hitHeight = Math.max(bounds.height, 24)
 
   const geometry: CandleGeometry = {

@@ -37,12 +37,31 @@ describe('projectCandleGeometry', () => {
       closeY: 45,
       bodyLeft: 14.5,
       bodyWidth: 11,
-      hitX: 12,
+      hitX: 10,
       hitY: 20,
-      hitWidth: 16,
+      hitWidth: 20,
       hitHeight: 100,
       isDoji: false,
     })
+  })
+
+  it('uses a centered 24 pixel hit target when the category is wide enough', () => {
+    const wideBounds = { x: 10, y: 20, width: 40, height: 100 }
+    const geometry = projectCandleGeometry(
+      wideBounds,
+      { low: 0, high: 100, open: 25, close: 75 },
+    )
+
+    expect(geometry).not.toBeNull()
+    if (geometry === null) throw new Error('Expected valid candle geometry')
+
+    const hitRight = geometry.hitX + geometry.hitWidth
+
+    expect(geometry.hitWidth).toBe(24)
+    expect(geometry.hitX).toBe(18)
+    expect(geometry.hitX + geometry.hitWidth / 2).toBe(geometry.centerX)
+    expect(geometry.hitX).toBeGreaterThanOrEqual(wideBounds.x)
+    expect(hitRight).toBeLessThanOrEqual(wideBounds.x + wideBounds.width)
   })
 
   it('preserves open and close positions for a falling candle', () => {
