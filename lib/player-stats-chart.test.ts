@@ -116,6 +116,10 @@ describe('PlayerStatsChart', () => {
     expect(markup).toContain('aria-label="Chart type"')
     expect(markup).toContain('aria-label="Value unit"')
     expect(markup).toContain('CUMULATIVE CNY')
+    expect.soft(markup).toContain(
+      'class="flex flex-wrap items-center justify-between gap-3 mb-4 mx-2"',
+    )
+    expect.soft(markup).toContain('class="flex flex-wrap items-center gap-4"')
 
     const buttons = markup.match(/<button\b[^>]*>.*?<\/button>/g) ?? []
     expect(buttons).toHaveLength(4)

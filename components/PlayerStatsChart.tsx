@@ -47,11 +47,11 @@ export default function PlayerStatsChart({
 
       {data.length > 0 && (
         <div className="mb-10 -mx-2">
-          <div className="flex flex-wrap items-center justify-between gap-4 mb-4 mx-2">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4 mx-2">
             <p className="text-xs text-muted tracking-widest">
               {mode === 'cny' ? 'CUMULATIVE CNY' : 'CUMULATIVE CHIPS'}
             </p>
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-wrap items-center gap-4">
               <div role="group" aria-label="Chart type" className="inline-flex border border-border">
                 <button
                   type="button"
