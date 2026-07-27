@@ -1,5 +1,5 @@
 import type { Player } from '@/types'
-import type { LeaderboardSessionRow, PlayerDetail } from '@/lib/queries'
+import type { LeaderboardSessionRow, PlayerDetail, PlayerHistoryEntry } from '@/lib/queries'
 import { toCny } from '@/lib/settlement'
 
 // All derived statistics live here: POG / wins / cumulative totals.
@@ -62,6 +62,13 @@ export function computeLeaderboardStats(players: Player[], sessions: Leaderboard
     })
 }
 
+export interface CandlePoint {
+  open: number
+  high: number
+  low: number
+  close: number
+}
+
 // Player detail: date-sorted cumulative curve + summary
 export interface HistoryPoint {
   date: string
@@ -71,6 +78,11 @@ export interface HistoryPoint {
   cny: number
   cumulative_cny: number
   description: string | null
+  buy_in_count: number
+  total_buyin: number
+  final_chips: number | null
+  chips_candle: CandlePoint
+  cny_candle: CandlePoint
 }
 
 export interface PlayerHistory {
@@ -81,15 +93,50 @@ export interface PlayerHistory {
   pogCount: number
 }
 
+function timestamp(value: string | null): number | null {
+  if (value === null) return null
+  const parsed = Date.parse(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function compareHistoryEntries(a: PlayerHistoryEntry, b: PlayerHistoryEntry): number {
+  const dateOrder = a.sessions.date.localeCompare(b.sessions.date)
+  if (dateOrder !== 0) return dateOrder
+
+  const aTimestamp = timestamp(a.sessions.started_at)
+  const bTimestamp = timestamp(b.sessions.started_at)
+  if (aTimestamp !== null && bTimestamp === null) return -1
+  if (aTimestamp === null && bTimestamp !== null) return 1
+  if (aTimestamp !== null && bTimestamp !== null && aTimestamp !== bTimestamp) {
+    return aTimestamp - bTimestamp
+  }
+
+  return a.session_id.localeCompare(b.session_id)
+}
+
+function createCandle(open: number, net: number, buyIn: number): CandlePoint {
+  const close = open + net
+  return {
+    open,
+    high: Math.max(open, close),
+    low: open - buyIn,
+    close,
+  }
+}
+
 export function computePlayerHistory(detail: PlayerDetail): PlayerHistory {
-  const sorted = [...detail.entries].sort((a, b) => a.sessions.date.localeCompare(b.sessions.date))
+  const sorted = [...detail.entries].sort(compareHistoryEntries)
 
   let cumulative = 0
   let cumulativeCny = 0
   const history: HistoryPoint[] = sorted.map(e => {
-    cumulative += e.chips
+    const chipsCandle = createCandle(cumulative, e.chips, e.total_buyin)
     const cny = toCny(e.chips, e.sessions.exchange_rate)
-    cumulativeCny += cny
+    const buyInCny = toCny(e.total_buyin, e.sessions.exchange_rate)
+    const cnyCandle = createCandle(cumulativeCny, cny, buyInCny)
+    cumulative = chipsCandle.close
+    cumulativeCny = cnyCandle.close
+
     return {
       date: e.sessions.date,
       session_id: e.session_id,
@@ -98,6 +145,11 @@ export function computePlayerHistory(detail: PlayerDetail): PlayerHistory {
       cny,
       cumulative_cny: cumulativeCny,
       description: e.sessions.description,
+      buy_in_count: e.buy_in_count,
+      total_buyin: e.total_buyin,
+      final_chips: e.final_chips,
+      chips_candle: chipsCandle,
+      cny_candle: cnyCandle,
     }
   })
 
