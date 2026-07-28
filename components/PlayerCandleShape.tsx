@@ -71,7 +71,10 @@ export default function PlayerCandleShape(props: PlayerCandleShapeProps) {
   const color = COLORS[candleDirection(payload.chips)]
   const labelAnchor = props.labelAnchor ?? 'middle'
   const bodyTop = Math.min(geometry.openY, geometry.closeY)
-  const bodyHeight = Math.max(1, Math.abs(geometry.openY - geometry.closeY))
+  const bodyBottom = Math.max(geometry.openY, geometry.closeY)
+  const bodyHeight = Math.max(1, bodyBottom - bodyTop)
+  const renderedBodyBottom = geometry.isDoji ? bodyBottom : bodyTop + bodyHeight
+  const wickStrokeWidth = props.isActive ? 2 : 1.5
   const activate = () => props.onActivate(payload.session_id)
   const onKeyDown = (event: KeyboardEvent<SVGGElement>) => {
     if (!isActivationKey(event.key)) return
@@ -89,16 +92,38 @@ export default function PlayerCandleShape(props: PlayerCandleShapeProps) {
         stroke: color,
         strokeWidth: 2,
       })
+
     : createElement('rect', {
         x: geometry.bodyLeft,
         y: bodyTop,
         width: geometry.bodyWidth,
         height: bodyHeight,
         fill: color,
-        fillOpacity: 0.22,
         stroke: color,
         strokeWidth: 1.5,
       })
+
+  const upperWick = geometry.wickTop < bodyTop
+    ? createElement('line', {
+        x1: geometry.centerX,
+        x2: geometry.centerX,
+        y1: geometry.wickTop,
+        y2: bodyTop,
+        stroke: color,
+        strokeWidth: wickStrokeWidth,
+      })
+    : null
+
+  const lowerWick = geometry.wickBottom > renderedBodyBottom
+    ? createElement('line', {
+        x1: geometry.centerX,
+        x2: geometry.centerX,
+        y1: renderedBodyBottom,
+        y2: geometry.wickBottom,
+        stroke: color,
+        strokeWidth: wickStrokeWidth,
+      })
+    : null
 
   const bestLabel = props.showBest
     ? createElement('text', {
@@ -140,14 +165,8 @@ export default function PlayerCandleShape(props: PlayerCandleShapeProps) {
       fill: 'transparent',
       pointerEvents: 'all',
     }),
-    createElement('line', {
-      x1: geometry.centerX,
-      x2: geometry.centerX,
-      y1: geometry.wickTop,
-      y2: geometry.wickBottom,
-      stroke: color,
-      strokeWidth: props.isActive ? 2 : 1.5,
-    }),
+    upperWick,
+    lowerWick,
     body,
     bestLabel,
     worstLabel,

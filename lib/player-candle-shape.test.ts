@@ -60,7 +60,7 @@ function getRootProps(overrides: Record<string, unknown> = {}): CandleRootProps 
 }
 
 describe('PlayerCandleShape', () => {
-  it('renders an accessible green rising candle and BEST label', () => {
+  it('renders an accessible solid green rising candle and BEST label', () => {
     const html = render()
 
     expect(html).toContain('role="button"')
@@ -69,7 +69,7 @@ describe('PlayerCandleShape', () => {
     expect(html).toContain('cursor:pointer')
     expect(html).toContain('pointer-events="all"')
     expect(html).toContain('#00ff88')
-    expect(html).toContain('fill-opacity="0.22"')
+    expect(html).not.toContain('fill-opacity')
     expect(html).toContain('BEST')
     expect(html).not.toContain('WORST')
   })
@@ -79,6 +79,26 @@ describe('PlayerCandleShape', () => {
 
     expect(html).toContain('aria-label="2026-07-25 session 1 of 2"')
     expect(html).not.toContain('aria-label="2026-07-25 session"')
+  })
+
+  it('draws the wick only outside the candle body', () => {
+    const html = render()
+
+    expect(html).toContain('<line x1="20" x2="20" y1="40" y2="120"')
+    expect(html).not.toContain('<line x1="20" x2="20" y1="20" y2="120"')
+  })
+
+  it('starts the lower wick below a one-pixel candle body', () => {
+    const html = render({
+      payload: {
+        ...payload,
+        chips_candle: { low: 0, high: 100, open: 50, close: 50.5 },
+      },
+    })
+
+    expect(html).toContain('<rect x="14.5" y="69.5" width="11" height="1"')
+    expect(html).toContain('<line x1="20" x2="20" y1="20" y2="69.5"')
+    expect(html).toContain('<line x1="20" x2="20" y1="70.5" y2="120"')
   })
 
   it('renders nothing when the Recharts payload is missing', () => {
@@ -148,6 +168,7 @@ describe('PlayerCandleShape', () => {
     })
 
     expect(html).toContain('#ff4444')
+    expect(html).toContain('<line x1="14.5" x2="25.5" y1="40" y2="40" stroke="#ff4444"')
     expect(html).not.toContain('#00ff88')
     expect(html).not.toContain('fill-opacity="0.22"')
   })
