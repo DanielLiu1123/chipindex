@@ -50,20 +50,21 @@ export default function PlayerStatsChart({
               {mode === 'cny' ? 'CUMULATIVE CNY' : 'CUMULATIVE CHIPS'}
             </p>
             <div className="flex flex-wrap items-center gap-4">
-              <div role="group" aria-label="Value unit" className="inline-flex border border-border">
+              <div role="group" aria-label="Value unit" className="flex gap-3">
                 <button
                   type="button"
                   aria-pressed={mode === 'cny'}
                   onClick={() => setMode('cny')}
-                  className={`h-7 min-w-16 px-2 text-xs tracking-widest transition-colors ${mode === 'cny' ? 'bg-surface text-white border-b-2 border-accent' : 'text-muted hover:text-white'}`}
+                  className={`text-xs tracking-widest transition-colors ${mode === 'cny' ? 'text-white' : 'text-muted hover:text-white'}`}
                 >
                   CNY
                 </button>
+                <span aria-hidden="true" className="text-muted text-xs">/</span>
                 <button
                   type="button"
                   aria-pressed={mode === 'chips'}
                   onClick={() => setMode('chips')}
-                  className={`h-7 min-w-16 px-2 text-xs tracking-widest transition-colors ${mode === 'chips' ? 'bg-surface text-white border-b-2 border-accent' : 'text-muted hover:text-white'}`}
+                  className={`text-xs tracking-widest transition-colors ${mode === 'chips' ? 'text-white' : 'text-muted hover:text-white'}`}
                 >
                   CHIPS
                 </button>
