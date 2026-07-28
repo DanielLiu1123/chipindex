@@ -26,7 +26,6 @@ export default function PlayerStatsChart({
   pogCount: number
 }) {
   const [mode, setMode] = useState<'chips' | 'cny'>('cny')
-  const positive = mode === 'cny' ? totalCny >= 0 : totalChips >= 0
 
   return (
     <>
@@ -44,29 +43,34 @@ export default function PlayerStatsChart({
         </div>
       </div>
 
-      {data.length > 1 && (
+      {data.length > 0 && (
         <div className="mb-10 -mx-2">
-          <div className="flex items-center justify-between mb-4 mx-2">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4 mx-2">
             <p className="text-xs text-muted tracking-widest">
               {mode === 'cny' ? 'CUMULATIVE CNY' : 'CUMULATIVE CHIPS'}
             </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setMode('cny')}
-                className={`text-xs tracking-widest transition-colors ${mode === 'cny' ? 'text-white' : 'text-muted hover:text-white'}`}
-              >
-                CNY
-              </button>
-              <span className="text-muted text-xs">/</span>
-              <button
-                onClick={() => setMode('chips')}
-                className={`text-xs tracking-widest transition-colors ${mode === 'chips' ? 'text-white' : 'text-muted hover:text-white'}`}
-              >
-                CHIPS
-              </button>
+            <div className="flex flex-wrap items-center gap-4">
+              <div role="group" aria-label="Value unit" className="inline-flex border border-border">
+                <button
+                  type="button"
+                  aria-pressed={mode === 'cny'}
+                  onClick={() => setMode('cny')}
+                  className={`h-7 min-w-16 px-2 text-xs tracking-widest transition-colors ${mode === 'cny' ? 'bg-surface text-white border-b-2 border-accent' : 'text-muted hover:text-white'}`}
+                >
+                  CNY
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={mode === 'chips'}
+                  onClick={() => setMode('chips')}
+                  className={`h-7 min-w-16 px-2 text-xs tracking-widest transition-colors ${mode === 'chips' ? 'bg-surface text-white border-b-2 border-accent' : 'text-muted hover:text-white'}`}
+                >
+                  CHIPS
+                </button>
+              </div>
             </div>
           </div>
-          <PlayerChart data={data} positive={positive} mode={mode} />
+          <PlayerChart data={data} mode={mode} />
         </div>
       )}
     </>

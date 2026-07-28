@@ -1,6 +1,6 @@
 import type { Player } from '@/types'
-import type { LeaderboardSessionRow, PlayerDetail } from '@/lib/queries'
-import { toCny } from '@/lib/settlement'
+import type { LeaderboardSessionRow, PlayerDetail, PlayerHistoryEntry } from '@/lib/queries'
+import { netChips, toCny } from '@/lib/settlement'
 
 // All derived statistics live here: POG / wins / cumulative totals.
 // queries.ts is responsible for reading; this file is responsible for computing.
@@ -62,6 +62,13 @@ export function computeLeaderboardStats(players: Player[], sessions: Leaderboard
     })
 }
 
+export interface CandlePoint {
+  open: number
+  high: number
+  low: number
+  close: number
+}
+
 // Player detail: date-sorted cumulative curve + summary
 export interface HistoryPoint {
   date: string
@@ -71,6 +78,11 @@ export interface HistoryPoint {
   cny: number
   cumulative_cny: number
   description: string | null
+  buy_in_count: number
+  total_buyin: number
+  final_chips: number | null
+  chips_candle: CandlePoint
+  cny_candle: CandlePoint
 }
 
 export interface PlayerHistory {
@@ -81,23 +93,76 @@ export interface PlayerHistory {
   pogCount: number
 }
 
+function timestamp(value: string | null): number | null {
+  if (value === null) return null
+  const parsed = Date.parse(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function compareHistoryEntries(a: PlayerHistoryEntry, b: PlayerHistoryEntry): number {
+  const dateOrder = a.sessions.date.localeCompare(b.sessions.date)
+  if (dateOrder !== 0) return dateOrder
+
+  const aTimestamp = timestamp(a.sessions.started_at)
+  const bTimestamp = timestamp(b.sessions.started_at)
+  if (aTimestamp !== null && bTimestamp === null) return -1
+  if (aTimestamp === null && bTimestamp !== null) return 1
+  if (aTimestamp !== null && bTimestamp !== null && aTimestamp !== bTimestamp) {
+    return aTimestamp - bTimestamp
+  }
+
+  return a.session_id.localeCompare(b.session_id)
+}
+
+function createCandle(open: number, net: number, buyIn: number): CandlePoint {
+  const close = open + net
+  return {
+    open,
+    high: Math.max(open, close),
+    low: open - buyIn,
+    close,
+  }
+}
+
+function topSettledChips(entries: { final_chips: number | null; total_buyin: number }[]): number | null {
+  if (entries.length === 0) return null
+  return entries.reduce((top, entry) => {
+    const chips = netChips(entry.final_chips, entry.total_buyin)
+    return chips > top ? chips : top
+  }, netChips(entries[0].final_chips, entries[0].total_buyin))
+}
+
 export function computePlayerHistory(detail: PlayerDetail): PlayerHistory {
-  const sorted = [...detail.entries].sort((a, b) => a.sessions.date.localeCompare(b.sessions.date))
+  const sorted = [...detail.entries].sort(compareHistoryEntries)
 
   let cumulative = 0
   let cumulativeCny = 0
+  let wins = 0
+  let pogCount = 0
   const history: HistoryPoint[] = sorted.map(e => {
-    cumulative += e.chips
-    const cny = toCny(e.chips, e.sessions.exchange_rate)
-    cumulativeCny += cny
+    const effectiveNet = netChips(e.final_chips, e.total_buyin)
+    const chipsCandle = createCandle(cumulative, effectiveNet, e.total_buyin)
+    const cny = toCny(effectiveNet, e.sessions.exchange_rate)
+    const buyInCny = toCny(e.total_buyin, e.sessions.exchange_rate)
+    const cnyCandle = createCandle(cumulativeCny, cny, buyInCny)
+    cumulative = chipsCandle.close
+    cumulativeCny = cnyCandle.close
+    if (effectiveNet > 0) wins++
+    if (effectiveNet === topSettledChips(e.sessions.session_entries)) pogCount++
+
     return {
       date: e.sessions.date,
       session_id: e.session_id,
-      chips: e.chips,
+      chips: effectiveNet,
       cumulative,
       cny,
       cumulative_cny: cumulativeCny,
       description: e.sessions.description,
+      buy_in_count: e.buy_in_count,
+      total_buyin: e.total_buyin,
+      final_chips: e.final_chips,
+      chips_candle: chipsCandle,
+      cny_candle: cnyCandle,
     }
   })
 
@@ -105,7 +170,7 @@ export function computePlayerHistory(detail: PlayerDetail): PlayerHistory {
     history,
     totalCny: history.length > 0 ? history[history.length - 1].cumulative_cny : 0,
     totalChips: history.length > 0 ? history[history.length - 1].cumulative : 0,
-    wins: sorted.filter(e => e.chips > 0).length,
-    pogCount: sorted.filter(e => e.chips === topChips(e.sessions.session_entries)).length,
+    wins,
+    pogCount,
   }
 }
