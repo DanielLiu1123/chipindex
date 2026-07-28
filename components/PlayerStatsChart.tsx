@@ -26,8 +26,6 @@ export default function PlayerStatsChart({
   pogCount: number
 }) {
   const [mode, setMode] = useState<'chips' | 'cny'>('cny')
-  const [chartType, setChartType] = useState<'line' | 'candle'>('line')
-  const positive = mode === 'cny' ? totalCny >= 0 : totalChips >= 0
 
   return (
     <>
@@ -52,24 +50,6 @@ export default function PlayerStatsChart({
               {mode === 'cny' ? 'CUMULATIVE CNY' : 'CUMULATIVE CHIPS'}
             </p>
             <div className="flex flex-wrap items-center gap-4">
-              <div role="group" aria-label="Chart type" className="inline-flex border border-border">
-                <button
-                  type="button"
-                  aria-pressed={chartType === 'line'}
-                  onClick={() => setChartType('line')}
-                  className={`h-7 min-w-16 px-2 text-xs tracking-widest transition-colors ${chartType === 'line' ? 'bg-surface text-white border-b-2 border-accent' : 'text-muted hover:text-white'}`}
-                >
-                  LINE
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={chartType === 'candle'}
-                  onClick={() => setChartType('candle')}
-                  className={`h-7 min-w-16 px-2 text-xs tracking-widest transition-colors ${chartType === 'candle' ? 'bg-surface text-white border-b-2 border-accent' : 'text-muted hover:text-white'}`}
-                >
-                  CANDLE
-                </button>
-              </div>
               <div role="group" aria-label="Value unit" className="inline-flex border border-border">
                 <button
                   type="button"
@@ -90,7 +70,7 @@ export default function PlayerStatsChart({
               </div>
             </div>
           </div>
-          <PlayerChart data={data} positive={positive} mode={mode} chartType={chartType} />
+          <PlayerChart data={data} mode={mode} />
         </div>
       )}
     </>

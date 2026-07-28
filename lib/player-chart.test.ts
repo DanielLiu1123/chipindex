@@ -16,7 +16,6 @@ type CapturedProps = Record<string, unknown> & { children?: ReactNode }
 const captured = vi.hoisted(() => ({
   bars: [] as CapturedProps[],
   charts: [] as CapturedProps[],
-  lines: [] as CapturedProps[],
   tooltips: [] as CapturedProps[],
   xAxes: [] as CapturedProps[],
   routerPush: vi.fn(),
@@ -41,8 +40,6 @@ vi.mock('recharts', async () => {
       captured.charts.push(props)
       return passThrough(props)
     },
-    Line: capture(captured.lines),
-    LineChart: passThrough,
     ReferenceLine: () => null,
     ResponsiveContainer: passThrough,
     Tooltip: capture(captured.tooltips),
@@ -68,9 +65,7 @@ const point: HistoryPoint = {
 
 type ChartProps = {
   data: HistoryPoint[]
-  positive: boolean
   mode: 'chips' | 'cny'
-  chartType?: 'line' | 'candle'
 }
 
 type BarProps = {
@@ -79,15 +74,6 @@ type BarProps = {
   isAnimationActive: boolean
   maxBarSize: number
   shape: (props: CapturedProps) => ReactNode
-}
-
-type LineProps = {
-  activeDot: (props: CapturedProps) => ReactNode
-  dataKey: string
-  dot: (props: CapturedProps) => ReactNode
-  stroke: string
-  strokeWidth: number
-  type: string
 }
 
 type CandleElementProps = {
@@ -117,7 +103,6 @@ type XAxisProps = {
 function resetCaptured() {
   captured.bars.length = 0
   captured.charts.length = 0
-  captured.lines.length = 0
   captured.tooltips.length = 0
   captured.xAxes.length = 0
   captured.routerPush.mockReset()
@@ -126,7 +111,6 @@ function resetCaptured() {
 function renderChart(overrides: Partial<ChartProps> = {}) {
   const props: ChartProps = {
     data: [point],
-    positive: true,
     mode: 'chips',
     ...overrides,
   }
@@ -139,22 +123,12 @@ function asBarProps(): BarProps {
   return captured.bars[0] as unknown as BarProps
 }
 
-function asLineProps(): LineProps {
-  expect(captured.lines).toHaveLength(1)
-  return captured.lines[0] as unknown as LineProps
-}
-
 function asCandleElement(value: ReactNode): ReactElement<CandleElementProps> {
   if (!isValidElement<CandleElementProps>(value)) {
     throw new Error('Expected the Bar shape renderer to return a React element')
   }
   expect(value.type).toBe(PlayerCandleShape)
   return value
-}
-
-function renderDot(line: LineProps, index: number, payload: HistoryPoint): string {
-  const dot = line.dot({ cx: 20, cy: 30, index, payload })
-  return renderToStaticMarkup(dot as ReactElement)
 }
 
 function renderTooltip(payload: HistoryPoint): string {
@@ -167,17 +141,14 @@ function renderTooltip(payload: HistoryPoint): string {
 beforeEach(resetCaptured)
 
 describe('PlayerChart', () => {
-  it('renders the line series by default', () => {
+  it('renders only a non-animated chips candle series with the low-high range', () => {
     renderChart()
 
-    expect(captured.bars).toHaveLength(0)
-    const line = asLineProps()
-    expect(line).toMatchObject({
-      type: 'linear',
-      dataKey: 'cumulative',
-      stroke: '#00ff88',
-      strokeWidth: 1.5,
-    })
+    const bar = asBarProps()
+    expect(bar.dataKey(point)).toEqual([-3000, 4500])
+    expect(bar.activeBar).toBe(false)
+    expect(bar.isAnimationActive).toBe(false)
+    expect(bar.maxBarSize).toBe(24)
     expect(captured.charts).toHaveLength(1)
     expect(captured.charts[0]).toMatchObject({
       data: [point],
@@ -185,25 +156,14 @@ describe('PlayerChart', () => {
     })
   })
 
-  it('renders only a non-animated chips candle series with the low-high range', () => {
-    renderChart({ chartType: 'candle' })
-
-    expect(captured.lines).toHaveLength(0)
-    const bar = asBarProps()
-    expect(bar.dataKey(point)).toEqual([-3000, 4500])
-    expect(bar.activeBar).toBe(false)
-    expect(bar.isAnimationActive).toBe(false)
-    expect(bar.maxBarSize).toBe(24)
-  })
-
   it('uses the CNY candle low-high range', () => {
-    renderChart({ chartType: 'candle', mode: 'cny' })
+    renderChart({ mode: 'cny' })
 
     expect(asBarProps().dataKey(point)).toEqual([-75, 112.5])
   })
 
   it('delegates missing payload handling to the candle shape guard', () => {
-    renderChart({ chartType: 'candle' })
+    renderChart()
 
     let candle!: ReactElement<CandleElementProps>
     expect(() => {
@@ -214,7 +174,7 @@ describe('PlayerChart', () => {
   })
 
   it('passes mode, conflict-free extrema, and activation through the candle shape', () => {
-    renderChart({ chartType: 'candle' })
+    renderChart()
 
     const single = asCandleElement(asBarProps().shape({ index: 0, payload: point }))
     expect(single.props).toMatchObject({
@@ -233,7 +193,7 @@ describe('PlayerChart', () => {
       { ...point, date: '2026-07-02', session_id: 's1', chips: 10, cny: 1 },
       { ...point, date: '2026-07-02', session_id: 's2', chips: 10, cny: 1 },
     ] satisfies HistoryPoint[]
-    renderChart({ chartType: 'candle', data: tied })
+    renderChart({ data: tied })
     const tiedBar = asBarProps()
     for (const [index, payload] of tied.entries()) {
       expect(asCandleElement(tiedBar.shape({ index, payload })).props).toMatchObject({
@@ -249,7 +209,7 @@ describe('PlayerChart', () => {
       { ...point, session_id: 's2', chips: -50, cny: -0.5 },
       { ...point, session_id: 's3', chips: 200, cny: 2 },
     ] satisfies HistoryPoint[]
-    renderChart({ chartType: 'candle', data: varied })
+    renderChart({ data: varied })
     const variedBar = asBarProps()
     expect(asCandleElement(variedBar.shape({ index: 0, payload: varied[0] })).props).toMatchObject({
       labelAnchor: 'start',
@@ -266,36 +226,6 @@ describe('PlayerChart', () => {
       showBest: true,
       showWorst: false,
     })
-  })
-
-  it('suppresses conflicting line extrema and labels distinct extrema', () => {
-    renderChart()
-    const singleLine = asLineProps()
-    expect(renderDot(singleLine, 0, point)).not.toMatch(/BEST|WORST/)
-
-    resetCaptured()
-    const tied = [
-      { ...point, session_id: 's1', chips: 10, cny: 1 },
-      { ...point, session_id: 's2', chips: 10, cny: 1 },
-    ] satisfies HistoryPoint[]
-    renderChart({ data: tied })
-    const tiedLine = asLineProps()
-    expect(renderDot(tiedLine, 0, tied[0])).not.toMatch(/BEST|WORST/)
-    expect(renderDot(tiedLine, 1, tied[1])).not.toMatch(/BEST|WORST/)
-
-    resetCaptured()
-    const varied = [
-      { ...point, session_id: 's1', chips: 100, cny: 1 },
-      { ...point, session_id: 's2', chips: -50, cny: -0.5 },
-      { ...point, session_id: 's3', chips: 200, cny: 2 },
-    ] satisfies HistoryPoint[]
-    renderChart({ data: varied })
-    const variedLine = asLineProps()
-    expect(renderDot(variedLine, 0, varied[0])).not.toMatch(/BEST|WORST/)
-    expect(renderDot(variedLine, 1, varied[1])).toContain('WORST')
-    expect(renderDot(variedLine, 1, varied[1])).not.toContain('BEST')
-    expect(renderDot(variedLine, 2, varied[2])).toContain('BEST')
-    expect(renderDot(variedLine, 2, varied[2])).not.toContain('WORST')
   })
 
   it('maps session ids, including same-day sessions, back to axis dates', () => {

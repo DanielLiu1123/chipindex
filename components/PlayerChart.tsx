@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import {
   Bar,
   ComposedChart,
-  Line,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -17,23 +16,15 @@ import PlayerCandleShape from '@/components/PlayerCandleShape'
 import type { HistoryPoint } from '@/lib/stats'
 import { formatAmount } from '@/lib/format'
 
-type ChartType = 'line' | 'candle'
-
 export default function PlayerChart({
   data,
-  positive,
   mode,
-  chartType = 'line',
 }: {
   data: HistoryPoint[]
-  positive: boolean
   mode: 'chips' | 'cny'
-  chartType?: ChartType
 }) {
   const router = useRouter()
-  const dataKey = mode === 'cny' ? 'cumulative_cny' : 'cumulative'
   const sessionKey = mode === 'cny' ? 'cny' : 'chips'
-  const color = positive ? '#00ff88' : '#ff4444'
 
   const bestIdx = useMemo(() => data.reduce((bi, p, i) => (p[sessionKey] > data[bi][sessionKey] ? i : bi), 0), [data, sessionKey])
   const worstIdx = useMemo(() => data.reduce((wi, p, i) => (p[sessionKey] < data[wi][sessionKey] ? i : wi), 0), [data, sessionKey])
@@ -45,59 +36,6 @@ export default function PlayerChart({
   const activateSession = useCallback((sessionId: string) => {
     router.push(`/sessions/${sessionId}`)
   }, [router])
-
-  const CustomDot = useCallback((props: any) => {
-    const { cx, cy, index, payload } = props
-    const isBest = showExtrema && index === bestIdx
-    const isWorst = showExtrema && index === worstIdx
-    const r = isBest || isWorst ? 5 : 3
-    const fill = isBest ? '#00ff88' : isWorst ? '#ff4444' : color
-
-    return createElement(
-      'g',
-      {
-        key: payload.session_id,
-        style: { cursor: 'pointer' },
-        onClick: () => activateSession(payload.session_id),
-      },
-      (isBest || isWorst)
-        ? createElement('circle', { cx, cy, r: r + 4, fill, opacity: 0.2 })
-        : null,
-      createElement('circle', { cx, cy, r, fill }),
-      isBest
-        ? createElement('text', {
-            x: cx,
-            y: cy - 12,
-            textAnchor: 'middle',
-            fill: '#00ff88',
-            fontSize: 9,
-            fontFamily: 'JetBrains Mono',
-          }, 'BEST')
-        : null,
-      isWorst
-        ? createElement('text', {
-            x: cx,
-            y: cy - 12,
-            textAnchor: 'middle',
-            fill: '#ff4444',
-            fontSize: 9,
-            fontFamily: 'JetBrains Mono',
-          }, 'WORST')
-        : null,
-    )
-  }, [activateSession, bestIdx, color, showExtrema, worstIdx])
-
-  const CustomActiveDot = useCallback((props: any) => {
-    const { cx, cy, payload } = props
-    return createElement('circle', {
-      cx,
-      cy,
-      r: 5,
-      fill: color,
-      style: { cursor: 'pointer' },
-      onClick: () => activateSession(payload.session_id),
-    })
-  }, [activateSession, color])
 
   const candleRange = useCallback((value: unknown): [number, number] => {
     const point = value as HistoryPoint
@@ -180,22 +118,13 @@ export default function PlayerChart({
             )
           },
         }),
-        chartType === 'line'
-          ? createElement(Line, {
-              type: 'linear',
-              dataKey,
-              stroke: color,
-              strokeWidth: 1.5,
-              dot: CustomDot,
-              activeDot: CustomActiveDot,
-            })
-          : createElement(Bar, {
-              dataKey: candleRange,
-              shape: renderCandle,
-              activeBar: false,
-              isAnimationActive: false,
-              maxBarSize: 24,
-            }),
+        createElement(Bar, {
+          dataKey: candleRange,
+          shape: renderCandle,
+          activeBar: false,
+          isAnimationActive: false,
+          maxBarSize: 24,
+        }),
       ),
     },
   )

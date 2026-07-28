@@ -13,9 +13,7 @@ import type { HistoryPoint } from './stats'
 
 type PlayerChartProps = {
   data: HistoryPoint[]
-  positive: boolean
   mode: 'chips' | 'cny'
-  chartType: 'line' | 'candle'
 }
 
 type ChipValueProps = {
@@ -48,7 +46,7 @@ type HostProps = {
 }
 
 type HostElement = ReactElement<HostProps, string>
-type ButtonLabel = 'LINE' | 'CANDLE' | 'CNY' | 'CHIPS'
+type ButtonLabel = 'CNY' | 'CHIPS'
 type StateUpdater<T> = T | ((previous: T) => T)
 
 const captured = {
@@ -236,7 +234,7 @@ function findToolbar(node: ReactNode, title: string) {
   const controls = findHostElement(toolbar.props.children, 'div', element =>
     Children.toArray(element.props.children).filter(child =>
       isValidElement<HostProps>(child) && child.type === 'div' && child.props.role === 'group',
-    ).length === 2,
+    ).length === 1,
   )
   return { controls, toolbar }
 }
@@ -254,19 +252,17 @@ beforeEach(() => {
 })
 
 describe('PlayerStatsChart', () => {
-  it('renders one history point with the default chart and value controls', () => {
+  it('renders one history point with only the value controls', () => {
     const data = [point]
     const { markup, tree } = renderStats(createStatsProps(data))
 
     expect(captured.playerCharts).toHaveLength(1)
-    expect(captured.playerCharts[0]).toMatchObject({
-      positive: false,
-      mode: 'cny',
-      chartType: 'line',
-    })
+    expect(captured.playerCharts[0]).toMatchObject({ mode: 'cny' })
+    expect(captured.playerCharts[0]).not.toHaveProperty('positive')
+    expect(captured.playerCharts[0]).not.toHaveProperty('chartType')
     expect(captured.playerCharts[0].data).toBe(data)
-    expect(markup.match(/role="group"/g) ?? []).toHaveLength(2)
-    expect(markup).toContain('aria-label="Chart type"')
+    expect(markup.match(/role="group"/g) ?? []).toHaveLength(1)
+    expect(markup).not.toContain('aria-label="Chart type"')
     expect(markup).toContain('aria-label="Value unit"')
     expect(markup).toContain('CUMULATIVE CNY')
     const { controls, toolbar } = findToolbar(tree, 'CUMULATIVE CNY')
@@ -283,54 +279,33 @@ describe('PlayerStatsChart', () => {
     expectClassTokens(controls, ['flex', 'flex-wrap', 'items-center', 'gap-4'])
 
     const buttons = findHostElements(tree, 'button')
-    expect(buttons).toHaveLength(4)
+    expect(buttons).toHaveLength(2)
     expect(buttons.map(button => textContent(button.props.children))).toEqual([
-      'LINE',
-      'CANDLE',
       'CNY',
       'CHIPS',
     ])
     for (const button of buttons) expect(button.props.type).toBe('button')
     expectPressedStates(tree, {
-      LINE: true,
-      CANDLE: false,
       CNY: true,
       CHIPS: false,
     })
   })
 
-  it('keeps chart type and value mode independent across interactions', () => {
+  it('switches the chart value mode', () => {
     const props = createStatsProps([point])
     let rendered = renderStats(props)
 
     expect(latest(captured.playerCharts)).toMatchObject({
-      chartType: 'line',
       mode: 'cny',
-      positive: false,
     })
+    expect(latest(captured.playerCharts)).not.toHaveProperty('positive')
+    expect(latest(captured.playerCharts)).not.toHaveProperty('chartType')
     expect(latest(captured.chipValues)).toEqual({
       chips: -12.5,
       prefix: '¥',
       className: 'text-sm',
     })
     expectPressedStates(rendered.tree, {
-      LINE: true,
-      CANDLE: false,
-      CNY: true,
-      CHIPS: false,
-    })
-
-    clickButton(rendered.tree, 'CANDLE')
-    rendered = renderStats(props)
-
-    expect(latest(captured.playerCharts)).toMatchObject({
-      chartType: 'candle',
-      mode: 'cny',
-      positive: false,
-    })
-    expectPressedStates(rendered.tree, {
-      LINE: false,
-      CANDLE: true,
       CNY: true,
       CHIPS: false,
     })
@@ -338,15 +313,11 @@ describe('PlayerStatsChart', () => {
     clickButton(rendered.tree, 'CHIPS')
     rendered = renderStats(props)
 
-    expect(latest(captured.playerCharts)).toMatchObject({
-      chartType: 'candle',
-      mode: 'chips',
-      positive: true,
-    })
+    expect(latest(captured.playerCharts)).toMatchObject({ mode: 'chips' })
+    expect(latest(captured.playerCharts)).not.toHaveProperty('positive')
+    expect(latest(captured.playerCharts)).not.toHaveProperty('chartType')
     expect(textContent(rendered.tree)).toContain('CUMULATIVE CHIPS')
     expectPressedStates(rendered.tree, {
-      LINE: false,
-      CANDLE: true,
       CNY: false,
       CHIPS: true,
     })
