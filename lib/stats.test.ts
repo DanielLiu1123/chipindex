@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { computeLeaderboardStats, computePlayerHistory } from './stats'
+import { computeLeaderboardStats, computePlayerHistory, filterLowActivityPlayers } from './stats'
+import type { PlayerStats } from './stats'
 import type {
   LeaderboardSessionRow,
   PlayerDetail,
@@ -112,6 +113,54 @@ describe('computeLeaderboardStats', () => {
 
   it('sorts by CNY descending', () => {
     expect(stats.map(s => s.player.id)).toEqual(['alice', 'carol', 'bob'])
+  })
+})
+
+describe('filterLowActivityPlayers', () => {
+  function playerStats(name: string, sessionsPlayed: number): PlayerStats {
+    return {
+      player: { id: name.toLowerCase(), name, created_at: '2026-01-01' },
+      total_chips: 0,
+      total_yuan: 0,
+      sessions_played: sessionsPlayed,
+      wins: 0,
+      win_rate: 0,
+      pog_count: 0,
+    }
+  }
+
+  it('hides players strictly below one tenth of the maximum rounded down', () => {
+    const stats = [
+      playerStats('Max', 52),
+      playerStats('Boundary', 5),
+      playerStats('Below', 4),
+      playerStats('Never', 0),
+    ]
+
+    const result = filterLowActivityPlayers(stats)
+
+    expect(result.threshold).toBe(5)
+    expect(result.visibleStats.map(stat => stat.player.name)).toEqual(['Max', 'Boundary'])
+    expect(result.hiddenCount).toBe(2)
+    expect(stats).toHaveLength(4)
+  })
+
+  it('keeps every player when the maximum is below ten sessions', () => {
+    const stats = [playerStats('Max', 9), playerStats('Never', 0)]
+
+    const result = filterLowActivityPlayers(stats)
+
+    expect(result.threshold).toBe(0)
+    expect(result.visibleStats).toEqual(stats)
+    expect(result.hiddenCount).toBe(0)
+  })
+
+  it('handles an empty leaderboard', () => {
+    expect(filterLowActivityPlayers([])).toEqual({
+      threshold: 0,
+      visibleStats: [],
+      hiddenCount: 0,
+    })
   })
 })
 
