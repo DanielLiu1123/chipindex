@@ -15,6 +15,24 @@ export interface PlayerStats {
   pog_count: number
 }
 
+export interface LeaderboardActivityFilter {
+  threshold: number
+  visibleStats: PlayerStats[]
+  hiddenCount: number
+}
+
+export function filterLowActivityPlayers(stats: PlayerStats[]): LeaderboardActivityFilter {
+  const maxSessions = stats.reduce((max, stat) => Math.max(max, stat.sessions_played), 0)
+  const threshold = Math.floor(maxSessions / 10)
+  const visibleStats = stats.filter(stat => stat.sessions_played >= threshold)
+
+  return {
+    threshold,
+    visibleStats,
+    hiddenCount: stats.length - visibleStats.length,
+  }
+}
+
 // Highest chips in a session (the basis for player-of-the-game). Returns null
 // for an empty session, so nobody is counted as POG.
 function topChips(entries: { chips: number }[]): number | null {

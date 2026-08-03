@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import ChipValue from '@/components/ChipValue'
 import LeaderboardChart from '@/components/LeaderboardChart'
+import { filterLowActivityPlayers } from '@/lib/stats'
 import type { PlayerStats } from '@/lib/stats'
 import type { LeaderboardSessionRow } from '@/lib/queries'
 
@@ -36,8 +37,14 @@ export default function LeaderboardView({ stats, sessions }: { stats: PlayerStat
   const [chartMode, setChartMode] = useState<'chips' | 'cny'>('cny')
   const [sortKey, setSortKey] = useState<SortKey>('total_yuan')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
-  const playerNames = stats.map(s => s.player.name)
-  const chartData = useMemo(() => buildChartData(sessions, stats, chartMode), [sessions, stats, chartMode])
+  const [hideLowActivity, setHideLowActivity] = useState(true)
+  const activityFilter = useMemo(() => filterLowActivityPlayers(stats), [stats])
+  const displayedStats = hideLowActivity ? activityFilter.visibleStats : stats
+  const playerNames = displayedStats.map(s => s.player.name)
+  const chartData = useMemo(
+    () => buildChartData(sessions, displayedStats, chartMode),
+    [sessions, displayedStats, chartMode],
+  )
 
   function toggleSort(key: SortKey) {
     if (key === sortKey) {
@@ -50,12 +57,12 @@ export default function LeaderboardView({ stats, sessions }: { stats: PlayerStat
 
   const sortedStats = useMemo(() => {
     const dir = sortDir === 'desc' ? -1 : 1
-    return [...stats].sort((a, b) => {
+    return [...displayedStats].sort((a, b) => {
       const diff = a[sortKey] - b[sortKey]
       if (diff !== 0) return dir * diff
       return a.player.name.localeCompare(b.player.name)
     })
-  }, [stats, sortKey, sortDir])
+  }, [displayedStats, sortKey, sortDir])
 
   function SortHeader({ label, sortKey: key }: { label: string; sortKey: SortKey }) {
     const active = sortKey === key
@@ -71,7 +78,7 @@ export default function LeaderboardView({ stats, sessions }: { stats: PlayerStat
 
   return (
     <>
-      <div className="flex items-baseline justify-between mb-6">
+      <div className={`flex items-baseline justify-between ${activityFilter.hiddenCount > 0 ? 'mb-3' : 'mb-6'}`}>
         <div className="flex items-baseline gap-4">
           <div className="flex gap-3">
             <button onClick={() => setView('table')}
@@ -87,6 +94,32 @@ export default function LeaderboardView({ stats, sessions }: { stats: PlayerStat
         </div>
         <Link href="/sessions/new" className="text-xs text-accent tracking-widest hover:underline">+ NEW SESSION</Link>
       </div>
+
+      {activityFilter.hiddenCount > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 min-h-8 mb-3 text-[10px] tracking-widest text-muted">
+          <button
+            type="button"
+            aria-pressed={hideLowActivity}
+            onClick={() => setHideLowActivity(hidden => !hidden)}
+            className="flex items-center gap-2 text-[#aaaaaa] transition-colors hover:text-white"
+          >
+            <span
+              aria-hidden="true"
+              className={`relative inline-flex h-4 w-7 shrink-0 border transition-colors ${hideLowActivity ? 'border-accent' : 'border-muted'}`}
+            >
+              <span
+                className={`absolute left-0.5 top-0.5 h-2.5 w-2.5 transition-all ${hideLowActivity ? 'translate-x-3 bg-accent' : 'bg-muted'}`}
+              />
+            </span>
+            HIDE LOW-ACTIVITY PLAYERS
+          </button>
+          <span>
+            {hideLowActivity
+              ? `${activityFilter.hiddenCount} HIDDEN · FEWER THAN ${activityFilter.threshold} SESSIONS`
+              : `SHOWING ALL ${stats.length} PLAYERS`}
+          </span>
+        </div>
+      )}
 
       {view === 'table' ? (
         <table className="w-full text-sm">
@@ -152,7 +185,12 @@ export default function LeaderboardView({ stats, sessions }: { stats: PlayerStat
           {sessions.length < 2 ? (
             <p className="text-muted text-xs tracking-widest px-2">NEED AT LEAST 2 SESSIONS TO SHOW CHART.</p>
           ) : (
-            <LeaderboardChart data={chartData} players={playerNames} mode={chartMode} />
+            <LeaderboardChart
+              key={hideLowActivity ? 'low-activity-hidden' : 'all-players'}
+              data={chartData}
+              players={playerNames}
+              mode={chartMode}
+            />
           )}
         </div>
       )}
