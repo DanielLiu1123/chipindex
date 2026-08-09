@@ -9,6 +9,7 @@ const dbMocks = vi.hoisted(() => ({
     eq: ReturnType<typeof vi.fn>
     in: ReturnType<typeof vi.fn>
     order: ReturnType<typeof vi.fn>
+    range: ReturnType<typeof vi.fn>
     single: ReturnType<typeof vi.fn>
   }>,
 }))
@@ -33,6 +34,7 @@ function mockQueryResponses(responses: Record<string, QueryResponse[]>) {
       eq: vi.fn(),
       in: vi.fn(),
       order: vi.fn(),
+      range: vi.fn(),
       single: vi.fn(),
       then: (
         onFulfilled: (value: QueryResponse) => unknown,
@@ -44,6 +46,7 @@ function mockQueryResponses(responses: Record<string, QueryResponse[]>) {
     chain.eq.mockReturnValue(chain)
     chain.in.mockReturnValue(chain)
     chain.order.mockReturnValue(chain)
+    chain.range.mockReturnValue(chain)
     chain.single.mockReturnValue(chain)
     dbMocks.chains.push(chain)
     return chain
@@ -150,6 +153,43 @@ describe('getPlayerDetail', () => {
           }],
         },
       }],
+    })
+  })
+
+  it('includes buy-ins beyond the first Data API result page', async () => {
+    const firstPage = Array.from({ length: 1000 }, () => ({
+      session_id: 's1',
+      player_id: 'alice',
+      amount: 1,
+    }))
+
+    mockQueryResponses({
+      player: [{ data: { id: 'alice', name: 'Alice' } }],
+      session_participant: [
+        { data: [{ session_id: 's1' }] },
+        { data: [{ session_id: 's1', player_id: 'alice', final_chips: 1001 }] },
+      ],
+      session: [{
+        data: [{
+          id: 's1',
+          date: '2026-01-10',
+          description: null,
+          exchange_rate: 40,
+          started_at: '2026-01-10T12:00:00Z',
+        }],
+      }],
+      buy_in: [
+        { data: firstPage },
+        { data: [{ session_id: 's1', player_id: 'alice', amount: 1 }] },
+      ],
+    })
+
+    const detail = await getPlayerDetail('alice')
+
+    expect(detail?.entries[0]).toMatchObject({
+      chips: 0,
+      total_buyin: 1001,
+      buy_in_count: 1001,
     })
   })
 })

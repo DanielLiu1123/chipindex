@@ -36,14 +36,42 @@ function groupByPlayer<T extends { player_id: string }>(rows: T[]): Map<string, 
 }
 
 // Net chips per (session, player), over non-deleted rows.
+const RESULT_PAGE_SIZE = 1000
+
+async function fetchAllResultRows<T>(
+  fetchPage: (from: number, to: number) => PromiseLike<{ data: T[] | null; error?: unknown }>,
+): Promise<T[]> {
+  const rows: T[] = []
+
+  while (true) {
+    const from = rows.length
+    const { data, error } = await fetchPage(from, from + RESULT_PAGE_SIZE - 1)
+    if (error) throw error
+
+    const page = data ?? []
+    rows.push(...page)
+    if (page.length < RESULT_PAGE_SIZE) return rows
+  }
+}
+
 async function resultsBySession(sessionIds: string[]): Promise<Map<string, ResultEntry[]>> {
   if (sessionIds.length === 0) return new Map()
-  const [{ data: parts }, { data: buyins }] = await Promise.all([
-    db.from('session_participant').select('session_id, player_id, final_chips').is('deleted_at', null).in('session_id', sessionIds),
-    db.from('buy_in').select('session_id, player_id, amount').is('deleted_at', null).in('session_id', sessionIds),
+  const [participantRows, buyInRows] = await Promise.all([
+    fetchAllResultRows<ParticipantResultRow>((from, to) => db
+      .from('session_participant')
+      .select('session_id, player_id, final_chips')
+      .is('deleted_at', null)
+      .in('session_id', sessionIds)
+      .order('id', { ascending: true })
+      .range(from, to)),
+    fetchAllResultRows<BuyInResultRow>((from, to) => db
+      .from('buy_in')
+      .select('session_id, player_id, amount')
+      .is('deleted_at', null)
+      .in('session_id', sessionIds)
+      .order('id', { ascending: true })
+      .range(from, to)),
   ])
-  const participantRows = (parts ?? []) as ParticipantResultRow[]
-  const buyInRows = (buyins ?? []) as BuyInResultRow[]
   return buildResultsBySession(participantRows, buyInRows)
 }
 
