@@ -11,7 +11,7 @@ interface Entry {
   chips: number
   final_chips: number | null
   total_buyin: number
-  buy_ins: number[]
+  buy_ins: { amount: number; created_at: string }[]
   players?: { name: string } | null
 }
 
@@ -66,11 +66,22 @@ export default function SessionEntriesTable({ entries, exchangeRate, total }: {
               {open && (
                 <tr className="border-b border-border bg-surface/40">
                   <td colSpan={3} className="py-3 px-1">
-                    <div className="flex flex-wrap items-baseline gap-x-8 gap-y-1 text-xs text-muted">
+                    <div className="text-xs text-muted">
+                      <p className="tracking-widest mb-2">BUY-INS</p>
+                      {e.buy_ins.length > 0 ? (
+                        <div className="flex flex-col gap-1">
+                          {e.buy_ins.map((buyIn, index) => (
+                            <div key={`${buyIn.created_at}-${index}`}>
+                              {new Date(buyIn.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })} · +{buyIn.amount.toLocaleString()}
+                            </div>
+                          ))}
+                        </div>
+                      ) : '—'}
+                    </div>
+                    <div className="flex flex-wrap items-baseline gap-x-8 gap-y-1 mt-3 text-xs text-muted">
                       <span>
-                        <span className="tracking-widest mr-2">BUY-IN</span>
-                        {e.buy_ins.length > 0 ? e.buy_ins.map(a => a.toLocaleString()).join(' · ') : '—'}
-                        {e.buy_ins.length > 0 && <span className="ml-2">(total {e.total_buyin.toLocaleString()})</span>}
+                        <span className="tracking-widest mr-2">TOTAL</span>
+                        {e.total_buyin.toLocaleString()}
                       </span>
                       <span>
                         <span className="tracking-widest mr-2">FINAL</span>

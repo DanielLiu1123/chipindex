@@ -159,7 +159,7 @@ export interface SessionDetailEntry {
   chips: number
   final_chips: number | null
   total_buyin: number
-  buy_ins: number[]
+  buy_ins: { amount: number; created_at: string }[]
   players: { name: string } | null
 }
 export interface SessionDetail {
@@ -184,7 +184,7 @@ export async function getSessionDetail(id: string): Promise<SessionDetail | null
     playerNameMap(),
   ])
   if (!session) return null
-  const flowByPlayer = groupByPlayer((buyins ?? []) as { player_id: string; amount: number }[])
+  const flowByPlayer = groupByPlayer((buyins ?? []) as { player_id: string; amount: number; created_at: string }[])
   const entries: SessionDetailEntry[] = ((parts ?? []) as { id: string; player_id: string; final_chips: number | null }[]).map(p => {
     const flow = flowByPlayer.get(p.player_id) ?? []
     const total_buyin = buyinSum(flow)
@@ -194,7 +194,7 @@ export async function getSessionDetail(id: string): Promise<SessionDetail | null
       chips: netChips(p.final_chips, total_buyin),
       final_chips: p.final_chips,
       total_buyin,
-      buy_ins: flow.map(b => b.amount),
+      buy_ins: flow.map(b => ({ amount: b.amount, created_at: b.created_at })),
       players: { name: names.get(p.player_id) ?? p.player_id },
     }
   })
