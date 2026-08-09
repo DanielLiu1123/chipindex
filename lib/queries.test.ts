@@ -18,7 +18,7 @@ vi.mock('./db', () => ({
   db: { from: dbMocks.from },
 }))
 
-import { getLeaderboardSessions, getPlayerDetail } from './queries'
+import { getLeaderboardSessions, getPlayerDetail, getSessionDetail } from './queries'
 
 type QueryResponse = { data: unknown }
 
@@ -96,6 +96,27 @@ describe('getLeaderboardSessions', () => {
           buy_in_count: 2,
         }],
       },
+    ])
+  })
+})
+
+describe('getSessionDetail', () => {
+  it('preserves each buy-in timestamp for the settled session UI', async () => {
+    mockQueryResponses({
+      session: [{ data: { id: 's1', date: '2026-08-08', description: null, exchange_rate: 40, status: 'SETTLED' } }],
+      session_participant: [{ data: [{ id: 'part-1', player_id: 'alice', final_chips: 6000 }] }],
+      buy_in: [{ data: [
+        { player_id: 'alice', amount: 2000, created_at: '2026-08-08T06:59:27Z' },
+        { player_id: 'alice', amount: 2000, created_at: '2026-08-08T09:56:18Z' },
+      ] }],
+      player: [{ data: [{ id: 'alice', name: 'Alice' }] }],
+    })
+
+    const detail = await getSessionDetail('s1')
+
+    expect(detail?.session_entries[0].buy_ins).toEqual([
+      { amount: 2000, created_at: '2026-08-08T06:59:27Z' },
+      { amount: 2000, created_at: '2026-08-08T09:56:18Z' },
     ])
   })
 })
