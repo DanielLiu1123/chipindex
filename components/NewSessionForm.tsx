@@ -72,16 +72,16 @@ export default function NewSessionForm() {
         />
         <div>
           <label className="text-xs text-muted tracking-widest block mb-3">PLAYERS <span className="text-muted">(buy-in)</span></label>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-1.5">
             {rows.map(row => {
               const playerName = players.find(player => player.id === row.playerId)?.name
               const accessibleName = (playerName ?? row.newName) || 'new player'
               return <div key={row.uid}
-                className={`group flex gap-3 items-center border bg-surface/30 px-3 py-2.5 transition-colors hover:border-white/30 ${row.isNew ? 'border-accent/50' : 'border-border'}`}>
+                className={`group flex gap-2 items-center border bg-surface/30 px-3 py-1.5 transition-colors hover:border-white/30 ${row.isNew ? 'border-accent/50' : 'border-border'}`}>
                 {row.isNew ? (
                   <input type="text" value={row.newName} onChange={e => updateRow(row.uid, { newName: e.target.value })}
                     placeholder="new player name"
-                    className="flex-1 min-w-0 bg-transparent border-b border-accent text-white text-sm px-1 py-2 outline-none focus:border-white transition-colors placeholder:text-muted" />
+                    className="flex-1 min-w-0 bg-transparent border-b border-accent text-white text-sm px-1 py-1.5 outline-none focus:border-white transition-colors placeholder:text-muted" />
                 ) : (
                   <span className="flex-1 min-w-0 text-white text-sm px-1 truncate">
                     {playerName ?? row.playerId}
@@ -90,10 +90,10 @@ export default function NewSessionForm() {
                 <input type="number" value={row.buyin} onChange={e => updateRow(row.uid, { buyin: e.target.value })}
                   aria-label={`buy-in for ${accessibleName}`}
                   placeholder="buy-in" min="0"
-                  className="w-28 shrink-0 bg-bg/40 border border-border text-white text-sm px-3 py-2 outline-none focus:border-white transition-colors placeholder:text-muted text-right" />
+                  className="w-28 shrink-0 bg-bg/40 border border-border text-white text-sm px-3 py-1.5 outline-none focus:border-white transition-colors placeholder:text-muted text-right" />
                 <button type="button" onClick={() => removeRow(row.uid)}
                   aria-label={`remove ${accessibleName}`}
-                  className="w-8 h-8 shrink-0 flex items-center justify-center border border-transparent text-muted hover:text-danger hover:border-danger/40 hover:bg-danger/10 text-xs transition-colors">✕</button>
+                  className="w-8 h-8 shrink-0 flex items-center justify-center border border-transparent text-muted hover:text-danger hover:border-danger/40 hover:bg-danger/10 text-lg leading-none transition-colors">×</button>
               </div>
             })}
             <PlayerMultiSelect
