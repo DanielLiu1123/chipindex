@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import PlayerRowPicker from '@/components/PlayerRowPicker'
+import PlayerMultiSelect from '@/components/PlayerMultiSelect'
 import SessionMetaFields from '@/components/SessionMetaFields'
 import { usePlayerRows, resolvePlayerId, type PlayerRowBase } from '@/hooks/usePlayerRows'
 import { api } from '@/lib/client'
@@ -12,8 +12,12 @@ import { uid } from '@/lib/uid'
 
 interface PlayerRow extends PlayerRowBase { buyin: string }
 
-function newRow(): PlayerRow {
-  return { uid: uid(), playerId: '', buyin: String(BUY_IN_UNIT), isNew: false, newName: '' }
+function existingPlayerRow(playerId: string): PlayerRow {
+  return { uid: uid(), playerId, buyin: String(BUY_IN_UNIT), isNew: false, newName: '' }
+}
+
+function newPlayerRow(): PlayerRow {
+  return { uid: uid(), playerId: '', buyin: String(BUY_IN_UNIT), isNew: true, newName: '' }
 }
 
 export default function NewSessionForm() {
@@ -21,7 +25,7 @@ export default function NewSessionForm() {
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0])
   const [exchangeRate, setExchangeRate] = useState('40')
   const [description, setDescription] = useState('')
-  const { rows, setRows, updateRow, removeRow, usedIds, players, playersLoading, playersError } = usePlayerRows<PlayerRow>([newRow()])
+  const { rows, setRows, updateRow, removeRow, usedIds, players, playersLoading, playersError } = usePlayerRows<PlayerRow>([])
   const [starting, setStarting] = useState(false)
   const [error, setError] = useState('')
 
@@ -71,8 +75,15 @@ export default function NewSessionForm() {
           <div className="flex flex-col gap-2">
             {rows.map(row => (
               <div key={row.uid} className="flex gap-2 items-center">
-                <PlayerRowPicker row={row} players={players} usedIds={usedIds}
-                  onPatch={patch => updateRow(row.uid, patch)} />
+                {row.isNew ? (
+                  <input type="text" value={row.newName} onChange={e => updateRow(row.uid, { newName: e.target.value })}
+                    placeholder="new player name"
+                    className="flex-1 bg-surface border border-accent text-white text-sm px-4 py-2.5 outline-none focus:border-white transition-colors placeholder:text-muted" />
+                ) : (
+                  <span className="flex-1 text-white text-sm px-4 py-2.5 border border-transparent truncate">
+                    {players.find(player => player.id === row.playerId)?.name ?? row.playerId}
+                  </span>
+                )}
                 <input type="number" value={row.buyin} onChange={e => updateRow(row.uid, { buyin: e.target.value })}
                   placeholder="buy-in" min="0"
                   className="w-28 bg-surface border border-border text-white text-sm px-4 py-2.5 outline-none focus:border-white transition-colors placeholder:text-muted text-right" />
@@ -80,10 +91,12 @@ export default function NewSessionForm() {
                   className="text-muted hover:text-danger text-xs px-2 py-2.5 transition-colors">✕</button>
               </div>
             ))}
-            <button type="button" onClick={() => setRows(r => [...r, newRow()])}
-              className="text-xs text-muted hover:text-white tracking-widest text-left py-2 transition-colors">
-              + ADD PLAYER
-            </button>
+            <PlayerMultiSelect
+              players={players}
+              excludedIds={usedIds}
+              onAdd={ids => setRows(current => [...current, ...ids.map(existingPlayerRow)])}
+              onNew={() => setRows(current => [...current, newPlayerRow()])}
+            />
           </div>
         </div>
         {error && <p className="text-danger text-xs">{error}</p>}
