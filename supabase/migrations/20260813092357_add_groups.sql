@@ -14,15 +14,15 @@ create table public.group_player (
   id uuid primary key default gen_random_uuid(),
   group_id uuid not null,
   player_id uuid not null,
-  active boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  deactivated_at timestamptz,
+  deleted_at timestamptz,
   unique (group_id, player_id)
 );
 
-create index group_player_active_group
-  on public.group_player (group_id, active);
+create index group_player_group_not_deleted
+  on public.group_player (group_id)
+  where deleted_at is null;
 
 create index group_player_player
   on public.group_player (player_id);

@@ -104,13 +104,25 @@ export interface GroupMember extends Player {
 }
 
 export const getGroupMembers = cache(async (groupId: string): Promise<GroupMember[]> => {
-  const { data, error } = await db
+  const { data: memberships, error } = await db
     .from('group_player')
-    .select('active, player:player_id(id, name, created_at)')
+    .select('player_id, deleted_at')
     .eq('group_id', groupId)
   if (error) throw error
-  return ((data ?? []) as unknown as { active: boolean; player: Player }[])
-    .map(row => ({ ...row.player, active: row.active }))
+  const rows = (memberships ?? []) as { player_id: string; deleted_at: string | null }[]
+  if (rows.length === 0) return []
+
+  const { data: players, error: playerError } = await db
+    .from('player')
+    .select('id, name, created_at')
+    .in('id', rows.map(row => row.player_id))
+  if (playerError) throw playerError
+  const playerById = new Map(((players ?? []) as Player[]).map(player => [player.id, player]))
+  return rows
+    .flatMap(row => {
+      const player = playerById.get(row.player_id)
+      return player ? [{ ...player, active: row.deleted_at === null }] : []
+    })
     .sort((a, b) => a.name.localeCompare(b.name))
 })
 
@@ -146,18 +158,18 @@ export async function getLeaderboardPlayers(groupId: string): Promise<GroupMembe
 export async function getGlobalPlayersWithGroups(): Promise<GroupMember[]> {
   const [{ data: players, error: playerError }, { data: memberships, error: membershipError }, groups] = await Promise.all([
     db.from('player').select('id, name, created_at').is('deleted_at', null).order('name'),
-    db.from('group_player').select('player_id, group_id, active'),
+    db.from('group_player').select('player_id, group_id, deleted_at'),
     getGroups(),
   ])
   if (playerError) throw playerError
   if (membershipError) throw membershipError
   const groupNames = new Map(groups.map(group => [group.id, group.name]))
-  const rows = (memberships ?? []) as { player_id: string; group_id: string; active: boolean }[]
+  const rows = (memberships ?? []) as { player_id: string; group_id: string; deleted_at: string | null }[]
   return ((players ?? []) as Player[]).map(player => ({
     ...player,
     active: true,
     groups: rows
-      .filter(row => row.player_id === player.id && row.active)
+      .filter(row => row.player_id === player.id && row.deleted_at === null)
       .map(row => ({ id: row.group_id, name: groupNames.get(row.group_id) ?? row.group_id })),
   }))
 }
@@ -402,7 +414,7 @@ export async function getPlayerDetail(groupId: string, id: string): Promise<Play
   // sessions this player took part in that are settled and not deleted
   const [{ data: player }, { data: membership }, { data: groupSessions }] = await Promise.all([
     db.from('player').select('id, name').eq('id', id).single(),
-    db.from('group_player').select('active').eq('group_id', groupId).eq('player_id', id).maybeSingle(),
+    db.from('group_player').select('deleted_at').eq('group_id', groupId).eq('player_id', id).maybeSingle(),
     db.from('session').select('id').eq('group_id', groupId).eq('status', 'SETTLED').is('deleted_at', null),
   ])
   if (!player) return null
@@ -418,7 +430,7 @@ export async function getPlayerDetail(groupId: string, id: string): Promise<Play
     mySessionIds = ((myParts ?? []) as { session_id: string }[]).map(p => p.session_id)
   }
   if (!membership && mySessionIds.length === 0) return null
-  if (mySessionIds.length === 0) return { id: player.id, name: player.name, active: membership?.active ?? false, entries: [] }
+  if (mySessionIds.length === 0) return { id: player.id, name: player.name, active: membership?.deleted_at === null, entries: [] }
 
   const { data: sessions } = await db
     .from('session')
@@ -442,5 +454,5 @@ export async function getPlayerDetail(groupId: string, id: string): Promise<Play
       sessions: { ...s, session_entries: all },
     }
   })
-  return { id: player.id, name: player.name, active: membership?.active ?? false, entries }
+  return { id: player.id, name: player.name, active: membership?.deleted_at === null, entries }
 }

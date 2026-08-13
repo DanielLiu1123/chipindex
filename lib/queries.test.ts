@@ -110,9 +110,14 @@ describe('getLeaderboardPlayers', () => {
   it('keeps active members and only inactive members with settled group history', async () => {
     mockQueryResponses({
       group_player: [{ data: [
-        { active: true, player: { id: 'active', name: 'Active', created_at: '2026-01-01' } },
-        { active: false, player: { id: 'historic', name: 'Historic', created_at: '2026-01-01' } },
-        { active: false, player: { id: 'unused', name: 'Unused', created_at: '2026-01-01' } },
+        { player_id: 'active', deleted_at: null },
+        { player_id: 'historic', deleted_at: '2026-02-01T00:00:00Z' },
+        { player_id: 'unused', deleted_at: '2026-02-01T00:00:00Z' },
+      ] }],
+      player: [{ data: [
+        { id: 'active', name: 'Active', created_at: '2026-01-01' },
+        { id: 'historic', name: 'Historic', created_at: '2026-01-01' },
+        { id: 'unused', name: 'Unused', created_at: '2026-01-01' },
       ] }],
       session: [{ data: [{ id: 's1' }] }],
       session_participant: [{ data: [{ player_id: 'historic' }] }],
@@ -120,6 +125,10 @@ describe('getLeaderboardPlayers', () => {
 
     const players = await getLeaderboardPlayers('g1')
 
+    expect(dbMocks.chains.find(query => query.table === 'group_player')?.select)
+      .toHaveBeenCalledWith('player_id, deleted_at')
+    expect(dbMocks.chains.find(query => query.table === 'player')?.in)
+      .toHaveBeenCalledWith('id', ['active', 'historic', 'unused'])
     expect(players.map(player => [player.id, player.active])).toEqual([
       ['active', true],
       ['historic', false],
@@ -156,7 +165,7 @@ describe('getPlayerDetail', () => {
   it('returns player settlement details and the session start timestamp', async () => {
     mockQueryResponses({
       player: [{ data: { id: 'alice', name: 'Alice' } }],
-      group_player: [{ data: { active: true } }],
+      group_player: [{ data: { deleted_at: null } }],
       session_participant: [
         { data: [{ session_id: 's1' }] },
         { data: [{ session_id: 's1', player_id: 'alice', final_chips: 5000 }] },
@@ -220,7 +229,7 @@ describe('getPlayerDetail', () => {
 
     mockQueryResponses({
       player: [{ data: { id: 'alice', name: 'Alice' } }],
-      group_player: [{ data: { active: true } }],
+      group_player: [{ data: { deleted_at: null } }],
       session_participant: [
         { data: [{ session_id: 's1' }] },
         { data: [{ session_id: 's1', player_id: 'alice', final_chips: 1001 }] },

@@ -45,7 +45,7 @@ async function requireActiveMembers(groupId: string, playerIds: string[]): Promi
     .from('group_player')
     .select('player_id')
     .eq('group_id', groupId)
-    .eq('active', true)
+    .is('deleted_at', null)
     .in('player_id', unique)
   ensure(error)
   const active = new Set(((data ?? []) as { player_id: string }[]).map(row => row.player_id))
@@ -90,9 +90,8 @@ export async function setGroupMemberActive(groupId: string, playerId: string, ac
     .upsert({
       group_id: groupId,
       player_id: playerId,
-      active,
       updated_at: ts,
-      deactivated_at: active ? null : ts,
+      deleted_at: active ? null : ts,
     }, { onConflict: 'group_id,player_id' })
     .select('id')
     .maybeSingle()
