@@ -115,7 +115,7 @@ function renderChart(overrides: Partial<ChartProps> = {}) {
     ...overrides,
   }
 
-  return renderToStaticMarkup(createElement(PlayerChart, props))
+  return renderToStaticMarkup(createElement(PlayerChart, { groupId: 'group-1', ...props }))
 }
 
 function asBarProps(): BarProps {
@@ -186,7 +186,7 @@ describe('PlayerChart', () => {
       showWorst: false,
     })
     single.props.onActivate('s2')
-    expect(captured.routerPush).toHaveBeenCalledWith('/sessions/s2')
+    expect(captured.routerPush).toHaveBeenCalledWith('/groups/group-1/sessions/s2')
 
     resetCaptured()
     const tied = [

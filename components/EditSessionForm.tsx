@@ -21,12 +21,12 @@ interface ParticipantRow extends PlayerRowBase {
   buyins: BuyInRow[]
 }
 
-export default function EditSessionForm({ sessionId }: { sessionId: string }) {
+export default function EditSessionForm({ groupId, sessionId }: { groupId: string; sessionId: string }) {
   const router = useRouter()
   const [date, setDate] = useState('')
   const [exchangeRate, setExchangeRate] = useState('')
   const [description, setDescription] = useState('')
-  const { rows, setRows, updateRow, usedIds, players, playersLoading, playersError } = usePlayerRows<ParticipantRow>([])
+  const { rows, setRows, updateRow, usedIds, players, playersLoading, playersError } = usePlayerRows<ParticipantRow>(groupId, [])
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [sessionLoading, setSessionLoading] = useState(true)
   const [sessionError, setSessionError] = useState('')
@@ -36,7 +36,7 @@ export default function EditSessionForm({ sessionId }: { sessionId: string }) {
   const [confirmRemove, setConfirmRemove] = useState<ParticipantRow | null>(null)
 
   useEffect(() => {
-    api<SessionForEdit>('GET', `/api/sessions/${sessionId}`)
+    api<SessionForEdit>('GET', `/api/groups/${groupId}/sessions/${sessionId}`)
       .then(s => {
         setDate(s.date ?? '')
         setExchangeRate(s.exchange_rate ? String(s.exchange_rate) : '')
@@ -53,7 +53,7 @@ export default function EditSessionForm({ sessionId }: { sessionId: string }) {
       })
       .catch(() => setSessionError('Failed to load session.'))
       .finally(() => setSessionLoading(false))
-  }, [sessionId, setRows])
+  }, [groupId, sessionId, setRows])
 
   function toggle(uid: string) {
     setExpanded(s => {
@@ -85,21 +85,21 @@ export default function EditSessionForm({ sessionId }: { sessionId: string }) {
     setSubmitting(true)
     try {
       const participants = await Promise.all(valid.map(async row => ({
-        player_id: await resolvePlayerId(row),
+        player_id: await resolvePlayerId(groupId, row),
         final_chips: Number(row.final),
         buy_ins: row.buyins
           .filter(b => Number(b.amount) > 0)
           .map(b => ({ amount: Number(b.amount), ...(b.created_at ? { created_at: b.created_at } : {}) })),
       })))
 
-      await api('PUT', `/api/sessions/${sessionId}`, {
+      await api('PUT', `/api/groups/${groupId}/sessions/${sessionId}`, {
         date,
         exchange_rate: exchangeRate ? Number(exchangeRate) : 40,
         description: description || null,
         participants,
         force,
       })
-      router.push(`/sessions/${sessionId}`)
+      router.push(`/groups/${groupId}/sessions/${sessionId}`)
       router.refresh()
     } catch (err) {
       if (err instanceof ApiClientError && err.status === 422) {
@@ -139,7 +139,7 @@ export default function EditSessionForm({ sessionId }: { sessionId: string }) {
       />
 
       <div className="mb-6">
-        <Link href={`/sessions/${sessionId}`} className="text-muted text-xs hover:text-white tracking-widest">← SESSION</Link>
+        <Link href={`/groups/${groupId}/sessions/${sessionId}`} className="text-muted text-xs hover:text-white tracking-widest">← SESSION</Link>
       </div>
       <h1 className="text-xs text-muted tracking-widest mb-6">EDIT SESSION</h1>
 

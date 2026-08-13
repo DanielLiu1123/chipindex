@@ -8,7 +8,7 @@ import {
   type ParticipantResultRow,
   type ResultEntry,
 } from './session-results'
-import type { Player } from '@/types'
+import type { Player, PlayerGroup } from '@/types'
 
 export type { ResultEntry } from './session-results'
 
@@ -77,19 +77,102 @@ async function resultsBySession(sessionIds: string[]): Promise<Map<string, Resul
 
 // cache() dedupes the player fetch within a single request, so pages that
 // need both the player list and a name map hit the table once.
-export const getPlayers = cache(async (): Promise<Player[]> => {
-  const { data } = await db.from('player').select('*').is('deleted_at', null).order('name')
-  return (data ?? []) as Player[]
+export const getGroups = cache(async (): Promise<PlayerGroup[]> => {
+  const { data, error } = await db
+    .from('player_group')
+    .select('id, name, created_at')
+    .is('deleted_at', null)
+    .order('name')
+  if (error) throw error
+  return (data ?? []) as PlayerGroup[]
 })
 
-async function playerNameMap(): Promise<Map<string, string>> {
-  return new Map((await getPlayers()).map(p => [p.id, p.name]))
+export const getGroup = cache(async (groupId: string): Promise<PlayerGroup | null> => {
+  const { data, error } = await db
+    .from('player_group')
+    .select('id, name, created_at')
+    .eq('id', groupId)
+    .is('deleted_at', null)
+    .maybeSingle()
+  if (error) throw error
+  return data as PlayerGroup | null
+})
+
+export interface GroupMember extends Player {
+  active: boolean
+  groups?: { id: string; name: string }[]
 }
 
-export async function getLeaderboardSessions(): Promise<LeaderboardSessionRow[]> {
+export const getGroupMembers = cache(async (groupId: string): Promise<GroupMember[]> => {
+  const { data, error } = await db
+    .from('group_player')
+    .select('active, player:player_id(id, name, created_at)')
+    .eq('group_id', groupId)
+  if (error) throw error
+  return ((data ?? []) as unknown as { active: boolean; player: Player }[])
+    .map(row => ({ ...row.player, active: row.active }))
+    .sort((a, b) => a.name.localeCompare(b.name))
+})
+
+export const getPlayers = cache(async (groupId: string): Promise<Player[]> => {
+  return (await getGroupMembers(groupId)).filter(player => player.active)
+})
+
+export async function getLeaderboardPlayers(groupId: string): Promise<GroupMember[]> {
+  const members = await getGroupMembers(groupId)
+  const inactive = members.filter(player => !player.active)
+  if (inactive.length === 0) return members
+
+  const { data: sessions, error: sessionError } = await db
+    .from('session')
+    .select('id')
+    .eq('group_id', groupId)
+    .eq('status', 'SETTLED')
+    .is('deleted_at', null)
+  if (sessionError) throw sessionError
+  const sessionIds = ((sessions ?? []) as { id: string }[]).map(row => row.id)
+  if (sessionIds.length === 0) return members.filter(player => player.active)
+
+  const { data: parts, error: partError } = await db
+    .from('session_participant')
+    .select('player_id')
+    .in('session_id', sessionIds)
+    .is('deleted_at', null)
+  if (partError) throw partError
+  const historicalIds = new Set(((parts ?? []) as { player_id: string }[]).map(row => row.player_id))
+  return members.filter(player => player.active || historicalIds.has(player.id))
+}
+
+export async function getGlobalPlayersWithGroups(): Promise<GroupMember[]> {
+  const [{ data: players, error: playerError }, { data: memberships, error: membershipError }, groups] = await Promise.all([
+    db.from('player').select('id, name, created_at').is('deleted_at', null).order('name'),
+    db.from('group_player').select('player_id, group_id, active'),
+    getGroups(),
+  ])
+  if (playerError) throw playerError
+  if (membershipError) throw membershipError
+  const groupNames = new Map(groups.map(group => [group.id, group.name]))
+  const rows = (memberships ?? []) as { player_id: string; group_id: string; active: boolean }[]
+  return ((players ?? []) as Player[]).map(player => ({
+    ...player,
+    active: true,
+    groups: rows
+      .filter(row => row.player_id === player.id && row.active)
+      .map(row => ({ id: row.group_id, name: groupNames.get(row.group_id) ?? row.group_id })),
+  }))
+}
+
+async function playerNameMap(): Promise<Map<string, string>> {
+  const { data, error } = await db.from('player').select('id, name').is('deleted_at', null)
+  if (error) throw error
+  return new Map(((data ?? []) as Player[]).map(p => [p.id, p.name]))
+}
+
+export async function getLeaderboardSessions(groupId: string): Promise<LeaderboardSessionRow[]> {
   const { data: sessions } = await db
     .from('session')
     .select('id, date, exchange_rate')
+    .eq('group_id', groupId)
     .is('deleted_at', null)
     .eq('status', 'SETTLED')
     .order('date', { ascending: true })
@@ -119,10 +202,11 @@ interface SessionListSource {
   started_at: string | null
 }
 
-export async function getSessionsList(): Promise<SessionRow[]> {
+export async function getSessionsList(groupId: string): Promise<SessionRow[]> {
   const { data: sessions } = await db
     .from('session')
     .select('id, date, description, exchange_rate, status, started_at')
+    .eq('group_id', groupId)
     .is('deleted_at', null)
   const rows = (sessions ?? []) as SessionListSource[]
   if (rows.length === 0) return []
@@ -171,14 +255,14 @@ export interface SessionDetail {
   session_entries: SessionDetailEntry[]
 }
 
-export async function getSessionStatus(id: string): Promise<string | null> {
-  const { data } = await db.from('session').select('status').eq('id', id).is('deleted_at', null).single()
+export async function getSessionStatus(groupId: string, id: string): Promise<string | null> {
+  const { data } = await db.from('session').select('status').eq('group_id', groupId).eq('id', id).is('deleted_at', null).maybeSingle()
   return data?.status ?? null
 }
 
-export async function getSessionDetail(id: string): Promise<SessionDetail | null> {
+export async function getSessionDetail(groupId: string, id: string): Promise<SessionDetail | null> {
   const [{ data: session }, { data: parts }, { data: buyins }, names] = await Promise.all([
-    db.from('session').select('id, date, description, exchange_rate, status').eq('id', id).is('deleted_at', null).single(),
+    db.from('session').select('id, date, description, exchange_rate, status').eq('group_id', groupId).eq('id', id).is('deleted_at', null).maybeSingle(),
     db.from('session_participant').select('id, player_id, final_chips').is('deleted_at', null).eq('session_id', id),
     db.from('buy_in').select('player_id, amount, created_at').is('deleted_at', null).eq('session_id', id).order('created_at', { ascending: true }),
     playerNameMap(),
@@ -217,9 +301,9 @@ export interface SessionForEdit {
   participants: EditParticipant[]
 }
 
-export async function getSessionForEdit(id: string): Promise<SessionForEdit | null> {
+export async function getSessionForEdit(groupId: string, id: string): Promise<SessionForEdit | null> {
   const [{ data: session }, { data: parts }, { data: buyins }, names] = await Promise.all([
-    db.from('session').select('date, exchange_rate, description, status').eq('id', id).is('deleted_at', null).single(),
+    db.from('session').select('date, exchange_rate, description, status').eq('group_id', groupId).eq('id', id).is('deleted_at', null).maybeSingle(),
     db.from('session_participant').select('player_id, final_chips').is('deleted_at', null).eq('session_id', id).order('created_at', { ascending: true }),
     db.from('buy_in').select('player_id, amount, created_at').is('deleted_at', null).eq('session_id', id).order('created_at', { ascending: true }),
     playerNameMap(),
@@ -262,9 +346,9 @@ export interface LiveSessionData {
   participants: LiveParticipant[]
 }
 
-export async function getLiveSession(id: string): Promise<LiveSessionData | null> {
+export async function getLiveSession(groupId: string, id: string): Promise<LiveSessionData | null> {
   const [{ data: session }, { data: parts }, { data: buyins }, names] = await Promise.all([
-    db.from('session').select('id, date, description, exchange_rate, buy_in_unit, started_at, status').eq('id', id).is('deleted_at', null).single(),
+    db.from('session').select('id, date, description, exchange_rate, buy_in_unit, started_at, status').eq('group_id', groupId).eq('id', id).is('deleted_at', null).maybeSingle(),
     db.from('session_participant').select('player_id').is('deleted_at', null).eq('session_id', id).order('created_at', { ascending: true }),
     db.from('buy_in').select('id, player_id, amount, created_at').is('deleted_at', null).eq('session_id', id).order('created_at', { ascending: true }),
     playerNameMap(),
@@ -310,24 +394,38 @@ export interface PlayerHistoryEntry {
 export interface PlayerDetail {
   id: string
   name: string
+  active: boolean
   entries: PlayerHistoryEntry[]
 }
 
-export async function getPlayerDetail(id: string): Promise<PlayerDetail | null> {
+export async function getPlayerDetail(groupId: string, id: string): Promise<PlayerDetail | null> {
   // sessions this player took part in that are settled and not deleted
-  const [{ data: player }, { data: myParts }] = await Promise.all([
+  const [{ data: player }, { data: membership }, { data: groupSessions }] = await Promise.all([
     db.from('player').select('id, name').eq('id', id).single(),
-    db.from('session_participant').select('session_id').eq('player_id', id).is('deleted_at', null),
+    db.from('group_player').select('active').eq('group_id', groupId).eq('player_id', id).maybeSingle(),
+    db.from('session').select('id').eq('group_id', groupId).eq('status', 'SETTLED').is('deleted_at', null),
   ])
   if (!player) return null
-  const mySessionIds = ((myParts ?? []) as { session_id: string }[]).map(p => p.session_id)
-  if (mySessionIds.length === 0) return { id: player.id, name: player.name, entries: [] }
+  const groupSessionIds = ((groupSessions ?? []) as { id: string }[]).map(session => session.id)
+  let mySessionIds: string[] = []
+  if (groupSessionIds.length > 0) {
+    const { data: myParts } = await db
+      .from('session_participant')
+      .select('session_id')
+      .eq('player_id', id)
+      .in('session_id', groupSessionIds)
+      .is('deleted_at', null)
+    mySessionIds = ((myParts ?? []) as { session_id: string }[]).map(p => p.session_id)
+  }
+  if (!membership && mySessionIds.length === 0) return null
+  if (mySessionIds.length === 0) return { id: player.id, name: player.name, active: membership?.active ?? false, entries: [] }
 
   const { data: sessions } = await db
     .from('session')
     .select('id, date, description, exchange_rate, started_at')
     .is('deleted_at', null)
     .eq('status', 'SETTLED')
+    .eq('group_id', groupId)
     .in('id', mySessionIds)
   const sessionRows = (sessions ?? []) as { id: string; date: string; description: string | null; exchange_rate: number; started_at: string | null }[]
   const allBySession = await resultsBySession(sessionRows.map(s => s.id))
@@ -344,5 +442,5 @@ export async function getPlayerDetail(id: string): Promise<PlayerDetail | null> 
       sessions: { ...s, session_entries: all },
     }
   })
-  return { id: player.id, name: player.name, entries }
+  return { id: player.id, name: player.name, active: membership?.active ?? false, entries }
 }
