@@ -4,13 +4,13 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/client'
-import type { GroupMember } from '@/lib/queries'
+import type { GlobalPlayer, GroupMember } from '@/lib/queries'
 import type { Player, PlayerGroup } from '@/types'
 
 export default function GroupSettings({ group, initialMembers, globalPlayers }: {
   group: PlayerGroup
   initialMembers: GroupMember[]
-  globalPlayers: GroupMember[]
+  globalPlayers: GlobalPlayer[]
 }) {
   const router = useRouter()
   const [name, setName] = useState(group.name)
@@ -50,7 +50,7 @@ export default function GroupSettings({ group, initialMembers, globalPlayers }: 
     if (!player) return
     return run(async () => {
       await api('POST', `/api/groups/${group.id}/members`, { player_id: player.id })
-      setMembers(current => [...current, { ...player, active: true }].sort((a, b) => a.name.localeCompare(b.name)))
+      setMembers(current => [...current, { ...player, membership_deleted_at: null }].sort((a, b) => a.name.localeCompare(b.name)))
       setSelectedId('')
     })
   }
@@ -60,15 +60,17 @@ export default function GroupSettings({ group, initialMembers, globalPlayers }: 
     if (!trimmed) return
     return run(async () => {
       const player = await api<Player>('POST', `/api/groups/${group.id}/players`, { name: trimmed })
-      setMembers(current => [...current, { ...player, active: true }].sort((a, b) => a.name.localeCompare(b.name)))
+      setMembers(current => [...current, { ...player, membership_deleted_at: null }].sort((a, b) => a.name.localeCompare(b.name)))
       setNewName('')
     })
   }
 
-  function setActive(player: GroupMember, active: boolean) {
+  function setDeleted(player: GroupMember, deleted: boolean) {
     return run(async () => {
-      await api('PATCH', `/api/groups/${group.id}/members`, { player_id: player.id, active })
-      setMembers(current => current.map(item => item.id === player.id ? { ...item, active } : item))
+      await api(deleted ? 'DELETE' : 'POST', `/api/groups/${group.id}/members`, { player_id: player.id })
+      setMembers(current => current.map(item => item.id === player.id
+        ? { ...item, membership_deleted_at: deleted ? new Date().toISOString() : null }
+        : item))
     })
   }
 
@@ -88,11 +90,11 @@ export default function GroupSettings({ group, initialMembers, globalPlayers }: 
       <h2 className="text-xs text-muted tracking-widest mb-3">MEMBERS</h2>
       <div className="flex flex-col gap-1 mb-6">
         {members.map(member => <div key={member.id} className="flex items-center gap-3 border border-border px-3 py-2.5">
-          <span className={`flex-1 ${member.active ? 'text-white' : 'text-muted'}`}>{member.name}</span>
-          {!member.active && <span className="text-[10px] tracking-widest text-muted">INACTIVE</span>}
-          <button onClick={() => setActive(member, !member.active)} disabled={pending}
-            className={`text-[10px] tracking-widest ${member.active ? 'text-danger' : 'text-accent'} disabled:opacity-40`}>
-            {member.active ? 'DEACTIVATE' : 'REACTIVATE'}
+          <span className={`flex-1 ${member.membership_deleted_at === null ? 'text-white' : 'text-muted'}`}>{member.name}</span>
+          {member.membership_deleted_at !== null && <span className="text-[10px] tracking-widest text-muted">INACTIVE</span>}
+          <button onClick={() => setDeleted(member, member.membership_deleted_at === null)} disabled={pending}
+            className={`text-[10px] tracking-widest ${member.membership_deleted_at === null ? 'text-danger' : 'text-accent'} disabled:opacity-40`}>
+            {member.membership_deleted_at === null ? 'DEACTIVATE' : 'REACTIVATE'}
           </button>
         </div>)}
       </div>

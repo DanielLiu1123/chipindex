@@ -146,7 +146,7 @@ export default function LeaderboardView({ groupId, stats, sessions }: { groupId:
                   <Link href={`/groups/${groupId}/players/${s.player.id}`} className="block">{i + 1}</Link>
                 </td>
                 <td className="py-4">
-                  <Link href={`/groups/${groupId}/players/${s.player.id}`} className="block">{s.player.name}{s.player.active === false && <span className="ml-2 text-[10px] text-muted">INACTIVE</span>}</Link>
+                  <Link href={`/groups/${groupId}/players/${s.player.id}`} className="block">{s.player.name}{s.player.membership_deleted_at && <span className="ml-2 text-[10px] text-muted">INACTIVE</span>}</Link>
                 </td>
                 <td className="py-4 text-right">
                   <Link href={`/groups/${groupId}/players/${s.player.id}`} className="block"><ChipValue chips={s.total_yuan} prefix="¥" /></Link>

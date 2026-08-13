@@ -83,7 +83,7 @@ function makeEntry({
 }
 
 function makePlayerDetail(entries: PlayerHistoryEntry[]): PlayerDetail {
-  return { id: 'alice', name: 'Alice', active: true, entries }
+  return { id: 'alice', name: 'Alice', membership_deleted_at: null, entries }
 }
 
 describe('computeLeaderboardStats', () => {
@@ -168,7 +168,7 @@ describe('computePlayerHistory', () => {
   const detail: PlayerDetail = {
     id: 'alice',
     name: 'Alice',
-    active: true,
+    membership_deleted_at: null,
     entries: [
       {
         session_id: 's2',

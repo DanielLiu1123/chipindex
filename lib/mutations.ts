@@ -33,6 +33,17 @@ async function requireGroup(groupId: string): Promise<void> {
   if (!data) throw new ApiError(404, 'Group not found')
 }
 
+async function requirePlayer(playerId: string): Promise<void> {
+  const { data, error } = await db
+    .from('player')
+    .select('id')
+    .eq('id', playerId)
+    .is('deleted_at', null)
+    .maybeSingle()
+  ensure(error)
+  if (!data) throw new ApiError(404, 'Player not found')
+}
+
 async function requireOpenSession(groupId: string, id: string): Promise<void> {
   const session = await requireSession(groupId, id)
   if (session.status !== 'OPEN') throw new ApiError(409, 'Session is not open')
@@ -80,10 +91,9 @@ export async function renameGroup(id: string, name: string): Promise<PlayerGroup
   return data as PlayerGroup
 }
 
-export async function setGroupMemberActive(groupId: string, playerId: string, active: boolean): Promise<void> {
+async function setGroupMemberDeleted(groupId: string, playerId: string, deleted: boolean): Promise<void> {
   if (!playerId) throw new ApiError(400, 'player_id required')
-  if (typeof active !== 'boolean') throw new ApiError(400, 'active must be a boolean')
-  await requireGroup(groupId)
+  await Promise.all([requireGroup(groupId), requirePlayer(playerId)])
   const ts = now()
   const { data, error } = await db
     .from('group_player')
@@ -91,12 +101,20 @@ export async function setGroupMemberActive(groupId: string, playerId: string, ac
       group_id: groupId,
       player_id: playerId,
       updated_at: ts,
-      deleted_at: active ? null : ts,
+      deleted_at: deleted ? ts : null,
     }, { onConflict: 'group_id,player_id' })
     .select('id')
     .maybeSingle()
   ensure(error)
   if (!data) throw new ApiError(404, 'Group or player not found')
+}
+
+export async function restoreGroupMember(groupId: string, playerId: string): Promise<void> {
+  await setGroupMemberDeleted(groupId, playerId, false)
+}
+
+export async function softDeleteGroupMember(groupId: string, playerId: string): Promise<void> {
+  await setGroupMemberDeleted(groupId, playerId, true)
 }
 
 // Conservation check shared by settle and edit. Throws 422 with the diff
@@ -121,7 +139,7 @@ export async function createPlayer(name: string, groupId?: string): Promise<Play
   if (groupId) await requireGroup(groupId)
   const { data, error } = await db.from('player').insert({ name: trimmed }).select().single()
   ensure(error)
-  if (groupId) await setGroupMemberActive(groupId, data.id, true)
+  if (groupId) await restoreGroupMember(groupId, data.id)
   return data as Player
 }
 

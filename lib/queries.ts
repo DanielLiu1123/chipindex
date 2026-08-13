@@ -99,8 +99,11 @@ export const getGroup = cache(async (groupId: string): Promise<PlayerGroup | nul
 })
 
 export interface GroupMember extends Player {
-  active: boolean
-  groups?: { id: string; name: string }[]
+  membership_deleted_at: string | null
+}
+
+export interface GlobalPlayer extends Player {
+  groups: { id: string; name: string }[]
 }
 
 export const getGroupMembers = cache(async (groupId: string): Promise<GroupMember[]> => {
@@ -121,18 +124,18 @@ export const getGroupMembers = cache(async (groupId: string): Promise<GroupMembe
   return rows
     .flatMap(row => {
       const player = playerById.get(row.player_id)
-      return player ? [{ ...player, active: row.deleted_at === null }] : []
+      return player ? [{ ...player, membership_deleted_at: row.deleted_at }] : []
     })
     .sort((a, b) => a.name.localeCompare(b.name))
 })
 
 export const getPlayers = cache(async (groupId: string): Promise<Player[]> => {
-  return (await getGroupMembers(groupId)).filter(player => player.active)
+  return (await getGroupMembers(groupId)).filter(player => player.membership_deleted_at === null)
 })
 
 export async function getLeaderboardPlayers(groupId: string): Promise<GroupMember[]> {
   const members = await getGroupMembers(groupId)
-  const inactive = members.filter(player => !player.active)
+  const inactive = members.filter(player => player.membership_deleted_at !== null)
   if (inactive.length === 0) return members
 
   const { data: sessions, error: sessionError } = await db
@@ -143,7 +146,7 @@ export async function getLeaderboardPlayers(groupId: string): Promise<GroupMembe
     .is('deleted_at', null)
   if (sessionError) throw sessionError
   const sessionIds = ((sessions ?? []) as { id: string }[]).map(row => row.id)
-  if (sessionIds.length === 0) return members.filter(player => player.active)
+  if (sessionIds.length === 0) return members.filter(player => player.membership_deleted_at === null)
 
   const { data: parts, error: partError } = await db
     .from('session_participant')
@@ -152,10 +155,10 @@ export async function getLeaderboardPlayers(groupId: string): Promise<GroupMembe
     .is('deleted_at', null)
   if (partError) throw partError
   const historicalIds = new Set(((parts ?? []) as { player_id: string }[]).map(row => row.player_id))
-  return members.filter(player => player.active || historicalIds.has(player.id))
+  return members.filter(player => player.membership_deleted_at === null || historicalIds.has(player.id))
 }
 
-export async function getGlobalPlayersWithGroups(): Promise<GroupMember[]> {
+export async function getGlobalPlayersWithGroups(): Promise<GlobalPlayer[]> {
   const [{ data: players, error: playerError }, { data: memberships, error: membershipError }, groups] = await Promise.all([
     db.from('player').select('id, name, created_at').is('deleted_at', null).order('name'),
     db.from('group_player').select('player_id, group_id, deleted_at'),
@@ -167,7 +170,6 @@ export async function getGlobalPlayersWithGroups(): Promise<GroupMember[]> {
   const rows = (memberships ?? []) as { player_id: string; group_id: string; deleted_at: string | null }[]
   return ((players ?? []) as Player[]).map(player => ({
     ...player,
-    active: true,
     groups: rows
       .filter(row => row.player_id === player.id && row.deleted_at === null)
       .map(row => ({ id: row.group_id, name: groupNames.get(row.group_id) ?? row.group_id })),
@@ -406,7 +408,7 @@ export interface PlayerHistoryEntry {
 export interface PlayerDetail {
   id: string
   name: string
-  active: boolean
+  membership_deleted_at: string | null
   entries: PlayerHistoryEntry[]
 }
 
@@ -430,7 +432,7 @@ export async function getPlayerDetail(groupId: string, id: string): Promise<Play
     mySessionIds = ((myParts ?? []) as { session_id: string }[]).map(p => p.session_id)
   }
   if (!membership && mySessionIds.length === 0) return null
-  if (mySessionIds.length === 0) return { id: player.id, name: player.name, active: membership?.deleted_at === null, entries: [] }
+  if (mySessionIds.length === 0) return { id: player.id, name: player.name, membership_deleted_at: membership?.deleted_at ?? null, entries: [] }
 
   const { data: sessions } = await db
     .from('session')
@@ -454,5 +456,5 @@ export async function getPlayerDetail(groupId: string, id: string): Promise<Play
       sessions: { ...s, session_entries: all },
     }
   })
-  return { id: player.id, name: player.name, active: membership?.deleted_at === null, entries }
+  return { id: player.id, name: player.name, membership_deleted_at: membership?.deleted_at ?? null, entries }
 }

@@ -6,7 +6,7 @@ import { netChips, toCny } from '@/lib/settlement'
 // queries.ts is responsible for reading; this file is responsible for computing.
 
 export interface PlayerStats {
-  player: Player
+  player: Player & { membership_deleted_at?: string | null }
   total_chips: number
   total_yuan: number
   sessions_played: number

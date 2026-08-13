@@ -129,9 +129,9 @@ describe('getLeaderboardPlayers', () => {
       .toHaveBeenCalledWith('player_id, deleted_at')
     expect(dbMocks.chains.find(query => query.table === 'player')?.in)
       .toHaveBeenCalledWith('id', ['active', 'historic', 'unused'])
-    expect(players.map(player => [player.id, player.active])).toEqual([
-      ['active', true],
-      ['historic', false],
+    expect(players.map(player => [player.id, player.membership_deleted_at])).toEqual([
+      ['active', null],
+      ['historic', '2026-02-01T00:00:00Z'],
     ])
     expect(dbMocks.chains.find(query => query.table === 'session')?.eq).toHaveBeenCalledWith('group_id', 'g1')
   })
@@ -195,7 +195,7 @@ describe('getPlayerDetail', () => {
     expect(detail).toEqual({
       id: 'alice',
       name: 'Alice',
-      active: true,
+      membership_deleted_at: null,
       entries: [{
         session_id: 's1',
         chips: 2500,
