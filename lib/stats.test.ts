@@ -9,9 +9,9 @@ import type {
 import type { GroupPlayer, Player } from '@/types'
 
 const players: Player[] = [
-  { id: 'alice', name: 'Alice', created_at: '2026-01-01' },
-  { id: 'bob', name: 'Bob', created_at: '2026-01-01' },
-  { id: 'carol', name: 'Carol', created_at: '2026-01-01' },
+  { id: 'alice', name: 'Alice', created_at: '2026-01-01', updated_at: '2026-01-01', deleted_at: null },
+  { id: 'bob', name: 'Bob', created_at: '2026-01-01', updated_at: '2026-01-01', deleted_at: null },
+  { id: 'carol', name: 'Carol', created_at: '2026-01-01', updated_at: '2026-01-01', deleted_at: null },
 ]
 
 function groupPlayer(player: Player): { player: Player; group_player: GroupPlayer } {
@@ -133,7 +133,13 @@ describe('computeLeaderboardStats', () => {
 describe('filterLowActivityPlayers', () => {
   function playerStats(name: string, sessionsPlayed: number): PlayerStats {
     return {
-      player: { id: name.toLowerCase(), name, created_at: '2026-01-01' },
+      player: {
+        id: name.toLowerCase(),
+        name,
+        created_at: '2026-01-01',
+        updated_at: '2026-01-01',
+        deleted_at: null,
+      },
       total_chips: 0,
       total_yuan: 0,
       sessions_played: sessionsPlayed,

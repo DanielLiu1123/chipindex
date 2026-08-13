@@ -17,7 +17,8 @@ function ensure(error: { message: string } | null): void {
 }
 
 async function requireSession(groupId: string, id: string): Promise<{ status: string }> {
-  const { data: session } = await db.from('session').select('status').eq('group_id', groupId).eq('id', id).is('deleted_at', null).maybeSingle()
+  const { data: session, error } = await db.from('session').select('status').eq('group_id', groupId).eq('id', id).is('deleted_at', null).maybeSingle()
+  ensure(error)
   if (!session) throw new ApiError(404, 'Session not found')
   return session as { status: string }
 }
@@ -64,6 +65,12 @@ async function requireActiveMembers(groupId: string, playerIds: string[]): Promi
   if (missing) throw new ApiError(422, `Player ${missing} is not an active group member`)
 }
 
+function requireUniquePlayerIds(playerIds: string[]): void {
+  if (new Set(playerIds).size !== playerIds.length) {
+    throw new ApiError(400, 'Duplicate player_id')
+  }
+}
+
 // ── group & group_player ─────────────────────────────────────
 
 export async function createGroup(name: string): Promise<Group> {
@@ -91,20 +98,21 @@ export async function renameGroup(id: string, name: string): Promise<Group> {
   return data as Group
 }
 
-export async function createGroupPlayer(groupId: string, playerId: string): Promise<GroupPlayer> {
-  if (!playerId) throw new ApiError(400, 'player_id required')
-  await Promise.all([requireGroup(groupId), requirePlayer(playerId)])
+async function insertGroupPlayer(groupId: string, playerId: string): Promise<GroupPlayer> {
   const { data, error } = await db
     .from('group_player')
-    .insert({
-      group_id: groupId,
-      player_id: playerId,
-    })
+    .insert({ group_id: groupId, player_id: playerId })
     .select()
     .single()
   if (error?.code === '23505') throw new ApiError(409, 'Player already exists in group')
   ensure(error)
   return data as GroupPlayer
+}
+
+export async function createGroupPlayer(groupId: string, playerId: string): Promise<GroupPlayer> {
+  if (!playerId) throw new ApiError(400, 'player_id required')
+  await Promise.all([requireGroup(groupId), requirePlayer(playerId)])
+  return insertGroupPlayer(groupId, playerId)
 }
 
 export async function deleteGroupPlayer(groupId: string, playerId: string): Promise<GroupPlayer> {
@@ -146,22 +154,37 @@ export async function createPlayer(name: string, groupId: string): Promise<{ pla
   const { data, error } = await db.from('player').insert({ name: trimmed }).select().single()
   ensure(error)
   const player = data as Player
-  const group_player = await createGroupPlayer(groupId, player.id)
-  return { player, group_player }
+  try {
+    const group_player = await insertGroupPlayer(groupId, player.id)
+    return { player, group_player }
+  } catch (error) {
+    const ts = now()
+    await db.from('player').update({ deleted_at: ts, updated_at: ts }).eq('id', player.id)
+    throw error
+  }
 }
 
 export async function renamePlayer(groupId: string, id: string, name: string): Promise<Player> {
   const trimmed = name?.trim()
   if (!trimmed) throw new ApiError(400, 'Name required')
-  const { data: groupPlayer } = await db.from('group_player').select('id').eq('group_id', groupId).eq('player_id', id).maybeSingle()
+  const { data: groupPlayer, error: groupPlayerError } = await db
+    .from('group_player')
+    .select('id')
+    .eq('group_id', groupId)
+    .eq('player_id', id)
+    .is('deleted_at', null)
+    .maybeSingle()
+  ensure(groupPlayerError)
   if (!groupPlayer) throw new ApiError(404, 'Player not found in group')
   const { data, error } = await db
     .from('player')
     .update({ name: trimmed, updated_at: now() })
     .eq('id', id)
+    .is('deleted_at', null)
     .select()
-    .single()
+    .maybeSingle()
   ensure(error)
+  if (!data) throw new ApiError(404, 'Player not found')
   return data as Player
 }
 
@@ -182,6 +205,7 @@ export interface ImportEntry {
 // known, so synthFromNet constructs a buy-in + final chips pair per player.
 export async function importSession(groupId: string, meta: SessionMeta, entries: ImportEntry[]) {
   if (!entries || entries.length === 0) throw new ApiError(400, 'At least one player required')
+  requireUniquePlayerIds(entries.map(entry => entry.player_id))
   await requireGroup(groupId)
   await requireActiveMembers(groupId, entries.map(entry => entry.player_id))
   const { data: session, error } = await db
@@ -227,6 +251,7 @@ export interface StartingPlayer {
 // only for players whose initial buy-in is non-zero.
 export async function startSession(groupId: string, meta: SessionMeta, players: StartingPlayer[]) {
   if (players.length === 0) throw new ApiError(400, 'At least one player required')
+  requireUniquePlayerIds(players.map(player => player.player_id))
   for (const p of players) {
     if (!p.player_id) throw new ApiError(400, 'player_id required')
     if (!Number.isInteger(p.initial_buyin) || p.initial_buyin < 0) {
@@ -285,6 +310,7 @@ export async function updateSettledSession(
   if (!participants || participants.length === 0) {
     throw new ApiError(400, 'At least one player required')
   }
+  requireUniquePlayerIds(participants.map(participant => participant.player_id))
 
   for (const p of participants) {
     if (!p.player_id) throw new ApiError(400, 'player_id required')
@@ -400,13 +426,14 @@ export async function addBuyin(groupId: string, sessionId: string, playerId: str
   }
   await requireOpenSession(groupId, sessionId)
 
-  const { data: existing } = await db
+  const { data: existing, error: existingError } = await db
     .from('session_participant')
     .select('id')
     .eq('session_id', sessionId)
     .eq('player_id', playerId)
     .is('deleted_at', null)
     .maybeSingle()
+  ensure(existingError)
   if (!existing) await requireActiveMembers(groupId, [playerId])
 
   const { error: pErr } = await db
@@ -449,15 +476,17 @@ export async function settleSession(
 ): Promise<{ id: string; diff: number }> {
   await requireOpenSession(groupId, sessionId)
 
-  const { data: parts } = await db
+  const { data: parts, error: participantError } = await db
     .from('session_participant')
     .select('player_id')
     .is('deleted_at', null)
     .eq('session_id', sessionId)
+  ensure(participantError)
   const participantIds = new Set(((parts ?? []) as { player_id: string }[]).map(p => p.player_id))
   if (participantIds.size === 0) throw new ApiError(400, 'No participants')
 
   const finalMap = new Map<string, number>()
+  requireUniquePlayerIds((finals ?? []).map(final => final.player_id))
   for (const f of finals ?? []) {
     if (!Number.isInteger(f.final_chips) || f.final_chips < 0) {
       throw new ApiError(400, `Invalid final_chips for ${f.player_id}`)
@@ -468,11 +497,12 @@ export async function settleSession(
     if (!finalMap.has(pid)) throw new ApiError(400, `Missing final_chips for participant ${pid}`)
   }
 
-  const { data: buyins } = await db
+  const { data: buyins, error: buyinError } = await db
     .from('buy_in')
     .select('amount')
     .is('deleted_at', null)
     .eq('session_id', sessionId)
+  ensure(buyinError)
   const totalBuyin = buyinSum((buyins ?? []) as { amount: number }[])
   let totalFinal = 0
   for (const pid of participantIds) totalFinal += finalMap.get(pid)!

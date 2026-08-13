@@ -62,9 +62,9 @@ function click(node: ReactNode, label: string) {
 }
 
 const players: Player[] = [
-  { id: 'alice', name: 'Alice', created_at: '' },
-  { id: 'bob', name: 'Bob', created_at: '' },
-  { id: 'carol', name: 'Carol', created_at: '' },
+  { id: 'alice', name: 'Alice', created_at: '', updated_at: '', deleted_at: null },
+  { id: 'bob', name: 'Bob', created_at: '', updated_at: '', deleted_at: null },
+  { id: 'carol', name: 'Carol', created_at: '', updated_at: '', deleted_at: null },
 ]
 
 beforeEach(() => {

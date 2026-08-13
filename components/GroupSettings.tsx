@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import ConfirmModal from '@/components/ConfirmModal'
 import PlayerMultiSelect from '@/components/PlayerMultiSelect'
-import { api } from '@/lib/client'
+import { api, createPlayerInGroup } from '@/lib/client'
 import type { Group, GroupPlayer, Player } from '@/types'
 
 function byCreatedAt(
@@ -83,11 +83,7 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
     const playerName = newPlayerName.trim()
     if (!playerName) return
     return run(async () => {
-      const row = await api<{ player: Player; group_player: GroupPlayer }>(
-        'POST',
-        `/api/groups/${group.id}/players`,
-        { name: playerName },
-      )
+      const row = await createPlayerInGroup(group.id, playerName)
       setGroupPlayers(current => [...current, row].sort(byCreatedAt))
       setNewPlayerName('')
       setAddingNewPlayer(false)

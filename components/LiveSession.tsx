@@ -7,7 +7,7 @@ import PlayerSelect from '@/components/PlayerSelect'
 import ConfirmModal from '@/components/ConfirmModal'
 import type { Player } from '@/types'
 import type { LiveSessionData, LiveParticipant } from '@/lib/queries'
-import { api, ApiClientError } from '@/lib/client'
+import { api, ApiClientError, createPlayerInGroup } from '@/lib/client'
 
 export default function LiveSession({ groupId, session, allPlayers }: { groupId: string; session: LiveSessionData; allPlayers: Player[] }) {
   const router = useRouter()
@@ -76,8 +76,8 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
     const name = newName.trim()
     if (!name) return
     await act(async () => {
-      const p = await api<Player>('POST', `/api/groups/${groupId}/players`, { name })
-      await api('POST', `/api/groups/${groupId}/sessions/${session.id}/buyin`, { player_id: p.id, amount: unit })
+      const { player } = await createPlayerInGroup(groupId, name)
+      await api('POST', `/api/groups/${groupId}/sessions/${session.id}/buyin`, { player_id: player.id, amount: unit })
       setNewName('')
       setAddingNew(false)
     })

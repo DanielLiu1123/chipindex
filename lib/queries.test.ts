@@ -19,9 +19,15 @@ vi.mock('./db', () => ({
   db: { from: dbMocks.from },
 }))
 
-import { getLeaderboardPlayers, getLeaderboardSessions, getPlayerDetail, getSessionDetail } from './queries'
+import {
+  getLeaderboardPlayers,
+  getLeaderboardSessions,
+  getPlayerDetail,
+  getSessionDetail,
+  getSessionsList,
+} from './queries'
 
-type QueryResponse = { data: unknown }
+type QueryResponse = { data: unknown; error?: unknown }
 
 function mockQueryResponses(responses: Record<string, QueryResponse[]>) {
   dbMocks.from.mockImplementation((table: string) => {
@@ -59,6 +65,15 @@ function mockQueryResponses(responses: Record<string, QueryResponse[]>) {
 beforeEach(() => {
   dbMocks.from.mockReset()
   dbMocks.chains.length = 0
+})
+
+describe('query failures', () => {
+  it('does not disguise a sessions query failure as an empty list', async () => {
+    const error = new Error('database unavailable')
+    mockQueryResponses({ session: [{ data: null, error }] })
+
+    await expect(getSessionsList('g1')).rejects.toBe(error)
+  })
 })
 
 describe('getLeaderboardSessions', () => {

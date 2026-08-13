@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import type { Player } from '@/types'
-import { api } from '@/lib/client'
+import { api, createPlayerInGroup } from '@/lib/client'
 
 // Shared state for the session forms' dynamic player rows: the player list,
 // per-row patching keyed by a transient uid, and the used-id set that keeps
@@ -42,8 +42,8 @@ export function usePlayerRows<R extends PlayerRowBase>(groupId: string, initialR
 // a new name instead of a selection.
 export async function resolvePlayerId(groupId: string, row: PlayerRowBase): Promise<string> {
   if (row.isNew && row.newName.trim()) {
-    const p = await api<Player>('POST', `/api/groups/${groupId}/players`, { name: row.newName.trim() })
-    return p.id
+    const { player } = await createPlayerInGroup(groupId, row.newName.trim())
+    return player.id
   }
   return row.playerId
 }
