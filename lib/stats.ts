@@ -1,4 +1,4 @@
-import type { Player } from '@/types'
+import type { GroupPlayer, Player } from '@/types'
 import type { LeaderboardSessionRow, PlayerDetail, PlayerHistoryEntry } from '@/lib/queries'
 import { netChips, toCny } from '@/lib/settlement'
 
@@ -6,7 +6,8 @@ import { netChips, toCny } from '@/lib/settlement'
 // queries.ts is responsible for reading; this file is responsible for computing.
 
 export interface PlayerStats {
-  player: Player & { membership_deleted_at?: string | null }
+  player: Player
+  group_player: GroupPlayer
   total_chips: number
   total_yuan: number
   sessions_played: number
@@ -41,12 +42,12 @@ function topChips(entries: { chips: number }[]): number | null {
 }
 
 // Home leaderboard: sorted by CNY → chips → name
-export function computeLeaderboardStats(players: Player[], sessions: LeaderboardSessionRow[]): PlayerStats[] {
+export function computeLeaderboardStats(groupPlayers: Array<{ player: Player; group_player: GroupPlayer }>, sessions: LeaderboardSessionRow[]): PlayerStats[] {
   const sessionTop = new Map<string, number | null>()
   for (const s of sessions) sessionTop.set(s.id, topChips(s.session_entries))
 
-  return players
-    .map(player => {
+  return groupPlayers
+    .map(({ player, group_player }) => {
       let total_chips = 0
       let total_yuan = 0
       let sessions_played = 0
@@ -65,6 +66,7 @@ export function computeLeaderboardStats(players: Player[], sessions: Leaderboard
 
       return {
         player,
+        group_player,
         total_chips,
         total_yuan: Math.round(total_yuan * 100) / 100,
         sessions_played,

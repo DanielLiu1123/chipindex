@@ -4,24 +4,23 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/client'
-import type { GlobalPlayer, GroupMember } from '@/lib/queries'
-import type { Player, PlayerGroup } from '@/types'
+import type { Group, GroupPlayer, Player } from '@/types'
 
-export default function GroupSettings({ group, initialMembers, globalPlayers }: {
-  group: PlayerGroup
-  initialMembers: GroupMember[]
-  globalPlayers: GlobalPlayer[]
+export default function GroupSettings({ group, initialGroupPlayers, playersAndGroups }: {
+  group: Group
+  initialGroupPlayers: Array<{ player: Player; group_player: GroupPlayer }>
+  playersAndGroups: Array<{ player: Player; groups: Group[] }>
 }) {
   const router = useRouter()
   const [name, setName] = useState(group.name)
   const [savedName, setSavedName] = useState(group.name)
-  const [members, setMembers] = useState(initialMembers)
+  const [groupPlayers, setGroupPlayers] = useState(initialGroupPlayers)
   const [selectedId, setSelectedId] = useState('')
   const [newName, setNewName] = useState('')
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
-  const memberIds = useMemo(() => new Set(members.map(member => member.id)), [members])
-  const available = globalPlayers.filter(player => !memberIds.has(player.id))
+  const playerIds = useMemo(() => new Set(groupPlayers.map(row => row.player.id)), [groupPlayers])
+  const available = playersAndGroups.filter(row => !playerIds.has(row.player.id))
 
   async function run(action: () => Promise<void>) {
     setPending(true)
@@ -38,7 +37,7 @@ export default function GroupSettings({ group, initialMembers, globalPlayers }: 
 
   function rename() {
     return run(async () => {
-      const updated = await api<PlayerGroup>('PATCH', `/api/groups/${group.id}`, { name })
+      const updated = await api<Group>('PATCH', `/api/groups/${group.id}`, { name })
       setName(updated.name)
       setSavedName(updated.name)
       window.dispatchEvent(new Event('chipindex:groups-changed'))
@@ -46,11 +45,12 @@ export default function GroupSettings({ group, initialMembers, globalPlayers }: 
   }
 
   function addExisting() {
-    const player = available.find(item => item.id === selectedId)
-    if (!player) return
+    const row = available.find(item => item.player.id === selectedId)
+    if (!row) return
     return run(async () => {
-      await api('POST', `/api/groups/${group.id}/members`, { player_id: player.id })
-      setMembers(current => [...current, { ...player, membership_deleted_at: null }].sort((a, b) => a.name.localeCompare(b.name)))
+      const group_player = await api<GroupPlayer>('POST', `/api/groups/${group.id}/group-players`, { player_id: row.player.id })
+      setGroupPlayers(current => [...current, { player: row.player, group_player }]
+        .sort((a, b) => a.player.name.localeCompare(b.player.name)))
       setSelectedId('')
     })
   }
@@ -59,17 +59,17 @@ export default function GroupSettings({ group, initialMembers, globalPlayers }: 
     const trimmed = newName.trim()
     if (!trimmed) return
     return run(async () => {
-      const player = await api<Player>('POST', `/api/groups/${group.id}/players`, { name: trimmed })
-      setMembers(current => [...current, { ...player, membership_deleted_at: null }].sort((a, b) => a.name.localeCompare(b.name)))
+      const row = await api<{ player: Player; group_player: GroupPlayer }>('POST', `/api/groups/${group.id}/players`, { name: trimmed })
+      setGroupPlayers(current => [...current, row].sort((a, b) => a.player.name.localeCompare(b.player.name)))
       setNewName('')
     })
   }
 
-  function setDeleted(player: GroupMember, deleted: boolean) {
+  function setDeleted(row: { player: Player; group_player: GroupPlayer }, deleted: boolean) {
     return run(async () => {
-      await api(deleted ? 'DELETE' : 'POST', `/api/groups/${group.id}/members`, { player_id: player.id })
-      setMembers(current => current.map(item => item.id === player.id
-        ? { ...item, membership_deleted_at: deleted ? new Date().toISOString() : null }
+      const group_player = await api<GroupPlayer>(deleted ? 'DELETE' : 'POST', `/api/groups/${group.id}/group-players`, { player_id: row.player.id })
+      setGroupPlayers(current => current.map(item => item.player.id === row.player.id
+        ? { ...item, group_player }
         : item))
     })
   }
@@ -89,12 +89,12 @@ export default function GroupSettings({ group, initialMembers, globalPlayers }: 
     <section className="max-w-lg">
       <h2 className="text-xs text-muted tracking-widest mb-3">MEMBERS</h2>
       <div className="flex flex-col gap-1 mb-6">
-        {members.map(member => <div key={member.id} className="flex items-center gap-3 border border-border px-3 py-2.5">
-          <span className={`flex-1 ${member.membership_deleted_at === null ? 'text-white' : 'text-muted'}`}>{member.name}</span>
-          {member.membership_deleted_at !== null && <span className="text-[10px] tracking-widest text-muted">INACTIVE</span>}
-          <button onClick={() => setDeleted(member, member.membership_deleted_at === null)} disabled={pending}
-            className={`text-[10px] tracking-widest ${member.membership_deleted_at === null ? 'text-danger' : 'text-accent'} disabled:opacity-40`}>
-            {member.membership_deleted_at === null ? 'DEACTIVATE' : 'REACTIVATE'}
+        {groupPlayers.map(row => <div key={row.group_player.id} className="flex items-center gap-3 border border-border px-3 py-2.5">
+          <span className={`flex-1 ${row.group_player.deleted_at === null ? 'text-white' : 'text-muted'}`}>{row.player.name}</span>
+          {row.group_player.deleted_at !== null && <span className="text-[10px] tracking-widest text-muted">INACTIVE</span>}
+          <button onClick={() => setDeleted(row, row.group_player.deleted_at === null)} disabled={pending}
+            className={`text-[10px] tracking-widest ${row.group_player.deleted_at === null ? 'text-danger' : 'text-accent'} disabled:opacity-40`}>
+            {row.group_player.deleted_at === null ? 'DEACTIVATE' : 'REACTIVATE'}
           </button>
         </div>)}
       </div>
@@ -103,8 +103,8 @@ export default function GroupSettings({ group, initialMembers, globalPlayers }: 
       <div className="flex gap-2 mb-5">
         <select value={selectedId} onChange={event => setSelectedId(event.target.value)} className="flex-1 bg-surface border border-border text-white text-sm px-3 py-2">
           <option value="">select player</option>
-          {available.map(player => <option key={player.id} value={player.id}>
-            {player.name}{player.groups?.length ? ` · ${player.groups.map(item => item.name).join(', ')}` : ''}
+          {available.map(row => <option key={row.player.id} value={row.player.id}>
+            {row.player.name}{row.groups.length ? ` · ${row.groups.map(item => item.name).join(', ')}` : ''}
           </option>)}
         </select>
         <button onClick={addExisting} disabled={pending || !selectedId} className="border border-border text-xs tracking-widest px-4 disabled:opacity-40 hover:border-white">ADD</button>

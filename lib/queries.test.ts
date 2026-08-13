@@ -107,12 +107,12 @@ describe('getLeaderboardSessions', () => {
 })
 
 describe('getLeaderboardPlayers', () => {
-  it('keeps active members and only inactive members with settled group history', async () => {
+  it('keeps active group_player rows and only deleted rows with settled group history', async () => {
     mockQueryResponses({
       group_player: [{ data: [
-        { player_id: 'active', deleted_at: null },
-        { player_id: 'historic', deleted_at: '2026-02-01T00:00:00Z' },
-        { player_id: 'unused', deleted_at: '2026-02-01T00:00:00Z' },
+        { id: 'gp-active', group_id: 'g1', player_id: 'active', created_at: '2026-01-01', updated_at: '2026-01-01', deleted_at: null },
+        { id: 'gp-historic', group_id: 'g1', player_id: 'historic', created_at: '2026-01-01', updated_at: '2026-02-01', deleted_at: '2026-02-01T00:00:00Z' },
+        { id: 'gp-unused', group_id: 'g1', player_id: 'unused', created_at: '2026-01-01', updated_at: '2026-02-01', deleted_at: '2026-02-01T00:00:00Z' },
       ] }],
       player: [{ data: [
         { id: 'active', name: 'Active', created_at: '2026-01-01' },
@@ -126,10 +126,10 @@ describe('getLeaderboardPlayers', () => {
     const players = await getLeaderboardPlayers('g1')
 
     expect(dbMocks.chains.find(query => query.table === 'group_player')?.select)
-      .toHaveBeenCalledWith('player_id, deleted_at')
+      .toHaveBeenCalledWith('id, group_id, player_id, created_at, updated_at, deleted_at')
     expect(dbMocks.chains.find(query => query.table === 'player')?.in)
       .toHaveBeenCalledWith('id', ['active', 'historic', 'unused'])
-    expect(players.map(player => [player.id, player.membership_deleted_at])).toEqual([
+    expect(players.map(row => [row.player.id, row.group_player.deleted_at])).toEqual([
       ['active', null],
       ['historic', '2026-02-01T00:00:00Z'],
     ])
@@ -165,7 +165,14 @@ describe('getPlayerDetail', () => {
   it('returns player settlement details and the session start timestamp', async () => {
     mockQueryResponses({
       player: [{ data: { id: 'alice', name: 'Alice' } }],
-      group_player: [{ data: { deleted_at: null } }],
+      group_player: [{ data: {
+        id: 'gp-alice',
+        group_id: 'g1',
+        player_id: 'alice',
+        created_at: '2026-01-01',
+        updated_at: '2026-01-01',
+        deleted_at: null,
+      } }],
       session_participant: [
         { data: [{ session_id: 's1' }] },
         { data: [{ session_id: 's1', player_id: 'alice', final_chips: 5000 }] },
@@ -195,7 +202,14 @@ describe('getPlayerDetail', () => {
     expect(detail).toEqual({
       id: 'alice',
       name: 'Alice',
-      membership_deleted_at: null,
+      group_player: {
+        id: 'gp-alice',
+        group_id: 'g1',
+        player_id: 'alice',
+        created_at: '2026-01-01',
+        updated_at: '2026-01-01',
+        deleted_at: null,
+      },
       entries: [{
         session_id: 's1',
         chips: 2500,

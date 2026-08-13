@@ -14,7 +14,7 @@ export default async function PlayerDetailPage({ params }: { params: Promise<{ g
   const { history, totalCny, totalChips, wins, pogCount } = computePlayerHistory(player)
   return <>
     <div className="mb-6"><Link href={`/groups/${groupId}`} className="text-muted text-xs hover:text-white tracking-widest">← LEADERBOARD</Link></div>
-    {player.membership_deleted_at !== null && <p className="mb-3 text-[10px] text-muted tracking-widest">INACTIVE GROUP MEMBER</p>}
+    {player.group_player?.deleted_at !== null && <p className="mb-3 text-[10px] text-muted tracking-widest">INACTIVE GROUP MEMBER</p>}
     <PlayerStatsChart groupId={groupId} id={id} initialName={player.name} data={history} totalCny={totalCny}
       totalChips={totalChips} sessions={history.length} wins={wins} pogCount={pogCount} />
     <p className="text-xs text-muted tracking-widest mb-4">SESSION HISTORY</p>

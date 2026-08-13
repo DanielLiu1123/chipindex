@@ -2,7 +2,7 @@ import { db } from './db'
 import { ApiError } from './http'
 import { synthFromNet, BUY_IN_UNIT } from './synth'
 import { buyinSum, checkConservation } from './settlement'
-import type { Player, PlayerGroup } from '@/types'
+import type { Group, GroupPlayer, Player } from '@/types'
 
 // Write-side counterpart of queries.ts: every table write goes through here.
 // Input validation and domain invariants (session must be OPEN, conservation
@@ -64,18 +64,18 @@ async function requireActiveMembers(groupId: string, playerIds: string[]): Promi
   if (missing) throw new ApiError(422, `Player ${missing} is not an active group member`)
 }
 
-// ── groups & memberships ─────────────────────────────────────
+// ── group & group_player ─────────────────────────────────────
 
-export async function createGroup(name: string): Promise<PlayerGroup> {
+export async function createGroup(name: string): Promise<Group> {
   const trimmed = name?.trim()
   if (!trimmed) throw new ApiError(400, 'Name required')
   const { data, error } = await db.from('group').insert({ name: trimmed }).select().single()
   if (error?.code === '23505') throw new ApiError(409, 'Group name already exists')
   ensure(error)
-  return data as PlayerGroup
+  return data as Group
 }
 
-export async function renameGroup(id: string, name: string): Promise<PlayerGroup> {
+export async function renameGroup(id: string, name: string): Promise<Group> {
   const trimmed = name?.trim()
   if (!trimmed) throw new ApiError(400, 'Name required')
   const { data, error } = await db
@@ -88,33 +88,33 @@ export async function renameGroup(id: string, name: string): Promise<PlayerGroup
   if (error?.code === '23505') throw new ApiError(409, 'Group name already exists')
   ensure(error)
   if (!data) throw new ApiError(404, 'Group not found')
-  return data as PlayerGroup
+  return data as Group
 }
 
-async function setGroupMemberDeleted(groupId: string, playerId: string, deleted: boolean): Promise<void> {
+async function setGroupPlayerDeletedAt(groupId: string, playerId: string, deletedAt: string | null): Promise<GroupPlayer> {
   if (!playerId) throw new ApiError(400, 'player_id required')
   await Promise.all([requireGroup(groupId), requirePlayer(playerId)])
-  const ts = now()
+  const ts = deletedAt ?? now()
   const { data, error } = await db
     .from('group_player')
     .upsert({
       group_id: groupId,
       player_id: playerId,
       updated_at: ts,
-      deleted_at: deleted ? ts : null,
+      deleted_at: deletedAt,
     }, { onConflict: 'group_id,player_id' })
-    .select('id')
-    .maybeSingle()
+    .select()
+    .single()
   ensure(error)
-  if (!data) throw new ApiError(404, 'Group or player not found')
+  return data as GroupPlayer
 }
 
-export async function restoreGroupMember(groupId: string, playerId: string): Promise<void> {
-  await setGroupMemberDeleted(groupId, playerId, false)
+export async function restoreGroupPlayer(groupId: string, playerId: string): Promise<GroupPlayer> {
+  return setGroupPlayerDeletedAt(groupId, playerId, null)
 }
 
-export async function softDeleteGroupMember(groupId: string, playerId: string): Promise<void> {
-  await setGroupMemberDeleted(groupId, playerId, true)
+export async function softDeleteGroupPlayer(groupId: string, playerId: string): Promise<GroupPlayer> {
+  return setGroupPlayerDeletedAt(groupId, playerId, now())
 }
 
 // Conservation check shared by settle and edit. Throws 422 with the diff
@@ -133,21 +133,22 @@ function requireConservation(totalBuyin: number, totalFinal: number, force: bool
 
 // ── players ────────────────────────────────────────────────────
 
-export async function createPlayer(name: string, groupId?: string): Promise<Player> {
+export async function createPlayer(name: string, groupId: string): Promise<{ player: Player; group_player: GroupPlayer }> {
   const trimmed = name?.trim()
   if (!trimmed) throw new ApiError(400, 'Name required')
-  if (groupId) await requireGroup(groupId)
+  await requireGroup(groupId)
   const { data, error } = await db.from('player').insert({ name: trimmed }).select().single()
   ensure(error)
-  if (groupId) await restoreGroupMember(groupId, data.id)
-  return data as Player
+  const player = data as Player
+  const group_player = await restoreGroupPlayer(groupId, player.id)
+  return { player, group_player }
 }
 
 export async function renamePlayer(groupId: string, id: string, name: string): Promise<Player> {
   const trimmed = name?.trim()
   if (!trimmed) throw new ApiError(400, 'Name required')
-  const { data: membership } = await db.from('group_player').select('id').eq('group_id', groupId).eq('player_id', id).maybeSingle()
-  if (!membership) throw new ApiError(404, 'Player not found in group')
+  const { data: groupPlayer } = await db.from('group_player').select('id').eq('group_id', groupId).eq('player_id', id).maybeSingle()
+  if (!groupPlayer) throw new ApiError(404, 'Player not found in group')
   const { data, error } = await db
     .from('player')
     .update({ name: trimmed, updated_at: now() })

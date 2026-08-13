@@ -6,13 +6,27 @@ import type {
   PlayerDetail,
   PlayerHistoryEntry,
 } from './queries'
-import type { Player } from '@/types'
+import type { GroupPlayer, Player } from '@/types'
 
 const players: Player[] = [
   { id: 'alice', name: 'Alice', created_at: '2026-01-01' },
   { id: 'bob', name: 'Bob', created_at: '2026-01-01' },
   { id: 'carol', name: 'Carol', created_at: '2026-01-01' },
 ]
+
+function groupPlayer(player: Player): { player: Player; group_player: GroupPlayer } {
+  return {
+    player,
+    group_player: {
+      id: `gp-${player.id}`,
+      group_id: 'g1',
+      player_id: player.id,
+      created_at: '2026-01-01',
+      updated_at: '2026-01-01',
+      deleted_at: null,
+    },
+  }
+}
 
 const sessions: LeaderboardSessionRow[] = [
   {
@@ -83,11 +97,11 @@ function makeEntry({
 }
 
 function makePlayerDetail(entries: PlayerHistoryEntry[]): PlayerDetail {
-  return { id: 'alice', name: 'Alice', membership_deleted_at: null, entries }
+  return { id: 'alice', name: 'Alice', group_player: groupPlayer(players[0]).group_player, entries }
 }
 
 describe('computeLeaderboardStats', () => {
-  const stats = computeLeaderboardStats(players, sessions)
+  const stats = computeLeaderboardStats(players.map(groupPlayer), sessions)
 
   it('accumulates chips and CNY per player', () => {
     const alice = stats.find(s => s.player.id === 'alice')!
@@ -120,6 +134,7 @@ describe('filterLowActivityPlayers', () => {
   function playerStats(name: string, sessionsPlayed: number): PlayerStats {
     return {
       player: { id: name.toLowerCase(), name, created_at: '2026-01-01' },
+      group_player: groupPlayer({ id: name.toLowerCase(), name, created_at: '2026-01-01' }).group_player,
       total_chips: 0,
       total_yuan: 0,
       sessions_played: sessionsPlayed,
@@ -168,7 +183,7 @@ describe('computePlayerHistory', () => {
   const detail: PlayerDetail = {
     id: 'alice',
     name: 'Alice',
-    membership_deleted_at: null,
+    group_player: groupPlayer(players[0]).group_player,
     entries: [
       {
         session_id: 's2',

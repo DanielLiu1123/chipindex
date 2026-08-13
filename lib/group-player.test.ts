@@ -8,13 +8,14 @@ const dbMocks = vi.hoisted(() => ({
     eq: ReturnType<typeof vi.fn>
     is: ReturnType<typeof vi.fn>
     maybeSingle: ReturnType<typeof vi.fn>
+    single: ReturnType<typeof vi.fn>
     upsert: ReturnType<typeof vi.fn>
   }>,
 }))
 
 vi.mock('./db', () => ({ db: { from: dbMocks.from } }))
 
-import { restoreGroupMember, softDeleteGroupMember } from './mutations'
+import { restoreGroupPlayer, softDeleteGroupPlayer } from './mutations'
 
 type QueryResponse = { data: unknown; error: { message: string } | null }
 
@@ -28,6 +29,7 @@ function mockQueryResponses(responses: Record<string, QueryResponse[]>) {
       eq: vi.fn(),
       is: vi.fn(),
       maybeSingle: vi.fn(),
+      single: vi.fn(),
       upsert: vi.fn(),
       then: (
         onFulfilled: (value: QueryResponse) => unknown,
@@ -38,6 +40,7 @@ function mockQueryResponses(responses: Record<string, QueryResponse[]>) {
     chain.eq.mockReturnValue(chain)
     chain.is.mockReturnValue(chain)
     chain.maybeSingle.mockReturnValue(chain)
+    chain.single.mockReturnValue(chain)
     chain.upsert.mockReturnValue(chain)
     dbMocks.chains.push(chain)
     return chain
@@ -49,44 +52,44 @@ beforeEach(() => {
   dbMocks.chains.length = 0
 })
 
-describe('group membership soft deletion', () => {
-  it('restores a membership by clearing deleted_at without persisting an active field', async () => {
+describe('group_player soft deletion', () => {
+  it('restores group_player by clearing deleted_at without persisting an active field', async () => {
     mockQueryResponses({
       group: [{ data: { id: 'g1' }, error: null }],
       player: [{ data: { id: 'p1' }, error: null }],
       group_player: [{ data: { id: 'gp1' }, error: null }],
     })
 
-    await restoreGroupMember('g1', 'p1')
+    await restoreGroupPlayer('g1', 'p1')
 
-    const membership = dbMocks.chains.find(query => query.table === 'group_player')!
-    const payload = membership.upsert.mock.calls[0][0]
+    const groupPlayer = dbMocks.chains.find(query => query.table === 'group_player')!
+    const payload = groupPlayer.upsert.mock.calls[0][0]
     expect(payload).toMatchObject({ group_id: 'g1', player_id: 'p1', deleted_at: null })
     expect(payload).not.toHaveProperty('active')
     expect(payload).not.toHaveProperty('deactivated_at')
   })
 
-  it('soft-deletes a membership with the same deleted_at and updated_at timestamp', async () => {
+  it('soft-deletes group_player with the same deleted_at and updated_at timestamp', async () => {
     mockQueryResponses({
       group: [{ data: { id: 'g1' }, error: null }],
       player: [{ data: { id: 'p1' }, error: null }],
       group_player: [{ data: { id: 'gp1' }, error: null }],
     })
 
-    await softDeleteGroupMember('g1', 'p1')
+    await softDeleteGroupPlayer('g1', 'p1')
 
     const payload = dbMocks.chains.find(query => query.table === 'group_player')!.upsert.mock.calls[0][0]
     expect(payload.deleted_at).toBe(payload.updated_at)
     expect(typeof payload.deleted_at).toBe('string')
   })
 
-  it('rejects an orphan membership now that the database has no foreign keys', async () => {
+  it('rejects an orphan group_player now that the database has no foreign keys', async () => {
     mockQueryResponses({
       group: [{ data: { id: 'g1' }, error: null }],
       player: [{ data: null, error: null }],
     })
 
-    await expect(restoreGroupMember('g1', 'missing')).rejects.toMatchObject({
+    await expect(restoreGroupPlayer('g1', 'missing')).rejects.toMatchObject({
       status: 404,
       message: 'Player not found',
     })

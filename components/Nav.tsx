@@ -5,17 +5,17 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { api } from '@/lib/client'
-import type { PlayerGroup } from '@/types'
+import type { Group } from '@/types'
 
 export default function Nav() {
   const pathname = usePathname()
   const router = useRouter()
-  const [groups, setGroups] = useState<PlayerGroup[]>([])
+  const [groups, setGroups] = useState<Group[]>([])
   const groupId = pathname.match(/^\/groups\/([^/]+)/)?.[1]
   const current = groups.find(group => group.id === groupId)
 
   useEffect(() => {
-    const load = () => api<PlayerGroup[]>('GET', '/api/groups').then(setGroups).catch(() => {})
+    const load = () => api<Group[]>('GET', '/api/groups').then(setGroups).catch(() => {})
     void load()
     window.addEventListener('chipindex:groups-changed', load)
     return () => window.removeEventListener('chipindex:groups-changed', load)
