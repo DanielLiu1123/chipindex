@@ -12,8 +12,8 @@ create unique index group_name_unique
 
 create table public.group_player (
   id uuid primary key default gen_random_uuid(),
-  group_id uuid not null references public."group"(id),
-  player_id uuid not null references public.player(id),
+  group_id uuid not null,
+  player_id uuid not null,
   active boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -47,9 +47,7 @@ where g.name = '麻德'
 on conflict (group_id, player_id) do nothing;
 
 alter table public.session
-  alter column group_id set not null,
-  add constraint session_group_id_fkey
-    foreign key (group_id) references public."group"(id);
+  alter column group_id set not null;
 
 create index session_group_date
   on public.session (group_id, date desc)
