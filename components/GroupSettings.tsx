@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import ConfirmModal from '@/components/ConfirmModal'
 import PlayerMultiSelect from '@/components/PlayerMultiSelect'
 import { api } from '@/lib/client'
 import type { Group, GroupPlayer, Player } from '@/types'
@@ -25,6 +26,7 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
   const [groupPlayers, setGroupPlayers] = useState(initialGroupPlayers)
   const [addingNewPlayer, setAddingNewPlayer] = useState(false)
   const [newPlayerName, setNewPlayerName] = useState('')
+  const [playerToDelete, setPlayerToDelete] = useState<{ player: Player; group_player: GroupPlayer } | null>(null)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
   const playerIds = useMemo(() => new Set(groupPlayers.map(row => row.player.id)), [groupPlayers])
@@ -86,6 +88,13 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
     })
   }
 
+  function confirmDeletePlayer() {
+    if (!playerToDelete) return
+    const row = playerToDelete
+    setPlayerToDelete(null)
+    return deletePlayer(row)
+  }
+
   return <>
     <h1 className="text-xs text-muted tracking-widest mb-6">MANAGE GROUP</h1>
     <section className="max-w-lg mb-10">
@@ -102,7 +111,7 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
       <div className="flex flex-col gap-1.5 mb-6">
         {groupPlayers.map(row => <div key={row.group_player.id} className="flex items-center gap-3 border border-border px-3 py-2.5">
           <span className="flex-1 text-white">{row.player.name}</span>
-          <button onClick={() => deletePlayer(row)} disabled={pending}
+          <button onClick={() => setPlayerToDelete(row)} disabled={pending}
             className="text-[10px] tracking-widest text-danger disabled:opacity-40">
             DELETE
           </button>
@@ -133,5 +142,12 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
       </div>
       {error && <p className="text-xs text-danger mt-4">{error}</p>}
     </section>
+    <ConfirmModal
+      open={playerToDelete !== null}
+      title={`Delete ${playerToDelete?.player.name ?? 'player'} from group?`}
+      description="The player will be removed from this group. Existing session history will be kept."
+      onConfirm={confirmDeletePlayer}
+      onCancel={() => setPlayerToDelete(null)}
+    />
   </>
 }
