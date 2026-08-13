@@ -79,7 +79,7 @@ async function resultsBySession(sessionIds: string[]): Promise<Map<string, Resul
 // need both the player list and a name map hit the table once.
 export const getGroups = cache(async (): Promise<PlayerGroup[]> => {
   const { data, error } = await db
-    .from('player_group')
+    .from('group')
     .select('id, name, created_at')
     .is('deleted_at', null)
     .order('name')
@@ -89,7 +89,7 @@ export const getGroups = cache(async (): Promise<PlayerGroup[]> => {
 
 export const getGroup = cache(async (groupId: string): Promise<PlayerGroup | null> => {
   const { data, error } = await db
-    .from('player_group')
+    .from('group')
     .select('id, name, created_at')
     .eq('id', groupId)
     .is('deleted_at', null)

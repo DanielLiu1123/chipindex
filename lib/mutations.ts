@@ -24,7 +24,7 @@ async function requireSession(groupId: string, id: string): Promise<{ status: st
 
 async function requireGroup(groupId: string): Promise<void> {
   const { data, error } = await db
-    .from('player_group')
+    .from('group')
     .select('id')
     .eq('id', groupId)
     .is('deleted_at', null)
@@ -58,7 +58,7 @@ async function requireActiveMembers(groupId: string, playerIds: string[]): Promi
 export async function createGroup(name: string): Promise<PlayerGroup> {
   const trimmed = name?.trim()
   if (!trimmed) throw new ApiError(400, 'Name required')
-  const { data, error } = await db.from('player_group').insert({ name: trimmed }).select().single()
+  const { data, error } = await db.from('group').insert({ name: trimmed }).select().single()
   if (error?.code === '23505') throw new ApiError(409, 'Group name already exists')
   ensure(error)
   return data as PlayerGroup
@@ -68,7 +68,7 @@ export async function renameGroup(id: string, name: string): Promise<PlayerGroup
   const trimmed = name?.trim()
   if (!trimmed) throw new ApiError(400, 'Name required')
   const { data, error } = await db
-    .from('player_group')
+    .from('group')
     .update({ name: trimmed, updated_at: now() })
     .eq('id', id)
     .is('deleted_at', null)
