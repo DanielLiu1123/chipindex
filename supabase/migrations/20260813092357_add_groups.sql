@@ -49,26 +49,3 @@ alter table public.session
 
 create index session_group_date
   on public.session (group_id, date desc);
-
--- The application currently uses a server-side anon client behind its own
--- shared-password API. Keep that access model for the new tables while making
--- their Data API exposure explicit (Supabase no longer auto-exposes tables).
-grant select, insert, update on public."group" to anon;
-grant select, insert, update on public.group_player to anon;
-
-alter table public."group" enable row level security;
-alter table public.group_player enable row level security;
-
-create policy "shared app can read groups"
-  on public."group" for select to anon using (true);
-create policy "shared app can create groups"
-  on public."group" for insert to anon with check (true);
-create policy "shared app can update groups"
-  on public."group" for update to anon using (true) with check (true);
-
-create policy "shared app can read memberships"
-  on public.group_player for select to anon using (true);
-create policy "shared app can create memberships"
-  on public.group_player for insert to anon with check (true);
-create policy "shared app can update memberships"
-  on public.group_player for update to anon using (true) with check (true);
