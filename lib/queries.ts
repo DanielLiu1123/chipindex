@@ -119,7 +119,8 @@ export const getGroupPlayers = cache(async (groupId: string): Promise<Array<{ pl
       const player = playerById.get(row.player_id)
       return player ? [{ player, group_player: row }] : []
     })
-    .sort((a, b) => a.player.name.localeCompare(b.player.name))
+    .sort((a, b) => a.player.created_at.localeCompare(b.player.created_at)
+      || a.player.id.localeCompare(b.player.id))
 })
 
 export const getPlayers = cache(async (groupId: string): Promise<Player[]> => {
@@ -153,25 +154,14 @@ export async function getLeaderboardPlayers(groupId: string): Promise<Array<{ pl
   return groupPlayers.filter(row => row.group_player.deleted_at === null || historicalIds.has(row.player.id))
 }
 
-export async function getPlayersAndGroups(): Promise<Array<{ player: Player; groups: Group[] }>> {
-  const [{ data: players, error: playerError }, { data: groupPlayers, error: groupPlayerError }, groups] = await Promise.all([
-    db.from('player').select('id, name, created_at').is('deleted_at', null).order('name'),
-    db.from('group_player').select('id, group_id, player_id, created_at, updated_at, deleted_at'),
-    getGroups(),
-  ])
-  if (playerError) throw playerError
-  if (groupPlayerError) throw groupPlayerError
-  const groupById = new Map(groups.map(group => [group.id, group]))
-  const rows = (groupPlayers ?? []) as GroupPlayer[]
-  return ((players ?? []) as Player[]).map(player => ({
-    player,
-    groups: rows
-      .filter(row => row.player_id === player.id && row.deleted_at === null)
-      .flatMap(row => {
-        const group = groupById.get(row.group_id)
-        return group ? [group] : []
-      }),
-  }))
+export async function getAllPlayers(): Promise<Player[]> {
+  const { data, error } = await db
+    .from('player')
+    .select('id, name, created_at')
+    .is('deleted_at', null)
+    .order('created_at')
+  if (error) throw error
+  return (data ?? []) as Player[]
 }
 
 async function playerNameMap(): Promise<Map<string, string>> {

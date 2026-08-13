@@ -115,9 +115,9 @@ describe('getLeaderboardPlayers', () => {
         { id: 'gp-unused', group_id: 'g1', player_id: 'unused', created_at: '2026-01-01', updated_at: '2026-02-01', deleted_at: '2026-02-01T00:00:00Z' },
       ] }],
       player: [{ data: [
-        { id: 'active', name: 'Active', created_at: '2026-01-01' },
+        { id: 'active', name: 'Active', created_at: '2026-01-03' },
         { id: 'historic', name: 'Historic', created_at: '2026-01-01' },
-        { id: 'unused', name: 'Unused', created_at: '2026-01-01' },
+        { id: 'unused', name: 'Unused', created_at: '2026-01-02' },
       ] }],
       session: [{ data: [{ id: 's1' }] }],
       session_participant: [{ data: [{ player_id: 'historic' }] }],
@@ -130,8 +130,8 @@ describe('getLeaderboardPlayers', () => {
     expect(dbMocks.chains.find(query => query.table === 'player')?.in)
       .toHaveBeenCalledWith('id', ['active', 'historic', 'unused'])
     expect(players.map(row => [row.player.id, row.group_player.deleted_at])).toEqual([
-      ['active', null],
       ['historic', '2026-02-01T00:00:00Z'],
+      ['active', null],
     ])
     expect(dbMocks.chains.find(query => query.table === 'session')?.eq).toHaveBeenCalledWith('group_id', 'g1')
   })

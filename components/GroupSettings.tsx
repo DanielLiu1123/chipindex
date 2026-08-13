@@ -1,26 +1,31 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import PlayerMultiSelect from '@/components/PlayerMultiSelect'
 import { api } from '@/lib/client'
 import type { Group, GroupPlayer, Player } from '@/types'
 
-export default function GroupSettings({ group, initialGroupPlayers, playersAndGroups }: {
+function byCreatedAt(
+  a: { player: Player },
+  b: { player: Player },
+): number {
+  return a.player.created_at.localeCompare(b.player.created_at)
+    || a.player.id.localeCompare(b.player.id)
+}
+
+export default function GroupSettings({ group, initialGroupPlayers, players }: {
   group: Group
   initialGroupPlayers: Array<{ player: Player; group_player: GroupPlayer }>
-  playersAndGroups: Array<{ player: Player; groups: Group[] }>
+  players: Player[]
 }) {
   const router = useRouter()
   const [name, setName] = useState(group.name)
   const [savedName, setSavedName] = useState(group.name)
   const [groupPlayers, setGroupPlayers] = useState(initialGroupPlayers)
-  const [selectedId, setSelectedId] = useState('')
-  const [newName, setNewName] = useState('')
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
   const playerIds = useMemo(() => new Set(groupPlayers.map(row => row.player.id)), [groupPlayers])
-  const available = playersAndGroups.filter(row => !playerIds.has(row.player.id))
 
   async function run(action: () => Promise<void>) {
     setPending(true)
@@ -44,24 +49,15 @@ export default function GroupSettings({ group, initialGroupPlayers, playersAndGr
     })
   }
 
-  function addExisting() {
-    const row = available.find(item => item.player.id === selectedId)
-    if (!row) return
+  function addPlayers(ids: string[]) {
     return run(async () => {
-      const group_player = await api<GroupPlayer>('POST', `/api/groups/${group.id}/group-players`, { player_id: row.player.id })
-      setGroupPlayers(current => [...current, { player: row.player, group_player }]
-        .sort((a, b) => a.player.name.localeCompare(b.player.name)))
-      setSelectedId('')
-    })
-  }
-
-  function createPlayer() {
-    const trimmed = newName.trim()
-    if (!trimmed) return
-    return run(async () => {
-      const row = await api<{ player: Player; group_player: GroupPlayer }>('POST', `/api/groups/${group.id}/players`, { name: trimmed })
-      setGroupPlayers(current => [...current, row].sort((a, b) => a.player.name.localeCompare(b.player.name)))
-      setNewName('')
+      const added = await Promise.all(ids.map(async playerId => {
+        const player = players.find(item => item.id === playerId)
+        if (!player) throw new Error('Player not found')
+        const group_player = await api<GroupPlayer>('POST', `/api/groups/${group.id}/group-players`, { player_id: playerId })
+        return { player, group_player }
+      }))
+      setGroupPlayers(current => [...current, ...added].sort(byCreatedAt))
     })
   }
 
@@ -75,7 +71,6 @@ export default function GroupSettings({ group, initialGroupPlayers, playersAndGr
   }
 
   return <>
-    <div className="mb-6"><Link href={`/groups/${group.id}`} className="text-muted text-xs hover:text-white tracking-widest">← LEADERBOARD</Link></div>
     <h1 className="text-xs text-muted tracking-widest mb-6">MANAGE GROUP</h1>
     <section className="max-w-lg mb-10">
       <label className="text-xs text-muted tracking-widest block mb-2">NAME</label>
@@ -87,35 +82,24 @@ export default function GroupSettings({ group, initialGroupPlayers, playersAndGr
     </section>
 
     <section className="max-w-lg">
-      <h2 className="text-xs text-muted tracking-widest mb-3">MEMBERS</h2>
-      <div className="flex flex-col gap-1 mb-6">
+      <h2 className="text-xs text-muted tracking-widest mb-3">PLAYERS</h2>
+      <div className="flex flex-col gap-1.5 mb-6">
         {groupPlayers.map(row => <div key={row.group_player.id} className="flex items-center gap-3 border border-border px-3 py-2.5">
           <span className={`flex-1 ${row.group_player.deleted_at === null ? 'text-white' : 'text-muted'}`}>{row.player.name}</span>
           {row.group_player.deleted_at !== null && <span className="text-[10px] tracking-widest text-muted">INACTIVE</span>}
           <button onClick={() => setDeleted(row, row.group_player.deleted_at === null)} disabled={pending}
             className={`text-[10px] tracking-widest ${row.group_player.deleted_at === null ? 'text-danger' : 'text-accent'} disabled:opacity-40`}>
-            {row.group_player.deleted_at === null ? 'DEACTIVATE' : 'REACTIVATE'}
+            {row.group_player.deleted_at === null ? 'DELETE' : 'REACTIVATE'}
           </button>
         </div>)}
       </div>
 
-      <label className="text-xs text-muted tracking-widest block mb-2">ADD EXISTING PLAYER</label>
-      <div className="flex gap-2 mb-5">
-        <select value={selectedId} onChange={event => setSelectedId(event.target.value)} className="flex-1 bg-surface border border-border text-white text-sm px-3 py-2">
-          <option value="">select player</option>
-          {available.map(row => <option key={row.player.id} value={row.player.id}>
-            {row.player.name}{row.groups.length ? ` · ${row.groups.map(item => item.name).join(', ')}` : ''}
-          </option>)}
-        </select>
-        <button onClick={addExisting} disabled={pending || !selectedId} className="border border-border text-xs tracking-widest px-4 disabled:opacity-40 hover:border-white">ADD</button>
-      </div>
-
-      <label className="text-xs text-muted tracking-widest block mb-2">CREATE NEW PLAYER</label>
-      <div className="flex gap-2">
-        <input value={newName} onChange={event => setNewName(event.target.value)} placeholder="player name"
-          className="flex-1 bg-surface border border-border text-white text-sm px-3 py-2 outline-none focus:border-white" />
-        <button onClick={createPlayer} disabled={pending || !newName.trim()} className="border border-border text-xs tracking-widest px-4 disabled:opacity-40 hover:border-white">CREATE</button>
-      </div>
+      <label className="text-xs text-muted tracking-widest block mb-3">ADD EXISTING PLAYER</label>
+      <PlayerMultiSelect
+        players={players}
+        excludedIds={[...playerIds]}
+        onAdd={addPlayers}
+      />
       {error && <p className="text-xs text-danger mt-4">{error}</p>}
     </section>
   </>

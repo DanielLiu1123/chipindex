@@ -7,7 +7,7 @@ export default function PlayerMultiSelect({ players, excludedIds, onAdd, onNew }
   players: Player[]
   excludedIds: string[]
   onAdd: (ids: string[]) => void
-  onNew: () => void
+  onNew?: () => void
 }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -77,10 +77,10 @@ export default function PlayerMultiSelect({ players, excludedIds, onAdd, onNew }
               </button>
             ))}
           </div>
-          <button type="button" onClick={() => { onNew(); close() }}
+          {onNew && <button type="button" onClick={() => { onNew(); close() }}
             className="w-full border-t border-border px-4 py-2.5 text-sm text-left text-muted hover:bg-white/10">
             + NEW PLAYER
-          </button>
+          </button>}
           <button type="button" onClick={confirm} disabled={selected.size === 0}
             className="w-full border-t border-border bg-white text-bg text-xs tracking-widest px-4 py-2.5 disabled:opacity-40">
             ADD {selected.size} {selected.size === 1 ? 'PLAYER' : 'PLAYERS'}

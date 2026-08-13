@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import type { Player } from '@/types'
 
 type StateUpdater<T> = T | ((previous: T) => T)
-type Props = { players: Player[]; excludedIds: string[]; onAdd: (ids: string[]) => void; onNew: () => void }
+type Props = { players: Player[]; excludedIds: string[]; onAdd: (ids: string[]) => void; onNew?: () => void }
 type Component = (props: Props) => ReactNode
 type HostProps = { children?: ReactNode; onClick?: () => void; disabled?: boolean }
 
@@ -85,5 +85,15 @@ describe('PlayerMultiSelect', () => {
     click(render(), 'ADD 2 PLAYERS')
 
     expect(added).toEqual([['alice', 'bob']])
+  })
+
+  it('hides the new-player action when onNew is omitted', () => {
+    const Component = loadComponent()
+    const props: Props = { players, excludedIds: [], onAdd: () => undefined }
+    const render = () => { hookCursor = 0; return Component(props) }
+
+    click(render(), 'SELECT PLAYERS')
+
+    expect(buttons(render()).map(button => text(button.props.children))).not.toContain('+ NEW PLAYER')
   })
 })
