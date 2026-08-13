@@ -8,11 +8,23 @@ import { api } from '@/lib/client'
 import type { Group, GroupPlayer, Player } from '@/types'
 
 function byCreatedAt(
-  a: { player: Player },
-  b: { player: Player },
+  a: { group_player: GroupPlayer },
+  b: { group_player: GroupPlayer },
 ): number {
-  return a.player.created_at.localeCompare(b.player.created_at)
-    || a.player.id.localeCompare(b.player.id)
+  return a.group_player.created_at.localeCompare(b.group_player.created_at)
+    || a.group_player.id.localeCompare(b.group_player.id)
+}
+
+function formatJoinedAt(value: string): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(new Date(value)).replace(',', '')
 }
 
 export default function GroupSettings({ group, initialGroupPlayers, players }: {
@@ -108,14 +120,28 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
 
     <section className="max-w-lg">
       <h2 className="text-xs text-muted tracking-widest mb-3">PLAYERS</h2>
-      <div className="flex flex-col gap-1.5 mb-6">
-        {groupPlayers.map(row => <div key={row.group_player.id} className="flex items-center gap-3 border border-border px-3 py-2.5">
-          <span className="flex-1 text-white">{row.player.name}</span>
-          <button onClick={() => setPlayerToDelete(row)} disabled={pending}
-            className="text-[10px] tracking-widest text-danger disabled:opacity-40">
-            DELETE
-          </button>
-        </div>)}
+      <div className="overflow-x-auto mb-6 border border-border">
+        <table className="w-full min-w-[28rem] text-sm">
+          <thead>
+            <tr className="border-b border-border text-[10px] text-muted tracking-widest">
+              <th className="px-3 py-2 text-left font-normal">PLAYER</th>
+              <th className="px-3 py-2 text-left font-normal">JOINED AT</th>
+              <th className="px-3 py-2 text-right font-normal">ACTION</th>
+            </tr>
+          </thead>
+          <tbody>
+            {groupPlayers.map(row => <tr key={row.group_player.id} className="border-b border-border last:border-b-0">
+              <td className="px-3 py-2.5 text-white">{row.player.name}</td>
+              <td className="px-3 py-2.5 whitespace-nowrap text-xs text-muted tabular-nums">{formatJoinedAt(row.group_player.created_at)}</td>
+              <td className="px-3 py-2.5 text-right">
+                <button onClick={() => setPlayerToDelete(row)} disabled={pending}
+                  className="text-[10px] tracking-widest text-danger disabled:opacity-40">
+                  DELETE
+                </button>
+              </td>
+            </tr>)}
+          </tbody>
+        </table>
       </div>
 
       <label className="text-xs text-muted tracking-widest block mb-3">ADD PLAYER</label>
@@ -145,7 +171,7 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
     <ConfirmModal
       open={playerToDelete !== null}
       title={`Delete ${playerToDelete?.player.name ?? 'player'} from group?`}
-      description="The player will be removed from this group. Existing session history will be kept."
+      description="This player will be removed from this group."
       onConfirm={confirmDeletePlayer}
       onCancel={() => setPlayerToDelete(null)}
     />

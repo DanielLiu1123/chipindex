@@ -120,8 +120,8 @@ export const getGroupPlayers = cache(async (groupId: string): Promise<Array<{ pl
       const player = playerById.get(row.player_id)
       return player ? [{ player, group_player: row }] : []
     })
-    .sort((a, b) => a.player.created_at.localeCompare(b.player.created_at)
-      || a.player.id.localeCompare(b.player.id))
+    .sort((a, b) => a.group_player.created_at.localeCompare(b.group_player.created_at)
+      || a.group_player.id.localeCompare(b.group_player.id))
 })
 
 export const getPlayers = cache(async (groupId: string): Promise<Player[]> => {
