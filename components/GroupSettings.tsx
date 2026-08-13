@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import ConfirmModal from '@/components/ConfirmModal'
 import PlayerMultiSelect from '@/components/PlayerMultiSelect'
@@ -131,7 +132,12 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
           </thead>
           <tbody>
             {groupPlayers.map(row => <tr key={row.group_player.id} className="border-b border-border last:border-b-0">
-              <td className="px-3 py-2.5 text-white">{row.player.name}</td>
+              <td className="px-3 py-2.5 text-white">
+                <Link href={`/groups/${group.id}/players/${row.player.id}`}
+                  className="hover:text-accent transition-colors">
+                  {row.player.name}
+                </Link>
+              </td>
               <td className="px-3 py-2.5 whitespace-nowrap text-xs text-muted tabular-nums">{formatJoinedAt(row.group_player.created_at)}</td>
               <td className="px-3 py-2.5 text-right">
                 <button onClick={() => setPlayerToDelete(row)} disabled={pending}
