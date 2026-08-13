@@ -23,6 +23,8 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
   const [name, setName] = useState(group.name)
   const [savedName, setSavedName] = useState(group.name)
   const [groupPlayers, setGroupPlayers] = useState(initialGroupPlayers)
+  const [addingNewPlayer, setAddingNewPlayer] = useState(false)
+  const [newPlayerName, setNewPlayerName] = useState('')
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
   const playerIds = useMemo(() => new Set(groupPlayers.map(row => row.player.id)), [groupPlayers])
@@ -61,6 +63,22 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
     })
   }
 
+  function createPlayer(event: React.FormEvent) {
+    event.preventDefault()
+    const playerName = newPlayerName.trim()
+    if (!playerName) return
+    return run(async () => {
+      const row = await api<{ player: Player; group_player: GroupPlayer }>(
+        'POST',
+        `/api/groups/${group.id}/players`,
+        { name: playerName },
+      )
+      setGroupPlayers(current => [...current, row].sort(byCreatedAt))
+      setNewPlayerName('')
+      setAddingNewPlayer(false)
+    })
+  }
+
   function setDeleted(row: { player: Player; group_player: GroupPlayer }, deleted: boolean) {
     return run(async () => {
       const group_player = await api<GroupPlayer>(deleted ? 'DELETE' : 'POST', `/api/groups/${group.id}/group-players`, { player_id: row.player.id })
@@ -94,12 +112,28 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
         </div>)}
       </div>
 
-      <label className="text-xs text-muted tracking-widest block mb-3">ADD EXISTING PLAYER</label>
-      <PlayerMultiSelect
-        players={players}
-        excludedIds={[...playerIds]}
-        onAdd={addPlayers}
-      />
+      <label className="text-xs text-muted tracking-widest block mb-3">ADD PLAYER</label>
+      <div className="flex flex-col gap-1.5">
+        {addingNewPlayer && <form onSubmit={createPlayer}
+          className="flex gap-2 items-center border border-accent/50 bg-surface/30 px-3 py-1.5">
+          <input autoFocus type="text" value={newPlayerName} onChange={event => setNewPlayerName(event.target.value)}
+            placeholder="new player name"
+            className="flex-1 min-w-0 bg-transparent border-b border-accent text-white text-sm px-1 py-1.5 outline-none focus:border-white transition-colors placeholder:text-muted" />
+          <button type="submit" disabled={pending || !newPlayerName.trim()}
+            className="h-8 shrink-0 border border-border px-3 text-[10px] tracking-widest text-accent hover:border-accent disabled:opacity-40">
+            ADD
+          </button>
+          <button type="button" onClick={() => { setAddingNewPlayer(false); setNewPlayerName('') }} disabled={pending}
+            aria-label="cancel new player"
+            className="w-8 h-8 shrink-0 flex items-center justify-center border border-transparent text-muted hover:text-danger hover:border-danger/40 hover:bg-danger/10 text-lg leading-none transition-colors disabled:opacity-40">×</button>
+        </form>}
+        <PlayerMultiSelect
+          players={players}
+          excludedIds={[...playerIds]}
+          onAdd={addPlayers}
+          onNew={() => setAddingNewPlayer(true)}
+        />
+      </div>
       {error && <p className="text-xs text-danger mt-4">{error}</p>}
     </section>
   </>
