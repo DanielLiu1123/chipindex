@@ -101,7 +101,7 @@ function makePlayerDetail(entries: PlayerHistoryEntry[]): PlayerDetail {
 }
 
 describe('computeLeaderboardStats', () => {
-  const stats = computeLeaderboardStats(players.map(groupPlayer), sessions)
+  const stats = computeLeaderboardStats(players, sessions)
 
   it('accumulates chips and CNY per player', () => {
     const alice = stats.find(s => s.player.id === 'alice')!
@@ -134,7 +134,6 @@ describe('filterLowActivityPlayers', () => {
   function playerStats(name: string, sessionsPlayed: number): PlayerStats {
     return {
       player: { id: name.toLowerCase(), name, created_at: '2026-01-01' },
-      group_player: groupPlayer({ id: name.toLowerCase(), name, created_at: '2026-01-01' }).group_player,
       total_chips: 0,
       total_yuan: 0,
       sessions_played: sessionsPlayed,

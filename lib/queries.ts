@@ -103,6 +103,7 @@ export const getGroupPlayers = cache(async (groupId: string): Promise<Array<{ pl
     .from('group_player')
     .select('id, group_id, player_id, created_at, updated_at, deleted_at')
     .eq('group_id', groupId)
+    .is('deleted_at', null)
   if (error) throw error
   const rows = (groupPlayers ?? []) as GroupPlayer[]
   if (rows.length === 0) return []
@@ -124,34 +125,36 @@ export const getGroupPlayers = cache(async (groupId: string): Promise<Array<{ pl
 })
 
 export const getPlayers = cache(async (groupId: string): Promise<Player[]> => {
-  return (await getGroupPlayers(groupId))
-    .filter(row => row.group_player.deleted_at === null)
-    .map(row => row.player)
+  return (await getGroupPlayers(groupId)).map(row => row.player)
 })
 
-export async function getLeaderboardPlayers(groupId: string): Promise<Array<{ player: Player; group_player: GroupPlayer }>> {
-  const groupPlayers = await getGroupPlayers(groupId)
-  const deleted = groupPlayers.filter(row => row.group_player.deleted_at !== null)
-  if (deleted.length === 0) return groupPlayers
+export async function getLeaderboardPlayers(groupId: string): Promise<Player[]> {
+  const [activeRows, sessions] = await Promise.all([
+    getGroupPlayers(groupId),
+    db.from('session').select('id').eq('group_id', groupId).eq('status', 'SETTLED').is('deleted_at', null),
+  ])
+  const playerById = new Map(activeRows.map(row => [row.player.id, row.player]))
+  const sessionIds = ((sessions.data ?? []) as { id: string }[]).map(row => row.id)
+  if (sessionIds.length === 0) return [...playerById.values()]
 
-  const { data: sessions, error: sessionError } = await db
-    .from('session')
-    .select('id')
-    .eq('group_id', groupId)
-    .eq('status', 'SETTLED')
-    .is('deleted_at', null)
-  if (sessionError) throw sessionError
-  const sessionIds = ((sessions ?? []) as { id: string }[]).map(row => row.id)
-  if (sessionIds.length === 0) return groupPlayers.filter(row => row.group_player.deleted_at === null)
-
-  const { data: parts, error: partError } = await db
+  const { data: participants, error: participantError } = await db
     .from('session_participant')
     .select('player_id')
     .in('session_id', sessionIds)
     .is('deleted_at', null)
-  if (partError) throw partError
-  const historicalIds = new Set(((parts ?? []) as { player_id: string }[]).map(row => row.player_id))
-  return groupPlayers.filter(row => row.group_player.deleted_at === null || historicalIds.has(row.player.id))
+  if (participantError) throw participantError
+  const historicalIds = [...new Set(((participants ?? []) as { player_id: string }[]).map(row => row.player_id))]
+    .filter(id => !playerById.has(id))
+  if (historicalIds.length > 0) {
+    const { data: historicalPlayers, error: playerError } = await db
+      .from('player')
+      .select('id, name, created_at')
+      .in('id', historicalIds)
+      .is('deleted_at', null)
+    if (playerError) throw playerError
+    for (const player of (historicalPlayers ?? []) as Player[]) playerById.set(player.id, player)
+  }
+  return [...playerById.values()].sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id))
 }
 
 export async function getAllPlayers(): Promise<Player[]> {
@@ -404,7 +407,7 @@ export async function getPlayerDetail(groupId: string, id: string): Promise<Play
   // sessions this player took part in that are settled and not deleted
   const [{ data: player }, { data: groupPlayer }, { data: groupSessions }] = await Promise.all([
     db.from('player').select('id, name').eq('id', id).is('deleted_at', null).single(),
-    db.from('group_player').select('id, group_id, player_id, created_at, updated_at, deleted_at').eq('group_id', groupId).eq('player_id', id).maybeSingle(),
+    db.from('group_player').select('id, group_id, player_id, created_at, updated_at, deleted_at').eq('group_id', groupId).eq('player_id', id).is('deleted_at', null).maybeSingle(),
     db.from('session').select('id').eq('group_id', groupId).eq('status', 'SETTLED').is('deleted_at', null),
   ])
   if (!player) return null

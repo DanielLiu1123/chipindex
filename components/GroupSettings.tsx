@@ -79,12 +79,10 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
     })
   }
 
-  function setDeleted(row: { player: Player; group_player: GroupPlayer }, deleted: boolean) {
+  function deletePlayer(row: { player: Player; group_player: GroupPlayer }) {
     return run(async () => {
-      const group_player = await api<GroupPlayer>(deleted ? 'DELETE' : 'POST', `/api/groups/${group.id}/group-players`, { player_id: row.player.id })
-      setGroupPlayers(current => current.map(item => item.player.id === row.player.id
-        ? { ...item, group_player }
-        : item))
+      await api<GroupPlayer>('DELETE', `/api/groups/${group.id}/group-players`, { player_id: row.player.id })
+      setGroupPlayers(current => current.filter(item => item.group_player.id !== row.group_player.id))
     })
   }
 
@@ -103,11 +101,10 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
       <h2 className="text-xs text-muted tracking-widest mb-3">PLAYERS</h2>
       <div className="flex flex-col gap-1.5 mb-6">
         {groupPlayers.map(row => <div key={row.group_player.id} className="flex items-center gap-3 border border-border px-3 py-2.5">
-          <span className={`flex-1 ${row.group_player.deleted_at === null ? 'text-white' : 'text-muted'}`}>{row.player.name}</span>
-          {row.group_player.deleted_at !== null && <span className="text-[10px] tracking-widest text-muted">INACTIVE</span>}
-          <button onClick={() => setDeleted(row, row.group_player.deleted_at === null)} disabled={pending}
-            className={`text-[10px] tracking-widest ${row.group_player.deleted_at === null ? 'text-danger' : 'text-accent'} disabled:opacity-40`}>
-            {row.group_player.deleted_at === null ? 'DELETE' : 'REACTIVATE'}
+          <span className="flex-1 text-white">{row.player.name}</span>
+          <button onClick={() => deletePlayer(row)} disabled={pending}
+            className="text-[10px] tracking-widest text-danger disabled:opacity-40">
+            DELETE
           </button>
         </div>)}
       </div>

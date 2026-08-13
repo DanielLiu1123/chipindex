@@ -91,30 +91,36 @@ export async function renameGroup(id: string, name: string): Promise<Group> {
   return data as Group
 }
 
-async function setGroupPlayerDeletedAt(groupId: string, playerId: string, deletedAt: string | null): Promise<GroupPlayer> {
+export async function createGroupPlayer(groupId: string, playerId: string): Promise<GroupPlayer> {
   if (!playerId) throw new ApiError(400, 'player_id required')
   await Promise.all([requireGroup(groupId), requirePlayer(playerId)])
-  const ts = deletedAt ?? now()
   const { data, error } = await db
     .from('group_player')
-    .upsert({
+    .insert({
       group_id: groupId,
       player_id: playerId,
-      updated_at: ts,
-      deleted_at: deletedAt,
-    }, { onConflict: 'group_id,player_id' })
+    })
     .select()
     .single()
+  if (error?.code === '23505') throw new ApiError(409, 'Player already exists in group')
   ensure(error)
   return data as GroupPlayer
 }
 
-export async function restoreGroupPlayer(groupId: string, playerId: string): Promise<GroupPlayer> {
-  return setGroupPlayerDeletedAt(groupId, playerId, null)
-}
-
-export async function softDeleteGroupPlayer(groupId: string, playerId: string): Promise<GroupPlayer> {
-  return setGroupPlayerDeletedAt(groupId, playerId, now())
+export async function deleteGroupPlayer(groupId: string, playerId: string): Promise<GroupPlayer> {
+  if (!playerId) throw new ApiError(400, 'player_id required')
+  const ts = now()
+  const { data, error } = await db
+    .from('group_player')
+    .update({ deleted_at: ts, updated_at: ts })
+    .eq('group_id', groupId)
+    .eq('player_id', playerId)
+    .is('deleted_at', null)
+    .select()
+    .maybeSingle()
+  ensure(error)
+  if (!data) throw new ApiError(404, 'Group player not found')
+  return data as GroupPlayer
 }
 
 // Conservation check shared by settle and edit. Throws 422 with the diff
@@ -140,7 +146,7 @@ export async function createPlayer(name: string, groupId: string): Promise<{ pla
   const { data, error } = await db.from('player').insert({ name: trimmed }).select().single()
   ensure(error)
   const player = data as Player
-  const group_player = await restoreGroupPlayer(groupId, player.id)
+  const group_player = await createGroupPlayer(groupId, player.id)
   return { player, group_player }
 }
 

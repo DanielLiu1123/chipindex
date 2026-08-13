@@ -107,18 +107,19 @@ describe('getLeaderboardSessions', () => {
 })
 
 describe('getLeaderboardPlayers', () => {
-  it('keeps active group_player rows and only deleted rows with settled group history', async () => {
+  it('keeps historical players after their group_player row is deleted', async () => {
     mockQueryResponses({
       group_player: [{ data: [
         { id: 'gp-active', group_id: 'g1', player_id: 'active', created_at: '2026-01-01', updated_at: '2026-01-01', deleted_at: null },
-        { id: 'gp-historic', group_id: 'g1', player_id: 'historic', created_at: '2026-01-01', updated_at: '2026-02-01', deleted_at: '2026-02-01T00:00:00Z' },
-        { id: 'gp-unused', group_id: 'g1', player_id: 'unused', created_at: '2026-01-01', updated_at: '2026-02-01', deleted_at: '2026-02-01T00:00:00Z' },
+        { id: 'gp-first', group_id: 'g1', player_id: 'first', created_at: '2026-01-02', updated_at: '2026-01-02', deleted_at: null },
       ] }],
-      player: [{ data: [
-        { id: 'active', name: 'Active', created_at: '2026-01-03' },
-        { id: 'historic', name: 'Historic', created_at: '2026-01-01' },
-        { id: 'unused', name: 'Unused', created_at: '2026-01-02' },
-      ] }],
+      player: [
+        { data: [
+          { id: 'active', name: 'Active', created_at: '2026-01-03' },
+          { id: 'first', name: 'First', created_at: '2026-01-01' },
+        ] },
+        { data: [{ id: 'historic', name: 'Historic', created_at: '2025-12-01' }] },
+      ],
       session: [{ data: [{ id: 's1' }] }],
       session_participant: [{ data: [{ player_id: 'historic' }] }],
     })
@@ -127,13 +128,13 @@ describe('getLeaderboardPlayers', () => {
 
     expect(dbMocks.chains.find(query => query.table === 'group_player')?.select)
       .toHaveBeenCalledWith('id, group_id, player_id, created_at, updated_at, deleted_at')
-    expect(dbMocks.chains.find(query => query.table === 'player')?.in)
-      .toHaveBeenCalledWith('id', ['active', 'historic', 'unused'])
-    expect(players.map(row => [row.player.id, row.group_player.deleted_at])).toEqual([
-      ['historic', '2026-02-01T00:00:00Z'],
-      ['active', null],
-    ])
-    expect(dbMocks.chains.find(query => query.table === 'session')?.eq).toHaveBeenCalledWith('group_id', 'g1')
+    expect(dbMocks.chains.find(query => query.table === 'group_player')?.is)
+      .toHaveBeenCalledWith('deleted_at', null)
+    expect(dbMocks.chains.filter(query => query.table === 'player')[0]?.in)
+      .toHaveBeenCalledWith('id', ['active', 'first'])
+    expect(dbMocks.chains.filter(query => query.table === 'player')[1]?.in)
+      .toHaveBeenCalledWith('id', ['historic'])
+    expect(players.map(player => player.id)).toEqual(['historic', 'first', 'active'])
   })
 })
 
