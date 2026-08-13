@@ -50,23 +50,6 @@ alter table public.session
 create index session_group_date
   on public.session (group_id, date desc);
 
-create or replace function public.prevent_session_group_change()
-returns trigger
-language plpgsql
-set search_path = ''
-as $$
-begin
-  if new.group_id is distinct from old.group_id then
-    raise exception 'session group_id is immutable';
-  end if;
-  return new;
-end;
-$$;
-
-create trigger session_group_id_immutable
-before update of group_id on public.session
-for each row execute function public.prevent_session_group_change();
-
 -- The application currently uses a server-side anon client behind its own
 -- shared-password API. Keep that access model for the new tables while making
 -- their Data API exposure explicit (Supabase no longer auto-exposes tables).
