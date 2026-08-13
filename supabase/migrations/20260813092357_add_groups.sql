@@ -7,8 +7,7 @@ create table public."group" (
 );
 
 create unique index group_name_unique
-  on public."group" (lower(btrim(name)))
-  where deleted_at is null;
+  on public."group" (lower(btrim(name)));
 
 create table public.group_player (
   id uuid primary key default gen_random_uuid(),
@@ -20,9 +19,8 @@ create table public.group_player (
   unique (group_id, player_id)
 );
 
-create index group_player_group_not_deleted
-  on public.group_player (group_id)
-  where deleted_at is null;
+create index group_player_group
+  on public.group_player (group_id);
 
 create index group_player_player
   on public.group_player (player_id);
@@ -50,8 +48,7 @@ alter table public.session
   alter column group_id set not null;
 
 create index session_group_date
-  on public.session (group_id, date desc)
-  where deleted_at is null;
+  on public.session (group_id, date desc);
 
 create or replace function public.prevent_session_group_change()
 returns trigger
