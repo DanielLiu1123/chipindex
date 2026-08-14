@@ -1,19 +1,31 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import DeleteSessionButton from '@/components/DeleteSessionButton'
-import { getGroup, getSessionsList } from '@/lib/queries'
+import { getGroup, getSessionsPage } from '@/lib/queries'
 
 export const dynamic = 'force-dynamic'
 
-export default async function SessionsPage({ params }: { params: Promise<{ groupId: string }> }) {
+export default async function SessionsPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ groupId: string }>
+  searchParams: Promise<{ page?: string | string[] }>
+}) {
   const { groupId } = await params
-  const [group, sessions] = await Promise.all([getGroup(groupId), getSessionsList(groupId)])
+  const pageParam = (await searchParams).page
+  const parsedPage = Number(Array.isArray(pageParam) ? pageParam[0] : pageParam ?? '1')
+  const requestedPage = Number.isSafeInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1
+  const [group, sessionsPage] = await Promise.all([getGroup(groupId), getSessionsPage(groupId, requestedPage)])
   if (!group) notFound()
+  const { sessions, page, total, total_pages: totalPages } = sessionsPage
+  const sessionsPath = `/groups/${groupId}/sessions`
+  const pageHref = (target: number) => target === 1 ? sessionsPath : `${sessionsPath}?page=${target}`
 
   return (
     <>
       <div className="flex items-baseline justify-between mb-6">
-        <span className="text-xs text-muted tracking-widest">{sessions.length} SESSIONS</span>
+        <span className="text-xs text-muted tracking-widest">{total} SESSIONS</span>
         <div className="flex items-center gap-4">
           <Link href={`/groups/${groupId}/sessions/new`} className="text-xs text-accent tracking-widest hover:underline">+ NEW SESSION</Link>
           <Link href={`/groups/${groupId}/sessions/import`} className="text-xs text-accent tracking-widest hover:underline">IMPORT SESSION</Link>
@@ -47,6 +59,16 @@ export default async function SessionsPage({ params }: { params: Promise<{ group
           })}
         </tbody>
       </table>
+      {totalPages > 1 && <nav aria-label="Sessions pagination"
+        className="mt-6 flex items-center justify-between text-xs tracking-widest">
+        {page > 1
+          ? <Link href={pageHref(page - 1)} className="text-muted hover:text-white transition-colors">← PREVIOUS</Link>
+          : <span className="text-muted/30">← PREVIOUS</span>}
+        <span className="text-muted">PAGE {page} / {totalPages}</span>
+        {page < totalPages
+          ? <Link href={pageHref(page + 1)} className="text-muted hover:text-white transition-colors">NEXT →</Link>
+          : <span className="text-muted/30">NEXT →</span>}
+      </nav>}
     </>
   )
 }
