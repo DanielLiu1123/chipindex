@@ -17,12 +17,7 @@ export default function SessionPagination({
       className="mt-6 flex flex-wrap items-center justify-end gap-x-4 gap-y-3 text-xs tracking-widest">
       <form key={`${page}:${pageSize}`} action={sessionsPath} method="get"
         className="flex flex-wrap items-center justify-end gap-3">
-        <label className="flex items-center gap-2 text-muted">
-          PER PAGE
-          <input type="number" name="page_size" min="1" max="100" defaultValue={pageSize}
-            aria-label="Sessions per page"
-            className="w-16 bg-surface border border-border px-2 py-1.5 text-right text-white outline-none focus:border-white" />
-        </label>
+        <input type="hidden" name="page_size" value={pageSize} />
         <label className="flex items-center gap-2 text-muted">
           PAGE
           <input type="number" name="page" min="1" max={totalPages} defaultValue={page}
