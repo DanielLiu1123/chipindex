@@ -1,7 +1,13 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import DeleteSessionButton from '@/components/DeleteSessionButton'
+import SessionPagination from '@/components/SessionPagination'
 import { getGroup, getSessionsPage } from '@/lib/queries'
+import {
+  DEFAULT_SESSION_PAGE_SIZE,
+  MAX_SESSION_PAGE_SIZE,
+  normalizeSessionPageParam,
+} from '@/lib/session-pagination'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,17 +16,23 @@ export default async function SessionsPage({
   searchParams,
 }: {
   params: Promise<{ groupId: string }>
-  searchParams: Promise<{ page?: string | string[] }>
+  searchParams: Promise<{ page?: string | string[]; page_size?: string | string[] }>
 }) {
   const { groupId } = await params
-  const pageParam = (await searchParams).page
-  const parsedPage = Number(Array.isArray(pageParam) ? pageParam[0] : pageParam ?? '1')
-  const requestedPage = Number.isSafeInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1
-  const [group, sessionsPage] = await Promise.all([getGroup(groupId), getSessionsPage(groupId, requestedPage)])
+  const query = await searchParams
+  const requestedPage = normalizeSessionPageParam(query.page, 1)
+  const requestedPageSize = normalizeSessionPageParam(
+    query.page_size,
+    DEFAULT_SESSION_PAGE_SIZE,
+    MAX_SESSION_PAGE_SIZE,
+  )
+  const [group, sessionsPage] = await Promise.all([
+    getGroup(groupId),
+    getSessionsPage(groupId, requestedPage, requestedPageSize),
+  ])
   if (!group) notFound()
-  const { sessions, page, total, total_pages: totalPages } = sessionsPage
+  const { sessions, page, page_size: pageSize, total, total_pages: totalPages } = sessionsPage
   const sessionsPath = `/groups/${groupId}/sessions`
-  const pageHref = (target: number) => target === 1 ? sessionsPath : `${sessionsPath}?page=${target}`
 
   return (
     <>
@@ -59,16 +71,7 @@ export default async function SessionsPage({
           })}
         </tbody>
       </table>
-      {totalPages > 1 && <nav aria-label="Sessions pagination"
-        className="mt-6 flex items-center justify-between text-xs tracking-widest">
-        {page > 1
-          ? <Link href={pageHref(page - 1)} className="text-muted hover:text-white transition-colors">← PREVIOUS</Link>
-          : <span className="text-muted/30">← PREVIOUS</span>}
-        <span className="text-muted">PAGE {page} / {totalPages}</span>
-        {page < totalPages
-          ? <Link href={pageHref(page + 1)} className="text-muted hover:text-white transition-colors">NEXT →</Link>
-          : <span className="text-muted/30">NEXT →</span>}
-      </nav>}
+      <SessionPagination sessionsPath={sessionsPath} page={page} pageSize={pageSize} totalPages={totalPages} />
     </>
   )
 }

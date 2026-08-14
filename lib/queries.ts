@@ -2,6 +2,7 @@ import { cache } from 'react'
 import { db } from './db'
 import { BUY_IN_UNIT } from './synth'
 import { buyinSum, netChips } from './settlement'
+import { MAX_SESSION_PAGE_SIZE } from './session-pagination'
 import {
   buildResultsBySession,
   type BuyInResultRow,
@@ -285,7 +286,9 @@ async function fetchSessionSlice(
 }
 
 export async function getSessionsPage(groupId: string, requestedPage = 1, requestedPageSize = 10): Promise<SessionsPage> {
-  const pageSize = Number.isSafeInteger(requestedPageSize) && requestedPageSize > 0 ? requestedPageSize : 10
+  const pageSize = Number.isSafeInteger(requestedPageSize) && requestedPageSize > 0
+    ? Math.min(requestedPageSize, MAX_SESSION_PAGE_SIZE)
+    : 10
   const validRequestedPage = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1
   const [openCount, settledCount] = await Promise.all([
     countSessionsByStatus(groupId, 'OPEN'),
