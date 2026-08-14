@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { api } from '@/lib/client'
+import { isActivePath } from '@/lib/navigation'
 import type { Group } from '@/types'
 
 export default function Nav() {
@@ -58,6 +59,10 @@ export default function Nav() {
 
   const home = groupId && groupId !== 'new' ? `/groups/${groupId}` : '/'
   const sessions = groupId && groupId !== 'new' ? `/groups/${groupId}/sessions` : '/'
+  const manage = groupId && groupId !== 'new' ? `/groups/${groupId}/settings` : null
+  const homeActive = isActivePath(pathname, home)
+  const sessionsActive = sessions !== '/' && isActivePath(pathname, sessions, true)
+  const manageActive = manage !== null && isActivePath(pathname, manage, true)
 
   return (
     <header className="border-b border-border">
@@ -96,9 +101,12 @@ export default function Nav() {
           </div>
         </div>
         <nav className="flex items-center gap-5">
-          <Link href={home} className={`text-xs tracking-widest transition-colors ${pathname === home ? 'text-white' : 'text-muted hover:text-white'}`}>LEADERBOARD</Link>
-          <Link href={sessions} className={`text-xs tracking-widest transition-colors ${pathname.startsWith(sessions) && sessions !== '/' ? 'text-white' : 'text-muted hover:text-white'}`}>SESSIONS</Link>
-          {groupId && groupId !== 'new' && <Link href={`/groups/${groupId}/settings`} className="text-xs tracking-widest text-muted hover:text-white">MANAGE</Link>}
+          <Link href={home} aria-current={homeActive ? 'page' : undefined}
+            className={`text-xs tracking-widest transition-colors ${homeActive ? 'text-white' : 'text-muted hover:text-white'}`}>LEADERBOARD</Link>
+          <Link href={sessions} aria-current={sessionsActive ? 'page' : undefined}
+            className={`text-xs tracking-widest transition-colors ${sessionsActive ? 'text-white' : 'text-muted hover:text-white'}`}>SESSIONS</Link>
+          {manage && <Link href={manage} aria-current={manageActive ? 'page' : undefined}
+            className={`text-xs tracking-widest transition-colors ${manageActive ? 'text-white' : 'text-muted hover:text-white'}`}>MANAGE</Link>}
           <button onClick={handleLogout} className="text-xs tracking-widest text-muted hover:text-danger transition-colors">EXIT</button>
         </nav>
       </div>
