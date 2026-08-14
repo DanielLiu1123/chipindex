@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import type { SessionForEdit } from '@/lib/queries'
@@ -9,7 +9,7 @@ import SessionMetaFields from '@/components/SessionMetaFields'
 import ConfirmModal from '@/components/ConfirmModal'
 import ChipValue from '@/components/ChipValue'
 import { usePlayerRows, resolvePlayerId, type PlayerRowBase } from '@/hooks/usePlayerRows'
-import { api, ApiClientError } from '@/lib/client'
+import { ApiClientError, updateSession } from '@/lib/client'
 import { buyinSum, netChips } from '@/lib/settlement'
 import { BUY_IN_UNIT } from '@/lib/synth'
 import { uid } from '@/lib/uid'
@@ -21,39 +21,34 @@ interface ParticipantRow extends PlayerRowBase {
   buyins: BuyInRow[]
 }
 
-export default function EditSessionForm({ groupId, sessionId }: { groupId: string; sessionId: string }) {
+function rowsFromSession(session: SessionForEdit): ParticipantRow[] {
+  return session.participants.map(participant => ({
+    uid: uid(),
+    playerId: participant.player_id,
+    name: participant.name,
+    isNew: false,
+    newName: '',
+    final: participant.final_chips != null ? String(participant.final_chips) : '',
+    buyins: participant.buy_ins.map(buyIn => ({ amount: String(buyIn.amount), created_at: buyIn.created_at })),
+  }))
+}
+
+export default function EditSessionForm({ groupId, sessionId, session }: {
+  groupId: string
+  sessionId: string
+  session: SessionForEdit
+}) {
   const router = useRouter()
-  const [date, setDate] = useState('')
-  const [exchangeRate, setExchangeRate] = useState('')
-  const [description, setDescription] = useState('')
-  const { rows, setRows, updateRow, usedIds, players, playersLoading, playersError } = usePlayerRows<ParticipantRow>(groupId, [])
+  const [date, setDate] = useState(session.date ?? '')
+  const [exchangeRate, setExchangeRate] = useState(session.exchange_rate ? String(session.exchange_rate) : '')
+  const [description, setDescription] = useState(session.description ?? '')
+  const initialRows = useMemo(() => rowsFromSession(session), [session])
+  const { rows, setRows, updateRow, usedIds, players, playersLoading, playersError } = usePlayerRows<ParticipantRow>(groupId, initialRows)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
-  const [sessionLoading, setSessionLoading] = useState(true)
-  const [sessionError, setSessionError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [saveError, setSaveError] = useState<{ diff: number } | null>(null)
   const [confirmRemove, setConfirmRemove] = useState<ParticipantRow | null>(null)
-
-  useEffect(() => {
-    api<SessionForEdit>('GET', `/api/groups/${groupId}/sessions/${sessionId}`)
-      .then(s => {
-        setDate(s.date ?? '')
-        setExchangeRate(s.exchange_rate ? String(s.exchange_rate) : '')
-        setDescription(s.description ?? '')
-        setRows(s.participants.map(p => ({
-          uid: uid(),
-          playerId: p.player_id,
-          name: p.name,
-          isNew: false,
-          newName: '',
-          final: p.final_chips != null ? String(p.final_chips) : '',
-          buyins: p.buy_ins.map(b => ({ amount: String(b.amount), created_at: b.created_at })),
-        })))
-      })
-      .catch(() => setSessionError('Failed to load session.'))
-      .finally(() => setSessionLoading(false))
-  }, [groupId, sessionId, setRows])
 
   function toggle(uid: string) {
     setExpanded(s => {
@@ -92,7 +87,7 @@ export default function EditSessionForm({ groupId, sessionId }: { groupId: strin
           .map(b => ({ amount: Number(b.amount), ...(b.created_at ? { created_at: b.created_at } : {}) })),
       })))
 
-      await api('PUT', `/api/groups/${groupId}/sessions/${sessionId}`, {
+      await updateSession(groupId, sessionId, {
         date,
         exchange_rate: exchangeRate ? Number(exchangeRate) : 40,
         description: description || null,
@@ -124,8 +119,8 @@ export default function EditSessionForm({ groupId, sessionId }: { groupId: strin
     setConfirmRemove(null)
   }
 
-  if (playersLoading || sessionLoading) return <p className="text-muted text-xs tracking-widest">LOADING...</p>
-  if (playersError || sessionError) return <p className="text-danger text-xs tracking-widest">{playersError || sessionError}</p>
+  if (playersLoading) return <p className="text-muted text-xs tracking-widest">LOADING...</p>
+  if (playersError) return <p className="text-danger text-xs tracking-widest">{playersError}</p>
 
   return (
     <>

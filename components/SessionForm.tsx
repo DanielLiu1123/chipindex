@@ -6,7 +6,7 @@ import Link from 'next/link'
 import PlayerRowPicker from '@/components/PlayerRowPicker'
 import SessionMetaFields from '@/components/SessionMetaFields'
 import { usePlayerRows, resolvePlayerId, type PlayerRowBase } from '@/hooks/usePlayerRows'
-import { api } from '@/lib/client'
+import { importSession } from '@/lib/client'
 import { uid } from '@/lib/uid'
 
 interface EntryRow extends PlayerRowBase { chips: string }
@@ -36,7 +36,8 @@ export default function SessionForm({ groupId }: { groupId: string }) {
         player_id: await resolvePlayerId(groupId, row),
         chips: Number(row.chips),
       })))
-      await api('POST', `/api/groups/${groupId}/sessions`, {
+      await importSession(groupId, {
+        status: 'SETTLED',
         date,
         exchange_rate: exchangeRate ? Number(exchangeRate) : 40,
         description: description || null,

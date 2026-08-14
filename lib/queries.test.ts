@@ -20,10 +20,9 @@ vi.mock('./db', () => ({
 }))
 
 import {
-  getLeaderboardPlayers,
-  getLeaderboardSessions,
+  getLeaderboardData,
   getPlayerDetail,
-  getSessionDetail,
+  getSessionPageData,
   getSessionsPage,
 } from './queries'
 
@@ -154,35 +153,34 @@ describe('getSessionsPage', () => {
   })
 })
 
-describe('getLeaderboardSessions', () => {
-  it('returns settlement details from non-deleted participant and buy-in rows', async () => {
+describe('getLeaderboardData', () => {
+  it('builds sessions and players from one settled-session result scan', async () => {
     mockQueryResponses({
       session: [{ data: [{ id: 's1', date: '2026-01-10', exchange_rate: 40 }] }],
+      group_player: [{ data: [{
+        id: 'gp-active', group_id: 'g1', player_id: 'active', created_at: '2026-01-01', updated_at: '2026-01-01', deleted_at: null,
+      }] }],
+      player: [
+        { data: [{ id: 'active', name: 'Active', created_at: '2026-01-01' }] },
+        { data: [{ id: 'alice', name: 'Alice', created_at: '2025-01-01' }] },
+      ],
       session_participant: [{
-        data: [{ session_id: 's1', player_id: 'alice', final_chips: 5000 }],
+        data: [
+          { session_id: 's1', player_id: 'alice', final_chips: 5000 },
+          { session_id: 's1', player_id: 'active', final_chips: 0 },
+        ],
       }],
       buy_in: [{
-        data: [
-          { session_id: 's1', player_id: 'alice', amount: 2000 },
-          { session_id: 's1', player_id: 'alice', amount: 500 },
-        ],
+        data: [{ session_id: 's1', player_id: 'alice', amount: 2500 }],
       }],
     })
 
-    const sessions = await getLeaderboardSessions('g1')
+    const data = await getLeaderboardData('g1')
 
-    const sessionQuery = dbMocks.chains.find(query => query.table === 'session')!
-    expect(sessionQuery.eq).toHaveBeenCalledWith('group_id', 'g1')
-
-    const participantQuery = dbMocks.chains.find(query => query.table === 'session_participant')!
-    expect(participantQuery.select).toHaveBeenCalledWith('session_id, player_id, final_chips')
-    expect(participantQuery.is).toHaveBeenCalledWith('deleted_at', null)
-
-    const buyInQuery = dbMocks.chains.find(query => query.table === 'buy_in')!
-    expect(buyInQuery.select).toHaveBeenCalledWith('session_id, player_id, amount')
-    expect(buyInQuery.is).toHaveBeenCalledWith('deleted_at', null)
-
-    expect(sessions).toEqual([
+    expect(dbMocks.chains.filter(query => query.table === 'session')).toHaveLength(1)
+    expect(dbMocks.chains.filter(query => query.table === 'session_participant')).toHaveLength(1)
+    expect(data.players.map(player => player.id)).toEqual(['alice', 'active'])
+    expect(data.sessions).toEqual([
       {
         id: 's1',
         date: '2026-01-10',
@@ -192,66 +190,40 @@ describe('getLeaderboardSessions', () => {
           chips: 2500,
           final_chips: 5000,
           total_buyin: 2500,
-          buy_in_count: 2,
+          buy_in_count: 1,
+        }, {
+          player_id: 'active',
+          chips: 0,
+          final_chips: 0,
+          total_buyin: 0,
+          buy_in_count: 0,
         }],
       },
     ])
   })
 })
 
-describe('getLeaderboardPlayers', () => {
-  it('keeps historical players after their group_player row is deleted', async () => {
+describe('getSessionPageData', () => {
+  it('loads a settled session once and only fetches names for its participants', async () => {
     mockQueryResponses({
-      group_player: [{ data: [
-        { id: 'gp-active', group_id: 'g1', player_id: 'active', created_at: '2026-01-01', updated_at: '2026-01-01', deleted_at: null },
-        { id: 'gp-first', group_id: 'g1', player_id: 'first', created_at: '2026-01-02', updated_at: '2026-01-02', deleted_at: null },
-      ] }],
-      player: [
-        { data: [
-          { id: 'active', name: 'Active', created_at: '2026-01-03' },
-          { id: 'first', name: 'First', created_at: '2026-01-01' },
-        ] },
-        { data: [{ id: 'historic', name: 'Historic', created_at: '2025-12-01' }] },
-      ],
-      session: [{ data: [{ id: 's1' }] }],
-      session_participant: [{ data: [{ player_id: 'historic' }] }],
-    })
-
-    const players = await getLeaderboardPlayers('g1')
-
-    expect(dbMocks.chains.find(query => query.table === 'group_player')?.select)
-      .toHaveBeenCalledWith('id, group_id, player_id, created_at, updated_at, deleted_at')
-    expect(dbMocks.chains.find(query => query.table === 'group_player')?.is)
-      .toHaveBeenCalledWith('deleted_at', null)
-    expect(dbMocks.chains.filter(query => query.table === 'player')[0]?.in)
-      .toHaveBeenCalledWith('id', ['active', 'first'])
-    expect(dbMocks.chains.filter(query => query.table === 'player')[1]?.in)
-      .toHaveBeenCalledWith('id', ['historic'])
-    expect(players.map(player => player.id)).toEqual(['historic', 'first', 'active'])
-  })
-})
-
-describe('getSessionDetail', () => {
-  it('preserves each buy-in timestamp for the settled session UI', async () => {
-    mockQueryResponses({
-      session: [{ data: { id: 's1', date: '2026-08-08', description: null, exchange_rate: 40, status: 'SETTLED' } }],
+      session: [{ data: { id: 's1', date: '2026-08-08', description: null, exchange_rate: 40, buy_in_unit: 2000, started_at: null, status: 'SETTLED' } }],
       session_participant: [{ data: [{ id: 'part-1', player_id: 'alice', final_chips: 6000 }] }],
-      buy_in: [{ data: [
-        { player_id: 'alice', amount: 2000, created_at: '2026-08-08T06:59:27Z' },
-        { player_id: 'alice', amount: 2000, created_at: '2026-08-08T09:56:18Z' },
-      ] }],
+      buy_in: [{ data: [{ id: 'buy-1', player_id: 'alice', amount: 2000, created_at: '2026-08-08T06:59:27Z' }] }],
       player: [{ data: [{ id: 'alice', name: 'Alice' }] }],
     })
 
-    const detail = await getSessionDetail('g1', 's1')
+    const result = await getSessionPageData('g1', 's1')
 
-    const sessionQuery = dbMocks.chains.find(query => query.table === 'session')!
-    expect(sessionQuery.eq).toHaveBeenCalledWith('group_id', 'g1')
-
-    expect(detail?.session_entries[0].buy_ins).toEqual([
-      { amount: 2000, created_at: '2026-08-08T06:59:27Z' },
-      { amount: 2000, created_at: '2026-08-08T09:56:18Z' },
-    ])
+    expect(dbMocks.chains.filter(query => query.table === 'session')).toHaveLength(1)
+    expect(dbMocks.chains.find(query => query.table === 'player')?.in)
+      .toHaveBeenCalledWith('id', ['alice'])
+    expect(result).toMatchObject({
+      status: 'SETTLED',
+      session: {
+        id: 's1',
+        session_entries: [{ player_id: 'alice', players: { name: 'Alice' } }],
+      },
+    })
   })
 })
 

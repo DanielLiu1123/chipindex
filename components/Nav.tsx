@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
-import { api } from '@/lib/client'
+import { listGroups, logout } from '@/lib/client'
 import { isActivePath } from '@/lib/navigation'
 import { DEFAULT_SESSION_PAGE_SIZE, sessionPageHref } from '@/lib/session-pagination'
 import type { Group } from '@/types'
@@ -19,7 +19,7 @@ export default function Nav() {
   const current = groups.find(group => group.id === groupId)
 
   useEffect(() => {
-    const load = () => api<Group[]>('GET', '/api/groups').then(setGroups).catch(() => {})
+    const load = () => listGroups().then(setGroups).catch(() => {})
     void load()
     window.addEventListener('chipindex:groups-changed', load)
     return () => window.removeEventListener('chipindex:groups-changed', load)
@@ -48,7 +48,7 @@ export default function Nav() {
   }, [])
 
   async function handleLogout() {
-    await api('DELETE', '/api/auth').catch(() => {})
+    await logout().catch(() => {})
     router.push('/login')
   }
 

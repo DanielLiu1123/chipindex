@@ -7,7 +7,14 @@ import PlayerSelect from '@/components/PlayerSelect'
 import ConfirmModal from '@/components/ConfirmModal'
 import type { Player } from '@/types'
 import type { LiveSessionData, LiveParticipant } from '@/lib/queries'
-import { api, ApiClientError, createPlayerInGroup } from '@/lib/client'
+import {
+  addBuyIn as createBuyIn,
+  ApiClientError,
+  createPlayerInGroup,
+  removeSessionParticipant,
+  revokeBuyIn,
+  settleSession,
+} from '@/lib/client'
 
 export default function LiveSession({ groupId, session, allPlayers }: { groupId: string; session: LiveSessionData; allPlayers: Player[] }) {
   const router = useRouter()
@@ -44,13 +51,13 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
   }
 
   const addBuyIn = (player_id: string, amount: number) =>
-    act(() => api('POST', `/api/groups/${groupId}/sessions/${session.id}/buyin`, { player_id, amount }))
+    act(() => createBuyIn(groupId, session.id, { player_id, amount }))
 
   const undoBuyIn = (buyinId: string) =>
-    act(() => api('DELETE', `/api/groups/${groupId}/sessions/${session.id}/buyin/${buyinId}`))
+    act(() => revokeBuyIn(groupId, session.id, buyinId))
 
   const removeParticipant = (player_id: string) =>
-    act(() => api('DELETE', `/api/groups/${groupId}/sessions/${session.id}/participant`, { player_id }))
+    act(() => removeSessionParticipant(groupId, session.id, player_id))
 
   async function doRemove() {
     if (!confirmRemove) return
@@ -68,7 +75,7 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
 
   async function addExisting(player_id: string) {
     // Joining grants an initial buy-in (= buy_in_unit); the participant is lazily created by the buy-in endpoint
-    await act(() => api('POST', `/api/groups/${groupId}/sessions/${session.id}/buyin`, { player_id, amount: unit }))
+    await act(() => createBuyIn(groupId, session.id, { player_id, amount: unit }))
     setAddId('')
   }
 
@@ -77,7 +84,7 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
     if (!name) return
     await act(async () => {
       const { player } = await createPlayerInGroup(groupId, name)
-      await api('POST', `/api/groups/${groupId}/sessions/${session.id}/buyin`, { player_id: player.id, amount: unit })
+      await createBuyIn(groupId, session.id, { player_id: player.id, amount: unit })
       setNewName('')
       setAddingNew(false)
     })
@@ -102,7 +109,7 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
     setError('')
     setSettleError(null)
     try {
-      await api('POST', `/api/groups/${groupId}/sessions/${session.id}/settle`, {
+      await settleSession(groupId, session.id, {
         finals: session.participants.map(p => ({ player_id: p.player_id, final_chips: Number(finals[p.player_id]) })),
         force,
       })

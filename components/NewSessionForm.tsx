@@ -6,7 +6,7 @@ import Link from 'next/link'
 import PlayerMultiSelect from '@/components/PlayerMultiSelect'
 import SessionMetaFields from '@/components/SessionMetaFields'
 import { usePlayerRows, resolvePlayerId, type PlayerRowBase } from '@/hooks/usePlayerRows'
-import { api } from '@/lib/client'
+import { startSession } from '@/lib/client'
 import { BUY_IN_UNIT } from '@/lib/synth'
 import { uid } from '@/lib/uid'
 
@@ -41,7 +41,7 @@ export default function NewSessionForm({ groupId }: { groupId: string }) {
         player_id: await resolvePlayerId(groupId, row),
         initial_buyin: Number(row.buyin),
       })))
-      const session = await api<{ id: string }>('POST', `/api/groups/${groupId}/sessions`, {
+      const session = await startSession(groupId, {
         status: 'OPEN',
         date,
         exchange_rate: exchangeRate ? Number(exchangeRate) : 40,

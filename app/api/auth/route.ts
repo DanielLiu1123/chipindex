@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server'
 import { generateToken, AUTH_COOKIE } from '@/lib/auth'
+import { parsePasswordCommand, readCommand } from '@/lib/commands'
+import { withErrorHandling } from '@/lib/http'
 
-export async function POST(req: Request) {
-  const { password } = await req.json() as { password: string }
+export const POST = withErrorHandling(async req => {
+  const { password } = await readCommand(req, parsePasswordCommand)
   if (password !== process.env.SHARED_PASSWORD) {
     return NextResponse.json({ error: 'Wrong password' }, { status: 401 })
   }
@@ -15,7 +17,7 @@ export async function POST(req: Request) {
     maxAge: 60 * 60 * 24 * 30,
   })
   return res
-}
+})
 
 export async function DELETE() {
   const res = NextResponse.json({ ok: true })

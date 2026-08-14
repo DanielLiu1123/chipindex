@@ -1,9 +1,40 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { createPlayerInGroup } from './client'
+import { createPlayerInGroup, startSession } from './client'
 
 afterEach(() => {
   vi.unstubAllGlobals()
+})
+
+describe('startSession', () => {
+  it('owns the method, path, request and response contract', async () => {
+    const payload = { id: 's1' }
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: () => Promise.resolve(payload),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(startSession('g1', {
+      status: 'OPEN',
+      date: '2026-08-14',
+      exchange_rate: 40,
+      description: null,
+      players: [{ player_id: 'p1', initial_buyin: 2000 }],
+    })).resolves.toEqual(payload)
+    expect(fetchMock).toHaveBeenCalledWith('/api/groups/g1/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        status: 'OPEN',
+        date: '2026-08-14',
+        exchange_rate: 40,
+        description: null,
+        players: [{ player_id: 'p1', initial_buyin: 2000 }],
+      }),
+    })
+  })
 })
 
 describe('createPlayerInGroup', () => {

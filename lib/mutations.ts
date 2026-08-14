@@ -2,6 +2,13 @@ import { db } from './db'
 import { ApiError } from './http'
 import { synthFromNet, BUY_IN_UNIT } from './synth'
 import { buyinSum, checkConservation } from './settlement'
+import type {
+  EditedParticipant,
+  FinalEntry,
+  ImportEntry,
+  SessionMetaCommand as SessionMeta,
+  StartingPlayer,
+} from './contracts'
 import type { Group, GroupPlayer, Player } from '@/types'
 
 // Write-side counterpart of queries.ts: every table write goes through here.
@@ -190,17 +197,6 @@ export async function renamePlayer(groupId: string, id: string, name: string): P
 
 // ── sessions ───────────────────────────────────────────────────
 
-export interface SessionMeta {
-  date: string
-  exchange_rate: number
-  description: string | null
-}
-
-export interface ImportEntry {
-  player_id: string
-  chips: number
-}
-
 // Import a finished session after the fact: only each player's net result is
 // known, so synthFromNet constructs a buy-in + final chips pair per player.
 export async function importSession(groupId: string, meta: SessionMeta, entries: ImportEntry[]) {
@@ -240,11 +236,6 @@ export async function importSession(groupId: string, meta: SessionMeta, entries:
   ensure(bErr)
 
   return session
-}
-
-export interface StartingPlayer {
-  player_id: string
-  initial_buyin: number
 }
 
 // Open a live session: create participants up front, persisting a buy-in row
@@ -287,12 +278,6 @@ export async function startSession(groupId: string, meta: SessionMeta, players: 
   ensure(bRes.error)
 
   return session
-}
-
-export interface EditedParticipant {
-  player_id: string
-  final_chips: number
-  buy_ins: { amount: number; created_at?: string }[]
 }
 
 // Edit a settled session: validate, run the conservation check, then rewrite
@@ -459,11 +444,6 @@ export async function revokeBuyin(groupId: string, sessionId: string, buyinId: s
     .eq('id', buyinId)
     .eq('session_id', sessionId)
   ensure(error)
-}
-
-export interface FinalEntry {
-  player_id: string
-  final_chips: number
 }
 
 // Settle: record each player's final chips, run the conservation check, and

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import ConfirmModal from '@/components/ConfirmModal'
 import PlayerMultiSelect from '@/components/PlayerMultiSelect'
-import { api, createPlayerInGroup } from '@/lib/client'
+import { addGroupPlayer, createPlayerInGroup, deleteGroupPlayer, renameGroup } from '@/lib/client'
 import type { Group, GroupPlayer, Player } from '@/types'
 
 function byCreatedAt(
@@ -59,7 +59,7 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
 
   function rename() {
     return run(async () => {
-      const updated = await api<Group>('PATCH', `/api/groups/${group.id}`, { name })
+      const updated = await renameGroup(group.id, name)
       setName(updated.name)
       setSavedName(updated.name)
       window.dispatchEvent(new Event('chipindex:groups-changed'))
@@ -71,7 +71,7 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
       const added = await Promise.all(ids.map(async playerId => {
         const player = players.find(item => item.id === playerId)
         if (!player) throw new Error('Player not found')
-        const group_player = await api<GroupPlayer>('POST', `/api/groups/${group.id}/group-players`, { player_id: playerId })
+        const group_player = await addGroupPlayer(group.id, playerId)
         return { player, group_player }
       }))
       setGroupPlayers(current => [...current, ...added].sort(byCreatedAt))
@@ -92,7 +92,7 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
 
   function deletePlayer(row: { player: Player; group_player: GroupPlayer }) {
     return run(async () => {
-      await api<GroupPlayer>('DELETE', `/api/groups/${group.id}/group-players`, { player_id: row.player.id })
+      await deleteGroupPlayer(group.id, row.player.id)
       setGroupPlayers(current => current.filter(item => item.group_player.id !== row.group_player.id))
     })
   }

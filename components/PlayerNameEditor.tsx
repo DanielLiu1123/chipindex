@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { api } from '@/lib/client'
+import { renamePlayer } from '@/lib/client'
 
 export default function PlayerNameEditor({ groupId, id, initialName }: { groupId: string; id: string; initialName: string }) {
   const router = useRouter()
@@ -30,7 +30,7 @@ export default function PlayerNameEditor({ groupId, id, initialName }: { groupId
     }
     setSaving(true)
     try {
-      await api('PATCH', `/api/groups/${groupId}/players/${id}`, { name: trimmed })
+      await renamePlayer(groupId, id, trimmed)
       setSavedName(trimmed)
       setEditing(false)
       router.refresh()
