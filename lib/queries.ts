@@ -2,6 +2,7 @@ import { cache } from 'react'
 import { db } from './db'
 import { BUY_IN_UNIT } from './synth'
 import { buyinSum, netChips } from './settlement'
+import { MAX_SESSION_PAGE_SIZE } from './session-pagination'
 import {
   buildResultsBySession,
   type BuyInResultRow,
@@ -213,39 +214,105 @@ interface SessionListSource {
   started_at: string | null
 }
 
-export async function getSessionsList(groupId: string): Promise<SessionRow[]> {
-  const { data: sessions, error } = await db
+export interface SessionsPage {
+  sessions: SessionRow[]
+  page: number
+  page_size: number
+  total: number
+  total_pages: number
+}
+
+const SESSION_LIST_COLUMNS = 'id, date, description, exchange_rate, status, started_at'
+
+async function buildSessionRows(rows: SessionListSource[]): Promise<SessionRow[]> {
+  if (rows.length === 0) return []
+  const [byId, names] = await Promise.all([resultsBySession(rows.map(session => session.id)), playerNameMap()])
+
+  return rows.map(session => {
+    const entries = byId.get(session.id) ?? []
+    const top = entries.length > 0
+      ? entries.reduce((best, entry) => (entry.chips > best.chips ? entry : best), entries[0])
+      : null
+    return {
+      id: session.id,
+      date: session.date,
+      description: session.description,
+      exchange_rate: session.exchange_rate,
+      status: session.status,
+      player_count: entries.length,
+      winner: session.status === 'SETTLED' && top
+        ? { name: names.get(top.player_id) ?? top.player_id, player_id: top.player_id }
+        : null,
+    }
+  })
+}
+
+async function countSessionsByStatus(groupId: string, status: SessionListSource['status']): Promise<number> {
+  const { count, error } = await db
     .from('session')
-    .select('id, date, description, exchange_rate, status, started_at')
+    .select('id', { count: 'exact', head: true })
     .eq('group_id', groupId)
     .is('deleted_at', null)
+    .eq('status', status)
   throwIfQueryError(error)
-  const rows = (sessions ?? []) as SessionListSource[]
-  if (rows.length === 0) return []
-  const [byId, names] = await Promise.all([resultsBySession(rows.map(s => s.id)), playerNameMap()])
+  return count ?? 0
+}
 
-  const toRow = (s: SessionListSource): SessionRow => {
-    const entries = byId.get(s.id) ?? []
-    const top = entries.length > 0 ? entries.reduce((best, e) => (e.chips > best.chips ? e : best), entries[0]) : null
-    return {
-      id: s.id,
-      date: s.date,
-      description: s.description,
-      exchange_rate: s.exchange_rate,
-      status: s.status,
-      player_count: entries.length,
-      winner: s.status === 'SETTLED' && top ? { name: names.get(top.player_id) ?? top.player_id, player_id: top.player_id } : null,
-    }
+async function fetchSessionSlice(
+  groupId: string,
+  status: SessionListSource['status'],
+  from: number,
+  limit: number,
+): Promise<SessionListSource[]> {
+  if (limit <= 0) return []
+  const query = db
+    .from('session')
+    .select(SESSION_LIST_COLUMNS)
+    .eq('group_id', groupId)
+    .is('deleted_at', null)
+    .eq('status', status)
+
+  const { data, error } = status === 'OPEN'
+    ? await query
+      .order('started_at', { ascending: false })
+      .order('id', { ascending: false })
+      .range(from, from + limit - 1)
+    : await query
+      .order('date', { ascending: false })
+      .order('id', { ascending: false })
+      .range(from, from + limit - 1)
+  throwIfQueryError(error)
+  return (data ?? []) as SessionListSource[]
+}
+
+export async function getSessionsPage(groupId: string, requestedPage = 1, requestedPageSize = 10): Promise<SessionsPage> {
+  const pageSize = Number.isSafeInteger(requestedPageSize) && requestedPageSize > 0
+    ? Math.min(requestedPageSize, MAX_SESSION_PAGE_SIZE)
+    : 10
+  const validRequestedPage = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1
+  const [openCount, settledCount] = await Promise.all([
+    countSessionsByStatus(groupId, 'OPEN'),
+    countSessionsByStatus(groupId, 'SETTLED'),
+  ])
+  const total = openCount + settledCount
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
+  const page = Math.min(validRequestedPage, totalPages)
+  const from = (page - 1) * pageSize
+  const openLimit = Math.max(0, Math.min(pageSize, openCount - from))
+  const settledFrom = Math.max(0, from - openCount)
+  const settledLimit = Math.max(0, Math.min(pageSize - openLimit, settledCount - settledFrom))
+  const [openRows, settledRows] = await Promise.all([
+    fetchSessionSlice(groupId, 'OPEN', from, openLimit),
+    fetchSessionSlice(groupId, 'SETTLED', settledFrom, settledLimit),
+  ])
+
+  return {
+    sessions: await buildSessionRows([...openRows, ...settledRows]),
+    page,
+    page_size: pageSize,
+    total,
+    total_pages: totalPages,
   }
-
-  const open = rows
-    .filter(s => s.status === 'OPEN')
-    .sort((a, b) => (b.started_at ?? '').localeCompare(a.started_at ?? ''))
-  const settled = rows
-    .filter(s => s.status === 'SETTLED')
-    .sort((a, b) => b.date.localeCompare(a.date))
-
-  return [...open.map(toRow), ...settled.map(toRow)]
 }
 
 // ── session detail ─────────────────────────────────────────────

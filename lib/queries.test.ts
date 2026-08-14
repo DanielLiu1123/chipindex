@@ -24,15 +24,17 @@ import {
   getLeaderboardSessions,
   getPlayerDetail,
   getSessionDetail,
-  getSessionsList,
+  getSessionsPage,
 } from './queries'
 
-type QueryResponse = { data: unknown; error?: unknown }
+type QueryResponse = { data: unknown; error?: unknown; count?: number | null }
+type QueryChain = (typeof dbMocks.chains)[number]
+type QueryResponder = QueryResponse | ((query: QueryChain) => QueryResponse)
 
-function mockQueryResponses(responses: Record<string, QueryResponse[]>) {
+function mockQueryResponses(responses: Record<string, QueryResponder[]>) {
   dbMocks.from.mockImplementation((table: string) => {
-    const response = responses[table]?.shift()
-    if (!response) throw new Error(`No mock response configured for ${table}`)
+    const responder = responses[table]?.shift()
+    if (!responder) throw new Error(`No mock response configured for ${table}`)
 
     const chain = {
       table,
@@ -47,7 +49,9 @@ function mockQueryResponses(responses: Record<string, QueryResponse[]>) {
       then: (
         onFulfilled: (value: QueryResponse) => unknown,
         onRejected?: (reason: unknown) => unknown,
-      ) => Promise.resolve(response).then(onFulfilled, onRejected),
+      ) => Promise.resolve(
+        typeof responder === 'function' ? responder(chain) : responder,
+      ).then(onFulfilled, onRejected),
     }
     chain.select.mockReturnValue(chain)
     chain.is.mockReturnValue(chain)
@@ -70,9 +74,83 @@ beforeEach(() => {
 describe('query failures', () => {
   it('does not disguise a sessions query failure as an empty list', async () => {
     const error = new Error('database unavailable')
-    mockQueryResponses({ session: [{ data: null, error }] })
+    mockQueryResponses({ session: [{ data: null, error }, { data: null, count: 0 }] })
 
-    await expect(getSessionsList('g1')).rejects.toBe(error)
+    await expect(getSessionsPage('g1')).rejects.toBe(error)
+  })
+})
+
+describe('getSessionsPage', () => {
+  it('does not request an OPEN range beyond the available rows', async () => {
+    const rangeError = {
+      code: 'PGRST103',
+      message: 'Requested range not satisfiable',
+    }
+    mockQueryResponses({
+      session: [
+        query => query.range.mock.calls.length > 0
+          ? { data: null, count: null, error: rangeError }
+          : { data: null, count: 0 },
+        { data: null, count: 15 },
+        {
+          data: [{
+            id: 's11',
+            date: '2026-08-01',
+            description: null,
+            exchange_rate: 40,
+            status: 'SETTLED',
+            started_at: null,
+          }],
+        },
+      ],
+      session_participant: [{ data: [{ session_id: 's11', player_id: 'alice', final_chips: 3000 }] }],
+      buy_in: [{ data: [{ session_id: 's11', player_id: 'alice', amount: 2000 }] }],
+      player: [{ data: [{ id: 'alice', name: 'Alice' }] }],
+    })
+
+    await expect(getSessionsPage('g1', 2)).resolves.toMatchObject({
+      page: 2,
+      total: 15,
+      sessions: [{ id: 's11' }],
+    })
+  })
+
+  it('paginates settled sessions after pinned open sessions', async () => {
+    mockQueryResponses({
+      session: [
+        { data: null, count: 2 },
+        { data: null, count: 25 },
+        {
+          data: [{
+            id: 's11',
+            date: '2026-08-01',
+            description: null,
+            exchange_rate: 40,
+            status: 'SETTLED',
+            started_at: null,
+          }],
+        },
+      ],
+      session_participant: [{ data: [{ session_id: 's11', player_id: 'alice', final_chips: 3000 }] }],
+      buy_in: [{ data: [{ session_id: 's11', player_id: 'alice', amount: 2000 }] }],
+      player: [{ data: [{ id: 'alice', name: 'Alice' }] }],
+    })
+
+    const result = await getSessionsPage('g1', 2)
+
+    const [openCountQuery, settledCountQuery, settledQuery] = dbMocks.chains.filter(query => query.table === 'session')
+    expect(openCountQuery.eq).toHaveBeenCalledWith('status', 'OPEN')
+    expect(openCountQuery.range).not.toHaveBeenCalled()
+    expect(settledCountQuery.eq).toHaveBeenCalledWith('status', 'SETTLED')
+    expect(settledCountQuery.range).not.toHaveBeenCalled()
+    expect(settledQuery.range).toHaveBeenCalledWith(8, 17)
+    expect(result).toMatchObject({
+      page: 2,
+      page_size: 10,
+      total: 27,
+      total_pages: 3,
+      sessions: [{ id: 's11', winner: { name: 'Alice', player_id: 'alice' } }],
+    })
   })
 })
 
