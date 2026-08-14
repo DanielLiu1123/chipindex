@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   getSessionPaginationItems,
+  hasCanonicalSessionPageParams,
   normalizeSessionPageParam,
   sessionPageHref,
 } from './session-pagination'
@@ -28,6 +29,16 @@ describe('session pagination parameters', () => {
   it('keeps a custom page size while navigating between pages', () => {
     expect(sessionPageHref('/groups/g1/sessions', 3, 25))
       .toBe('/groups/g1/sessions?page=3&page_size=25')
+  })
+
+  it('always includes the default page and page size', () => {
+    expect(sessionPageHref('/groups/g1/sessions', 1, 10))
+      .toBe('/groups/g1/sessions?page=1&page_size=10')
+  })
+
+  it('requires both canonical query parameters', () => {
+    expect(hasCanonicalSessionPageParams(undefined, undefined, 1, 10)).toBe(false)
+    expect(hasCanonicalSessionPageParams('1', '10', 1, 10)).toBe(true)
   })
 
   it('normalizes invalid and excessive numeric input', () => {

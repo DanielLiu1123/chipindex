@@ -35,10 +35,20 @@ export function normalizeSessionPageParam(
   return Math.min(parsed, maximum)
 }
 
+export function hasCanonicalSessionPageParams(
+  pageParam: string | string[] | undefined,
+  pageSizeParam: string | string[] | undefined,
+  page: number,
+  pageSize: number,
+): boolean {
+  const rawPage = Array.isArray(pageParam) ? pageParam[0] : pageParam
+  const rawPageSize = Array.isArray(pageSizeParam) ? pageSizeParam[0] : pageSizeParam
+  return rawPage === String(page) && rawPageSize === String(pageSize)
+}
+
 export function sessionPageHref(basePath: string, page: number, pageSize: number): string {
   const params = new URLSearchParams()
-  if (page > 1) params.set('page', String(page))
-  if (pageSize !== DEFAULT_SESSION_PAGE_SIZE) params.set('page_size', String(pageSize))
-  const query = params.toString()
-  return query ? `${basePath}?${query}` : basePath
+  params.set('page', String(page))
+  params.set('page_size', String(pageSize))
+  return `${basePath}?${params.toString()}`
 }

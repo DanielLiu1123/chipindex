@@ -1,12 +1,14 @@
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import DeleteSessionButton from '@/components/DeleteSessionButton'
 import SessionPagination from '@/components/SessionPagination'
 import { getGroup, getSessionsPage } from '@/lib/queries'
 import {
   DEFAULT_SESSION_PAGE_SIZE,
+  hasCanonicalSessionPageParams,
   MAX_SESSION_PAGE_SIZE,
   normalizeSessionPageParam,
+  sessionPageHref,
 } from '@/lib/session-pagination'
 
 export const dynamic = 'force-dynamic'
@@ -33,6 +35,9 @@ export default async function SessionsPage({
   if (!group) notFound()
   const { sessions, page, page_size: pageSize, total, total_pages: totalPages } = sessionsPage
   const sessionsPath = `/groups/${groupId}/sessions`
+  if (!hasCanonicalSessionPageParams(query.page, query.page_size, page, pageSize)) {
+    redirect(sessionPageHref(sessionsPath, page, pageSize))
+  }
 
   return (
     <>

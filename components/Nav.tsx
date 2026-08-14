@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { api } from '@/lib/client'
 import { isActivePath } from '@/lib/navigation'
+import { DEFAULT_SESSION_PAGE_SIZE, sessionPageHref } from '@/lib/session-pagination'
 import type { Group } from '@/types'
 
 export default function Nav() {
@@ -58,10 +59,13 @@ export default function Nav() {
   }
 
   const home = groupId && groupId !== 'new' ? `/groups/${groupId}` : '/'
-  const sessions = groupId && groupId !== 'new' ? `/groups/${groupId}/sessions` : '/'
+  const sessionsPath = groupId && groupId !== 'new' ? `/groups/${groupId}/sessions` : '/'
+  const sessions = sessionsPath === '/'
+    ? '/'
+    : sessionPageHref(sessionsPath, 1, DEFAULT_SESSION_PAGE_SIZE)
   const manage = groupId && groupId !== 'new' ? `/groups/${groupId}/settings` : null
   const homeActive = isActivePath(pathname, home)
-  const sessionsActive = sessions !== '/' && isActivePath(pathname, sessions, true)
+  const sessionsActive = sessionsPath !== '/' && isActivePath(pathname, sessionsPath, true)
   const manageActive = manage !== null && isActivePath(pathname, manage, true)
 
   return (
