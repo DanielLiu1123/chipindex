@@ -3,14 +3,14 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ConfirmModal from '@/components/ConfirmModal'
-import { api } from '@/lib/client'
+import { deleteSession } from '@/lib/client'
 
 export default function DeleteSessionButton({ groupId, sessionId }: { groupId: string; sessionId: string }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
 
   async function handleDelete() {
-    await api('DELETE', `/api/groups/${groupId}/sessions/${sessionId}`).catch(() => {})
+    await deleteSession(groupId, sessionId).catch(() => {})
     setOpen(false)
     router.refresh()
   }

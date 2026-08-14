@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import type { Player } from '@/types'
-import { api, createPlayerInGroup } from '@/lib/client'
+import { createPlayerInGroup, listPlayers } from '@/lib/client'
 
 // Shared state for the session forms' dynamic player rows: the player list,
 // per-row patching keyed by a transient uid, and the used-id set that keeps
@@ -22,7 +22,7 @@ export function usePlayerRows<R extends PlayerRowBase>(groupId: string, initialR
   const [playersError, setPlayersError] = useState('')
 
   useEffect(() => {
-    api<Player[]>('GET', `/api/groups/${groupId}/players`)
+    listPlayers(groupId)
       .then(ps => setPlayers(ps))
       .catch(() => setPlayersError('Failed to load players.'))
       .finally(() => setPlayersLoading(false))

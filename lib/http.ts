@@ -18,10 +18,17 @@ export class ApiError extends Error {
 type RouteHandler<C> = (req: Request, ctx: C) => Promise<Response>
 
 export function withAuth<C>(handler: RouteHandler<C>): RouteHandler<C> {
+  const authenticatedHandler = withErrorHandling(handler)
   return async (req, ctx) => {
     if (!await isAuthenticated()) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    return authenticatedHandler(req, ctx)
+  }
+}
+
+export function withErrorHandling<C>(handler: RouteHandler<C>): RouteHandler<C> {
+  return async (req, ctx) => {
     try {
       return await handler(req, ctx)
     } catch (e) {

@@ -2,8 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { api } from '@/lib/client'
-import type { Group } from '@/types'
+import { createGroup } from '@/lib/client'
 
 export default function NewGroupForm() {
   const router = useRouter()
@@ -16,7 +15,7 @@ export default function NewGroupForm() {
     setSaving(true)
     setError('')
     try {
-      const group = await api<Group>('POST', '/api/groups', { name })
+      const group = await createGroup(name)
       router.push(`/groups/${group.id}/settings`)
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Failed to create group')

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
-import { api } from '@/lib/client'
+import { login } from '@/lib/client'
 
 function LoginForm() {
   const [password, setPassword] = useState('')
@@ -16,7 +16,7 @@ function LoginForm() {
     e.preventDefault()
     setLoading(true)
     try {
-      await api('POST', '/api/auth', { password })
+      await login(password)
       const next = searchParams.get('next') || '/'
       router.push(next)
       router.refresh()

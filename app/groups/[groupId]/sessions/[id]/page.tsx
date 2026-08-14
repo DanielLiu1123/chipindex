@@ -2,18 +2,20 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import SessionEntriesTable from '@/components/SessionEntriesTable'
 import LiveSession from '@/components/LiveSession'
-import { getSessionDetail, getLiveSession, getPlayers } from '@/lib/queries'
+import { getPlayers, getSessionPageData } from '@/lib/queries'
 
 export const dynamic = 'force-dynamic'
 
 export default async function SessionDetailPage({ params }: { params: Promise<{ groupId: string; id: string }> }) {
   const { groupId, id } = await params
-  const [session, players] = await Promise.all([getLiveSession(groupId, id), getPlayers(groupId)])
-  if (!session) notFound()
-  if (session.status === 'OPEN') return <LiveSession groupId={groupId} session={session} allPlayers={players} />
+  const data = await getSessionPageData(groupId, id)
+  if (!data) notFound()
+  if (data.status === 'OPEN') {
+    const players = await getPlayers(groupId)
+    return <LiveSession groupId={groupId} session={data.session} allPlayers={players} />
+  }
 
-  const settled = await getSessionDetail(groupId, id)
-  if (!settled) notFound()
+  const settled = data.session
   const entries = [...settled.session_entries].sort((a, b) => b.chips - a.chips)
   const total = entries.reduce((sum, entry) => sum + entry.chips, 0)
   return <>

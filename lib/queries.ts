@@ -133,36 +133,6 @@ export const getPlayers = cache(async (groupId: string): Promise<Player[]> => {
   return (await getGroupPlayers(groupId)).map(row => row.player)
 })
 
-export async function getLeaderboardPlayers(groupId: string): Promise<Player[]> {
-  const [activeRows, sessions] = await Promise.all([
-    getGroupPlayers(groupId),
-    db.from('session').select('id').eq('group_id', groupId).eq('status', 'SETTLED').is('deleted_at', null),
-  ])
-  throwIfQueryError(sessions.error)
-  const playerById = new Map(activeRows.map(row => [row.player.id, row.player]))
-  const sessionIds = ((sessions.data ?? []) as { id: string }[]).map(row => row.id)
-  if (sessionIds.length === 0) return [...playerById.values()]
-
-  const { data: participants, error: participantError } = await db
-    .from('session_participant')
-    .select('player_id')
-    .in('session_id', sessionIds)
-    .is('deleted_at', null)
-  if (participantError) throw participantError
-  const historicalIds = [...new Set(((participants ?? []) as { player_id: string }[]).map(row => row.player_id))]
-    .filter(id => !playerById.has(id))
-  if (historicalIds.length > 0) {
-    const { data: historicalPlayers, error: playerError } = await db
-      .from('player')
-      .select('id, name, created_at, updated_at, deleted_at')
-      .in('id', historicalIds)
-      .is('deleted_at', null)
-    if (playerError) throw playerError
-    for (const player of (historicalPlayers ?? []) as Player[]) playerById.set(player.id, player)
-  }
-  return [...playerById.values()].sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id))
-}
-
 export async function getAllPlayers(): Promise<Player[]> {
   const { data, error } = await db
     .from('player')
@@ -173,24 +143,57 @@ export async function getAllPlayers(): Promise<Player[]> {
   return (data ?? []) as Player[]
 }
 
-async function playerNameMap(): Promise<Map<string, string>> {
-  const { data, error } = await db.from('player').select('id, name').is('deleted_at', null)
+async function playerNameMap(playerIds?: string[]): Promise<Map<string, string>> {
+  const ids = playerIds ? [...new Set(playerIds)] : undefined
+  if (ids?.length === 0) return new Map()
+  let query = db.from('player').select('id, name').is('deleted_at', null)
+  if (ids) query = query.in('id', ids)
+  const { data, error } = await query
   if (error) throw error
   return new Map(((data ?? []) as Array<Pick<Player, 'id' | 'name'>>).map(p => [p.id, p.name]))
 }
 
-export async function getLeaderboardSessions(groupId: string): Promise<LeaderboardSessionRow[]> {
-  const { data: sessions, error } = await db
-    .from('session')
-    .select('id, date, exchange_rate')
-    .eq('group_id', groupId)
-    .is('deleted_at', null)
-    .eq('status', 'SETTLED')
-    .order('date', { ascending: true })
-  throwIfQueryError(error)
-  const rows = (sessions ?? []) as { id: string; date: string; exchange_rate: number }[]
-  const byId = await resultsBySession(rows.map(s => s.id))
-  return rows.map(s => ({ ...s, session_entries: byId.get(s.id) ?? [] }))
+export interface LeaderboardData {
+  players: Player[]
+  sessions: LeaderboardSessionRow[]
+}
+
+export async function getLeaderboardData(groupId: string): Promise<LeaderboardData> {
+  const [activeRows, sessionResult] = await Promise.all([
+    getGroupPlayers(groupId),
+    db.from('session')
+      .select('id, date, exchange_rate')
+      .eq('group_id', groupId)
+      .is('deleted_at', null)
+      .eq('status', 'SETTLED')
+      .order('date', { ascending: true }),
+  ])
+  throwIfQueryError(sessionResult.error)
+  const sessionRows = (sessionResult.data ?? []) as Array<{ id: string; date: string; exchange_rate: number }>
+  const bySession = await resultsBySession(sessionRows.map(session => session.id))
+  const playerById = new Map(activeRows.map(row => [row.player.id, row.player]))
+  const historicalIds = [...new Set(
+    [...bySession.values()].flatMap(entries => entries.map(entry => entry.player_id)),
+  )].filter(playerId => !playerById.has(playerId))
+
+  if (historicalIds.length > 0) {
+    const { data, error } = await db
+      .from('player')
+      .select('id, name, created_at, updated_at, deleted_at')
+      .in('id', historicalIds)
+      .is('deleted_at', null)
+    throwIfQueryError(error)
+    for (const player of (data ?? []) as Player[]) playerById.set(player.id, player)
+  }
+
+  return {
+    players: [...playerById.values()]
+      .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id)),
+    sessions: sessionRows.map(session => ({
+      ...session,
+      session_entries: bySession.get(session.id) ?? [],
+    })),
+  }
 }
 
 // ── sessions list ──────────────────────────────────────────────
@@ -226,7 +229,8 @@ const SESSION_LIST_COLUMNS = 'id, date, description, exchange_rate, status, star
 
 async function buildSessionRows(rows: SessionListSource[]): Promise<SessionRow[]> {
   if (rows.length === 0) return []
-  const [byId, names] = await Promise.all([resultsBySession(rows.map(session => session.id)), playerNameMap()])
+  const byId = await resultsBySession(rows.map(session => session.id))
+  const names = await playerNameMap([...byId.values()].flatMap(entries => entries.map(entry => entry.player_id)))
 
   return rows.map(session => {
     const entries = byId.get(session.id) ?? []
@@ -334,41 +338,76 @@ export interface SessionDetail {
   session_entries: SessionDetailEntry[]
 }
 
-export async function getSessionStatus(groupId: string, id: string): Promise<string | null> {
-  const { data, error } = await db.from('session').select('status').eq('group_id', groupId).eq('id', id).is('deleted_at', null).maybeSingle()
-  throwIfQueryError(error)
-  return data?.status ?? null
+type SessionStatus = 'OPEN' | 'SETTLED'
+
+interface SessionAggregateSource {
+  session: {
+    id: string
+    date: string
+    description: string | null
+    exchange_rate: number
+    buy_in_unit: number | null
+    started_at: string | null
+    status: SessionStatus
+  }
+  participants: Array<{ id: string; player_id: string; final_chips: number | null }>
+  buy_ins: LiveBuyIn[]
+  names: Map<string, string>
 }
 
-export async function getSessionDetail(groupId: string, id: string): Promise<SessionDetail | null> {
-  const [sessionResult, partsResult, buyinsResult, names] = await Promise.all([
-    db.from('session').select('id, date, description, exchange_rate, status').eq('group_id', groupId).eq('id', id).is('deleted_at', null).maybeSingle(),
-    db.from('session_participant').select('id, player_id, final_chips').is('deleted_at', null).eq('session_id', id),
-    db.from('buy_in').select('player_id, amount, created_at').is('deleted_at', null).eq('session_id', id).order('created_at', { ascending: true }),
-    playerNameMap(),
-  ])
+async function loadSessionAggregate(groupId: string, id: string): Promise<SessionAggregateSource | null> {
+  const sessionResult = await db
+    .from('session')
+    .select('id, date, description, exchange_rate, buy_in_unit, started_at, status')
+    .eq('group_id', groupId)
+    .eq('id', id)
+    .is('deleted_at', null)
+    .maybeSingle()
   throwIfQueryError(sessionResult.error)
+  if (!sessionResult.data) return null
+
+  const [partsResult, buyinsResult] = await Promise.all([
+    db.from('session_participant')
+      .select('id, player_id, final_chips')
+      .is('deleted_at', null)
+      .eq('session_id', id)
+      .order('created_at', { ascending: true }),
+    db.from('buy_in')
+      .select('id, player_id, amount, created_at')
+      .is('deleted_at', null)
+      .eq('session_id', id)
+      .order('created_at', { ascending: true }),
+  ])
   throwIfQueryError(partsResult.error)
   throwIfQueryError(buyinsResult.error)
-  const { data: session } = sessionResult
-  const { data: parts } = partsResult
-  const { data: buyins } = buyinsResult
-  if (!session) return null
-  const flowByPlayer = groupByPlayer((buyins ?? []) as { player_id: string; amount: number; created_at: string }[])
-  const entries: SessionDetailEntry[] = ((parts ?? []) as { id: string; player_id: string; final_chips: number | null }[]).map(p => {
-    const flow = flowByPlayer.get(p.player_id) ?? []
+  const participants = (partsResult.data ?? []) as SessionAggregateSource['participants']
+  const buy_ins = (buyinsResult.data ?? []) as LiveBuyIn[]
+  const names = await playerNameMap(participants.map(participant => participant.player_id))
+  return {
+    session: sessionResult.data as SessionAggregateSource['session'],
+    participants,
+    buy_ins,
+    names,
+  }
+}
+
+function sessionDetailFromAggregate(source: SessionAggregateSource): SessionDetail {
+  const flowByPlayer = groupByPlayer(source.buy_ins)
+  const session_entries = source.participants.map(participant => {
+    const flow = flowByPlayer.get(participant.player_id) ?? []
     const total_buyin = buyinSum(flow)
     return {
-      id: p.id,
-      player_id: p.player_id,
-      chips: netChips(p.final_chips, total_buyin),
-      final_chips: p.final_chips,
+      id: participant.id,
+      player_id: participant.player_id,
+      chips: netChips(participant.final_chips, total_buyin),
+      final_chips: participant.final_chips,
       total_buyin,
-      buy_ins: flow.map(b => ({ amount: b.amount, created_at: b.created_at })),
-      players: { name: names.get(p.player_id) ?? p.player_id },
+      buy_ins: flow.map(buyIn => ({ amount: buyIn.amount, created_at: buyIn.created_at })),
+      players: { name: source.names.get(participant.player_id) ?? participant.player_id },
     }
   })
-  return { ...(session as Omit<SessionDetail, 'session_entries'>), session_entries: entries }
+  const { buy_in_unit: _buyInUnit, started_at: _startedAt, ...session } = source.session
+  return { ...session, session_entries }
 }
 
 // For loading the edit form: returns each player's buy-in flow + final chips (net is derived on the client)
@@ -388,30 +427,17 @@ export interface SessionForEdit {
 }
 
 export async function getSessionForEdit(groupId: string, id: string): Promise<SessionForEdit | null> {
-  const [sessionResult, partsResult, buyinsResult, names] = await Promise.all([
-    db.from('session').select('date, exchange_rate, description, status').eq('group_id', groupId).eq('id', id).is('deleted_at', null).maybeSingle(),
-    db.from('session_participant').select('player_id, final_chips').is('deleted_at', null).eq('session_id', id).order('created_at', { ascending: true }),
-    db.from('buy_in').select('player_id, amount, created_at').is('deleted_at', null).eq('session_id', id).order('created_at', { ascending: true }),
-    playerNameMap(),
-  ])
-  throwIfQueryError(sessionResult.error)
-  throwIfQueryError(partsResult.error)
-  throwIfQueryError(buyinsResult.error)
-  const { data: session } = sessionResult
-  const { data: parts } = partsResult
-  const { data: buyins } = buyinsResult
-  if (!session) return null
-
-  const flowByPlayer = groupByPlayer((buyins ?? []) as { player_id: string; amount: number; created_at: string }[])
-
-  const participants: EditParticipant[] = ((parts ?? []) as { player_id: string; final_chips: number | null }[]).map(p => ({
-    player_id: p.player_id,
-    name: names.get(p.player_id) ?? p.player_id,
-    final_chips: p.final_chips,
-    buy_ins: (flowByPlayer.get(p.player_id) ?? []).map(b => ({ amount: b.amount, created_at: b.created_at })),
+  const source = await loadSessionAggregate(groupId, id)
+  if (!source) return null
+  const flowByPlayer = groupByPlayer(source.buy_ins)
+  const participants: EditParticipant[] = source.participants.map(participant => ({
+    player_id: participant.player_id,
+    name: source.names.get(participant.player_id) ?? participant.player_id,
+    final_chips: participant.final_chips,
+    buy_ins: (flowByPlayer.get(participant.player_id) ?? []).map(buyIn => ({ amount: buyIn.amount, created_at: buyIn.created_at })),
   }))
-
-  return { ...(session as Omit<SessionForEdit, 'participants'>), participants }
+  const { id: _id, buy_in_unit: _buyInUnit, started_at: _startedAt, ...session } = source.session
+  return { ...session, participants }
 }
 
 // ── live session (OPEN) ────────────────────────────────────────
@@ -438,38 +464,33 @@ export interface LiveSessionData {
   participants: LiveParticipant[]
 }
 
-export async function getLiveSession(groupId: string, id: string): Promise<LiveSessionData | null> {
-  const [sessionResult, partsResult, buyinsResult, names] = await Promise.all([
-    db.from('session').select('id, date, description, exchange_rate, buy_in_unit, started_at, status').eq('group_id', groupId).eq('id', id).is('deleted_at', null).maybeSingle(),
-    db.from('session_participant').select('player_id').is('deleted_at', null).eq('session_id', id).order('created_at', { ascending: true }),
-    db.from('buy_in').select('id, player_id, amount, created_at').is('deleted_at', null).eq('session_id', id).order('created_at', { ascending: true }),
-    playerNameMap(),
-  ])
-  throwIfQueryError(sessionResult.error)
-  throwIfQueryError(partsResult.error)
-  throwIfQueryError(buyinsResult.error)
-  const { data: session } = sessionResult
-  const { data: parts } = partsResult
-  const { data: buyins } = buyinsResult
-  if (!session) return null
-
-  const flowByPlayer = groupByPlayer((buyins ?? []) as LiveBuyIn[])
-
-  const participants: LiveParticipant[] = ((parts ?? []) as { player_id: string }[]).map(p => {
-    const flow = flowByPlayer.get(p.player_id) ?? []
-    return {
-      player_id: p.player_id,
-      name: names.get(p.player_id) ?? p.player_id,
-      total_buyin: buyinSum(flow),
-      buy_ins: flow,
-    }
-  })
-
+function liveSessionFromAggregate(source: SessionAggregateSource): LiveSessionData {
+  const flowByPlayer = groupByPlayer(source.buy_ins)
   return {
-    ...(session as Omit<LiveSessionData, 'participants'>),
-    buy_in_unit: session.buy_in_unit ?? BUY_IN_UNIT,
-    participants,
+    ...source.session,
+    buy_in_unit: source.session.buy_in_unit ?? BUY_IN_UNIT,
+    participants: source.participants.map(participant => {
+      const buy_ins = flowByPlayer.get(participant.player_id) ?? []
+      return {
+        player_id: participant.player_id,
+        name: source.names.get(participant.player_id) ?? participant.player_id,
+        total_buyin: buyinSum(buy_ins),
+        buy_ins,
+      }
+    }),
   }
+}
+
+export type SessionPageData =
+  | { status: 'OPEN'; session: LiveSessionData }
+  | { status: 'SETTLED'; session: SessionDetail }
+
+export async function getSessionPageData(groupId: string, id: string): Promise<SessionPageData | null> {
+  const source = await loadSessionAggregate(groupId, id)
+  if (!source) return null
+  return source.session.status === 'OPEN'
+    ? { status: 'OPEN', session: liveSessionFromAggregate(source) }
+    : { status: 'SETTLED', session: sessionDetailFromAggregate(source) }
 }
 
 // ── player detail ──────────────────────────────────────────────

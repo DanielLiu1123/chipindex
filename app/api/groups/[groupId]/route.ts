@@ -1,6 +1,7 @@
 import { withAuth, ApiError } from '@/lib/http'
 import { getGroup } from '@/lib/queries'
 import { renameGroup } from '@/lib/mutations'
+import { parseNameCommand, readCommand } from '@/lib/commands'
 
 type Ctx = { params: Promise<{ groupId: string }> }
 
@@ -13,6 +14,6 @@ export const GET = withAuth(async (_req, { params }: Ctx) => {
 
 export const PATCH = withAuth(async (req, { params }: Ctx) => {
   const { groupId } = await params
-  const { name } = await req.json() as { name: string }
+  const { name } = await readCommand(req, parseNameCommand)
   return Response.json(await renameGroup(groupId, name))
 })
