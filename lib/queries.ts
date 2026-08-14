@@ -246,51 +246,62 @@ async function buildSessionRows(rows: SessionListSource[]): Promise<SessionRow[]
   })
 }
 
-export async function getSessionsPage(groupId: string, requestedPage = 1, requestedPageSize = 10): Promise<SessionsPage> {
-  const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1
-  const pageSize = Number.isSafeInteger(requestedPageSize) && requestedPageSize > 0 ? requestedPageSize : 10
-  const from = (page - 1) * pageSize
-  const to = from + pageSize - 1
-
-  const { data: openData, count: openCountResult, error: openError } = await db
+async function countSessionsByStatus(groupId: string, status: SessionListSource['status']): Promise<number> {
+  const { count, error } = await db
     .from('session')
-    .select(SESSION_LIST_COLUMNS, { count: 'exact' })
+    .select('id', { count: 'exact', head: true })
     .eq('group_id', groupId)
     .is('deleted_at', null)
-    .eq('status', 'OPEN')
-    .order('started_at', { ascending: false })
-    .order('id', { ascending: false })
-    .range(from, to)
-  throwIfQueryError(openError)
+    .eq('status', status)
+  throwIfQueryError(error)
+  return count ?? 0
+}
 
-  const openRows = (openData ?? []) as SessionListSource[]
-  const openCount = openCountResult ?? openRows.length
-  const settledFrom = Math.max(0, from - openCount)
-  const settledLimit = pageSize - openRows.length
+async function fetchSessionSlice(
+  groupId: string,
+  status: SessionListSource['status'],
+  from: number,
+  limit: number,
+): Promise<SessionListSource[]> {
+  if (limit <= 0) return []
+  const query = db
+    .from('session')
+    .select(SESSION_LIST_COLUMNS)
+    .eq('group_id', groupId)
+    .is('deleted_at', null)
+    .eq('status', status)
 
-  const settledResult = settledLimit > 0
-    ? await db
-      .from('session')
-      .select(SESSION_LIST_COLUMNS, { count: 'exact' })
-      .eq('group_id', groupId)
-      .is('deleted_at', null)
-      .eq('status', 'SETTLED')
+  const { data, error } = status === 'OPEN'
+    ? await query
+      .order('started_at', { ascending: false })
+      .order('id', { ascending: false })
+      .range(from, from + limit - 1)
+    : await query
       .order('date', { ascending: false })
       .order('id', { ascending: false })
-      .range(settledFrom, settledFrom + settledLimit - 1)
-    : await db
-      .from('session')
-      .select('id', { count: 'exact', head: true })
-      .eq('group_id', groupId)
-      .is('deleted_at', null)
-      .eq('status', 'SETTLED')
-  throwIfQueryError(settledResult.error)
+      .range(from, from + limit - 1)
+  throwIfQueryError(error)
+  return (data ?? []) as SessionListSource[]
+}
 
-  const settledRows = (settledResult.data ?? []) as SessionListSource[]
-  const settledCount = settledResult.count ?? settledRows.length
+export async function getSessionsPage(groupId: string, requestedPage = 1, requestedPageSize = 10): Promise<SessionsPage> {
+  const pageSize = Number.isSafeInteger(requestedPageSize) && requestedPageSize > 0 ? requestedPageSize : 10
+  const validRequestedPage = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1
+  const [openCount, settledCount] = await Promise.all([
+    countSessionsByStatus(groupId, 'OPEN'),
+    countSessionsByStatus(groupId, 'SETTLED'),
+  ])
   const total = openCount + settledCount
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
-  if (page > totalPages) return getSessionsPage(groupId, totalPages, pageSize)
+  const page = Math.min(validRequestedPage, totalPages)
+  const from = (page - 1) * pageSize
+  const openLimit = Math.max(0, Math.min(pageSize, openCount - from))
+  const settledFrom = Math.max(0, from - openCount)
+  const settledLimit = Math.max(0, Math.min(pageSize - openLimit, settledCount - settledFrom))
+  const [openRows, settledRows] = await Promise.all([
+    fetchSessionSlice(groupId, 'OPEN', from, openLimit),
+    fetchSessionSlice(groupId, 'SETTLED', settledFrom, settledLimit),
+  ])
 
   return {
     sessions: await buildSessionRows([...openRows, ...settledRows]),
