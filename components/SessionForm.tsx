@@ -16,12 +16,12 @@ function newRow(): EntryRow {
 }
 
 // Import a finished session: record only each player's net result chips (the server uses synthFromNet to build buy_in + final_chips)
-export default function SessionForm() {
+export default function SessionForm({ groupId }: { groupId: string }) {
   const router = useRouter()
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0])
   const [exchangeRate, setExchangeRate] = useState('40')
   const [description, setDescription] = useState('')
-  const { rows, setRows, updateRow, removeRow, usedIds, players, playersLoading, playersError } = usePlayerRows<EntryRow>([newRow()])
+  const { rows, setRows, updateRow, removeRow, usedIds, players, playersLoading, playersError } = usePlayerRows<EntryRow>(groupId, [newRow()])
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
@@ -33,16 +33,16 @@ export default function SessionForm() {
     setSubmitting(true)
     try {
       const entries = await Promise.all(valid.map(async row => ({
-        player_id: await resolvePlayerId(row),
+        player_id: await resolvePlayerId(groupId, row),
         chips: Number(row.chips),
       })))
-      await api('POST', '/api/sessions', {
+      await api('POST', `/api/groups/${groupId}/sessions`, {
         date,
         exchange_rate: exchangeRate ? Number(exchangeRate) : 40,
         description: description || null,
         entries,
       })
-      router.push('/sessions')
+      router.push(`/groups/${groupId}/sessions`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Import failed')
     } finally {
@@ -56,7 +56,7 @@ export default function SessionForm() {
   return (
     <>
       <div className="mb-6">
-        <Link href="/sessions" className="text-muted text-xs hover:text-white tracking-widest">← SESSIONS</Link>
+        <Link href={`/groups/${groupId}/sessions`} className="text-muted text-xs hover:text-white tracking-widest">← SESSIONS</Link>
       </div>
       <h1 className="text-xs text-muted tracking-widest mb-6">IMPORT SESSION</h1>
       <form onSubmit={handleSubmit} className="flex flex-col gap-6 max-w-lg">

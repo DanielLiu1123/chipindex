@@ -7,9 +7,9 @@ import PlayerSelect from '@/components/PlayerSelect'
 import ConfirmModal from '@/components/ConfirmModal'
 import type { Player } from '@/types'
 import type { LiveSessionData, LiveParticipant } from '@/lib/queries'
-import { api, ApiClientError } from '@/lib/client'
+import { api, ApiClientError, createPlayerInGroup } from '@/lib/client'
 
-export default function LiveSession({ session, allPlayers }: { session: LiveSessionData; allPlayers: Player[] }) {
+export default function LiveSession({ groupId, session, allPlayers }: { groupId: string; session: LiveSessionData; allPlayers: Player[] }) {
   const router = useRouter()
   const [pending, setPending] = useState(false)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
@@ -44,13 +44,13 @@ export default function LiveSession({ session, allPlayers }: { session: LiveSess
   }
 
   const addBuyIn = (player_id: string, amount: number) =>
-    act(() => api('POST', `/api/sessions/${session.id}/buyin`, { player_id, amount }))
+    act(() => api('POST', `/api/groups/${groupId}/sessions/${session.id}/buyin`, { player_id, amount }))
 
   const undoBuyIn = (buyinId: string) =>
-    act(() => api('DELETE', `/api/sessions/${session.id}/buyin/${buyinId}`))
+    act(() => api('DELETE', `/api/groups/${groupId}/sessions/${session.id}/buyin/${buyinId}`))
 
   const removeParticipant = (player_id: string) =>
-    act(() => api('DELETE', `/api/sessions/${session.id}/participant`, { player_id }))
+    act(() => api('DELETE', `/api/groups/${groupId}/sessions/${session.id}/participant`, { player_id }))
 
   async function doRemove() {
     if (!confirmRemove) return
@@ -68,7 +68,7 @@ export default function LiveSession({ session, allPlayers }: { session: LiveSess
 
   async function addExisting(player_id: string) {
     // Joining grants an initial buy-in (= buy_in_unit); the participant is lazily created by the buy-in endpoint
-    await act(() => api('POST', `/api/sessions/${session.id}/buyin`, { player_id, amount: unit }))
+    await act(() => api('POST', `/api/groups/${groupId}/sessions/${session.id}/buyin`, { player_id, amount: unit }))
     setAddId('')
   }
 
@@ -76,8 +76,8 @@ export default function LiveSession({ session, allPlayers }: { session: LiveSess
     const name = newName.trim()
     if (!name) return
     await act(async () => {
-      const p = await api<Player>('POST', '/api/players', { name })
-      await api('POST', `/api/sessions/${session.id}/buyin`, { player_id: p.id, amount: unit })
+      const { player } = await createPlayerInGroup(groupId, name)
+      await api('POST', `/api/groups/${groupId}/sessions/${session.id}/buyin`, { player_id: player.id, amount: unit })
       setNewName('')
       setAddingNew(false)
     })
@@ -102,11 +102,11 @@ export default function LiveSession({ session, allPlayers }: { session: LiveSess
     setError('')
     setSettleError(null)
     try {
-      await api('POST', `/api/sessions/${session.id}/settle`, {
+      await api('POST', `/api/groups/${groupId}/sessions/${session.id}/settle`, {
         finals: session.participants.map(p => ({ player_id: p.player_id, final_chips: Number(finals[p.player_id]) })),
         force,
       })
-      router.push(`/sessions/${session.id}`)
+      router.push(`/groups/${groupId}/sessions/${session.id}`)
     } catch (e) {
       if (e instanceof ApiClientError && e.status === 422) {
         setSettleError({ diff: Number(e.payload.diff) })
@@ -128,7 +128,7 @@ export default function LiveSession({ session, allPlayers }: { session: LiveSess
         onCancel={() => setConfirmRemove(null)}
       />
       <div className="mb-6">
-        <Link href="/sessions" className="text-muted text-xs hover:text-white tracking-widest">← SESSIONS</Link>
+        <Link href={`/groups/${groupId}/sessions`} className="text-muted text-xs hover:text-white tracking-widest">← SESSIONS</Link>
       </div>
 
       <div className="flex items-center gap-2 mb-1">

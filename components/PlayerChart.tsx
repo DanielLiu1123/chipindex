@@ -17,9 +17,11 @@ import type { HistoryPoint } from '@/lib/stats'
 import { formatAmount } from '@/lib/format'
 
 export default function PlayerChart({
+  groupId,
   data,
   mode,
 }: {
+  groupId: string
   data: HistoryPoint[]
   mode: 'chips' | 'cny'
 }) {
@@ -34,8 +36,8 @@ export default function PlayerChart({
     [data],
   )
   const activateSession = useCallback((sessionId: string) => {
-    router.push(`/sessions/${sessionId}`)
-  }, [router])
+    router.push(`/groups/${groupId}/sessions/${sessionId}`)
+  }, [groupId, router])
 
   const candleRange = useCallback((value: unknown): [number, number] => {
     const point = value as HistoryPoint

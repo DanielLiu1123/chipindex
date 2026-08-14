@@ -20,12 +20,12 @@ function newPlayerRow(): PlayerRow {
   return { uid: uid(), playerId: '', buyin: String(BUY_IN_UNIT), isNew: true, newName: '' }
 }
 
-export default function NewSessionForm() {
+export default function NewSessionForm({ groupId }: { groupId: string }) {
   const router = useRouter()
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0])
   const [exchangeRate, setExchangeRate] = useState('40')
   const [description, setDescription] = useState('')
-  const { rows, setRows, updateRow, removeRow, usedIds, players, playersLoading, playersError } = usePlayerRows<PlayerRow>([])
+  const { rows, setRows, updateRow, removeRow, usedIds, players, playersLoading, playersError } = usePlayerRows<PlayerRow>(groupId, [])
   const [starting, setStarting] = useState(false)
   const [error, setError] = useState('')
 
@@ -38,17 +38,17 @@ export default function NewSessionForm() {
     setStarting(true)
     try {
       const playersPayload = await Promise.all(validRows.map(async row => ({
-        player_id: await resolvePlayerId(row),
+        player_id: await resolvePlayerId(groupId, row),
         initial_buyin: Number(row.buyin),
       })))
-      const session = await api<{ id: string }>('POST', '/api/sessions', {
+      const session = await api<{ id: string }>('POST', `/api/groups/${groupId}/sessions`, {
         status: 'OPEN',
         date,
         exchange_rate: exchangeRate ? Number(exchangeRate) : 40,
         description: description || null,
         players: playersPayload,
       })
-      router.push(`/sessions/${session.id}`)
+      router.push(`/groups/${groupId}/sessions/${session.id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start session')
       setStarting(false)
@@ -61,7 +61,7 @@ export default function NewSessionForm() {
   return (
     <>
       <div className="mb-6">
-        <Link href="/sessions" className="text-muted text-xs hover:text-white tracking-widest">← SESSIONS</Link>
+        <Link href={`/groups/${groupId}/sessions`} className="text-muted text-xs hover:text-white tracking-widest">← SESSIONS</Link>
       </div>
       <h1 className="text-xs text-muted tracking-widest mb-6">NEW SESSION</h1>
       <form onSubmit={handleStart} className="flex flex-col gap-6 max-w-lg">

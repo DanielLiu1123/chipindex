@@ -32,7 +32,7 @@ function buildChartData(sessions: LeaderboardSessionRow[], stats: PlayerStats[],
 
 type SortKey = 'total_yuan' | 'total_chips' | 'sessions_played' | 'win_rate' | 'pog_count'
 
-export default function LeaderboardView({ stats, sessions }: { stats: PlayerStats[]; sessions: LeaderboardSessionRow[] }) {
+export default function LeaderboardView({ groupId, stats, sessions }: { groupId: string; stats: PlayerStats[]; sessions: LeaderboardSessionRow[] }) {
   const [view, setView] = useState<'table' | 'chart'>('table')
   const [chartMode, setChartMode] = useState<'chips' | 'cny'>('cny')
   const [sortKey, setSortKey] = useState<SortKey>('total_yuan')
@@ -92,7 +92,7 @@ export default function LeaderboardView({ stats, sessions }: { stats: PlayerStat
             </button>
           </div>
         </div>
-        <Link href="/sessions/new" className="text-xs text-accent tracking-widest hover:underline">+ NEW SESSION</Link>
+        <Link href={`/groups/${groupId}/sessions/new`} className="text-xs text-accent tracking-widest hover:underline">+ NEW SESSION</Link>
       </div>
 
       {activityFilter.hiddenCount > 0 && (
@@ -143,25 +143,25 @@ export default function LeaderboardView({ stats, sessions }: { stats: PlayerStat
             {sortedStats.map((s, i) => (
               <tr key={s.player.id} className="border-b border-border hover:bg-surface transition-colors">
                 <td className="py-4 text-muted text-xs">
-                  <Link href={`/players/${s.player.id}`} className="block">{i + 1}</Link>
+                  <Link href={`/groups/${groupId}/players/${s.player.id}`} className="block">{i + 1}</Link>
                 </td>
                 <td className="py-4">
-                  <Link href={`/players/${s.player.id}`} className="block">{s.player.name}</Link>
+                  <Link href={`/groups/${groupId}/players/${s.player.id}`} className="block">{s.player.name}</Link>
                 </td>
                 <td className="py-4 text-right">
-                  <Link href={`/players/${s.player.id}`} className="block"><ChipValue chips={s.total_yuan} prefix="¥" /></Link>
+                  <Link href={`/groups/${groupId}/players/${s.player.id}`} className="block"><ChipValue chips={s.total_yuan} prefix="¥" /></Link>
                 </td>
                 <td className="py-4 text-right">
-                  <Link href={`/players/${s.player.id}`} className="block"><ChipValue chips={s.total_chips} /></Link>
+                  <Link href={`/groups/${groupId}/players/${s.player.id}`} className="block"><ChipValue chips={s.total_chips} /></Link>
                 </td>
                 <td className="py-4 text-right text-muted">
-                  <Link href={`/players/${s.player.id}`} className="block">{s.sessions_played}</Link>
+                  <Link href={`/groups/${groupId}/players/${s.player.id}`} className="block">{s.sessions_played}</Link>
                 </td>
                 <td className="py-4 text-right text-muted">
-                  <Link href={`/players/${s.player.id}`} className="block">{(s.win_rate * 100).toFixed(0)}%</Link>
+                  <Link href={`/groups/${groupId}/players/${s.player.id}`} className="block">{(s.win_rate * 100).toFixed(0)}%</Link>
                 </td>
                 <td className="py-4 text-right text-muted">
-                  <Link href={`/players/${s.player.id}`} className="block">{s.pog_count}</Link>
+                  <Link href={`/groups/${groupId}/players/${s.player.id}`} className="block">{s.pog_count}</Link>
                 </td>
               </tr>
             ))}

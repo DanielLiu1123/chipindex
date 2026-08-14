@@ -1,16 +1,14 @@
-import { getPlayers, getLeaderboardSessions } from '@/lib/queries'
-import { computeLeaderboardStats } from '@/lib/stats'
-import LeaderboardView from '@/components/LeaderboardView'
+import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
+import { getGroups } from '@/lib/queries'
 
 export const dynamic = 'force-dynamic'
 
 export default async function LeaderboardPage() {
-  const [players, sessions] = await Promise.all([
-    getPlayers(),
-    getLeaderboardSessions(),
-  ])
-
-  const stats = computeLeaderboardStats(players, sessions)
-
-  return <LeaderboardView stats={stats} sessions={sessions} />
+  const groups = await getGroups()
+  if (groups.length === 0) redirect('/groups/new')
+  const store = await cookies()
+  const remembered = store.get('chipindex_group')?.value
+  const group = groups.find(item => item.id === remembered) ?? groups[0]
+  redirect(`/groups/${group.id}`)
 }

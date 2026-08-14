@@ -10,7 +10,7 @@ interface HistoryRow {
   session_id: string
 }
 
-export default function PlayerSessionHistoryTable({ rows }: { rows: HistoryRow[] }) {
+export default function PlayerSessionHistoryTable({ groupId, rows }: { groupId: string; rows: HistoryRow[] }) {
   return (
     <table className="w-full text-sm">
       <thead>
@@ -32,19 +32,19 @@ export default function PlayerSessionHistoryTable({ rows }: { rows: HistoryRow[]
         {rows.map(row => (
           <tr key={row.session_id} className="border-b border-border hover:bg-surface transition-colors">
             <td className="py-4 px-1 first:pl-0 last:pr-0">
-              <Link href={`/sessions/${row.session_id}`} className="block">{row.date}</Link>
+              <Link href={`/groups/${groupId}/sessions/${row.session_id}`} className="block">{row.date}</Link>
             </td>
             <td className="py-4 px-1 first:pl-0 last:pr-0 text-right">
-              <Link href={`/sessions/${row.session_id}`} className="block"><ChipValue chips={row.cny} prefix="¥" /></Link>
+              <Link href={`/groups/${groupId}/sessions/${row.session_id}`} className="block"><ChipValue chips={row.cny} prefix="¥" /></Link>
             </td>
             <td className="py-4 px-1 first:pl-0 last:pr-0 text-right">
-              <Link href={`/sessions/${row.session_id}`} className="block"><ChipValue chips={row.chips} /></Link>
+              <Link href={`/groups/${groupId}/sessions/${row.session_id}`} className="block"><ChipValue chips={row.chips} /></Link>
             </td>
             <td className="py-4 px-1 first:pl-0 last:pr-0 text-right">
-              <Link href={`/sessions/${row.session_id}`} className="block"><ChipValue chips={row.cumulative_cny} prefix="¥" /></Link>
+              <Link href={`/groups/${groupId}/sessions/${row.session_id}`} className="block"><ChipValue chips={row.cumulative_cny} prefix="¥" /></Link>
             </td>
             <td className="py-4 px-1 first:pl-0 last:pr-0 text-right">
-              <Link href={`/sessions/${row.session_id}`} className="block"><ChipValue chips={row.cumulative} /></Link>
+              <Link href={`/groups/${groupId}/sessions/${row.session_id}`} className="block"><ChipValue chips={row.cumulative} /></Link>
             </td>
           </tr>
         ))}

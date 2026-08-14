@@ -15,7 +15,8 @@ interface Entry {
   players?: { name: string } | null
 }
 
-export default function SessionEntriesTable({ entries, exchangeRate, total }: {
+export default function SessionEntriesTable({ groupId, entries, exchangeRate, total }: {
+  groupId: string
   entries: Entry[]
   exchangeRate: number
   total: number
@@ -51,7 +52,7 @@ export default function SessionEntriesTable({ entries, exchangeRate, total }: {
                     <svg className={`w-2.5 h-2.5 text-muted transition-transform ${open ? 'rotate-90' : ''}`} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
                       <path d="M4 2l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
-                    <Link href={`/players/${e.player_id}`} onClick={ev => ev.stopPropagation()} className="hover:text-accent transition-colors">
+                    <Link href={`/groups/${groupId}/players/${e.player_id}`} onClick={ev => ev.stopPropagation()} className="hover:text-accent transition-colors">
                       {e.players?.name ?? e.player_id}
                     </Link>
                   </span>

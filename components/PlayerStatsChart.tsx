@@ -7,6 +7,7 @@ import PlayerNameEditor from '@/components/PlayerNameEditor'
 import type { HistoryPoint } from '@/lib/stats'
 
 export default function PlayerStatsChart({
+  groupId,
   id,
   initialName,
   data,
@@ -16,6 +17,7 @@ export default function PlayerStatsChart({
   wins,
   pogCount,
 }: {
+  groupId: string
   id: string
   initialName: string
   data: HistoryPoint[]
@@ -30,7 +32,7 @@ export default function PlayerStatsChart({
   return (
     <>
       <div className="flex items-baseline justify-between mb-8">
-        <PlayerNameEditor id={id} initialName={initialName} />
+        <PlayerNameEditor groupId={groupId} id={id} initialName={initialName} />
         <div className="flex gap-6 text-xs text-muted items-baseline">
           <span>{sessions} sessions</span>
           <span>{wins} wins</span>
@@ -71,7 +73,7 @@ export default function PlayerStatsChart({
               </div>
             </div>
           </div>
-          <PlayerChart data={data} mode={mode} />
+          <PlayerChart groupId={groupId} data={data} mode={mode} />
         </div>
       )}
     </>
