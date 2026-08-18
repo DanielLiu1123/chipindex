@@ -1,6 +1,7 @@
 import { ApiError } from './http'
 import type {
   BuyInCommand,
+  CashOutParticipantCommand,
   CreateSessionCommand,
   EditedParticipant,
   FinalEntry,
@@ -168,6 +169,14 @@ export function parseBuyInCommand(value: unknown): BuyInCommand {
   return {
     player_id: string(body.player_id, 'player_id'),
     amount: integer(body.amount, 'amount', 1),
+  }
+}
+
+export function parseCashOutParticipantCommand(value: unknown): CashOutParticipantCommand {
+  const body = object(value)
+  return {
+    player_id: string(body.player_id, 'player_id'),
+    final_chips: integer(body.final_chips, 'final_chips', 0),
   }
 }
 

@@ -380,6 +380,17 @@ export async function softDeleteSession(groupId: string, id: string): Promise<vo
 export async function addParticipant(groupId: string, sessionId: string, playerId: string) {
   if (!playerId) throw new ApiError(400, 'player_id required')
   await requireOpenSession(groupId, sessionId)
+  const { data: existing, error: existingError } = await db
+    .from('session_participant')
+    .select('id, settled_at')
+    .eq('session_id', sessionId)
+    .eq('player_id', playerId)
+    .is('deleted_at', null)
+    .maybeSingle()
+  ensure(existingError)
+  if (existing && (existing as ParticipantSettlementRow).settled_at !== null) {
+    throw new ApiError(409, 'Cashed-out participant cannot rejoin')
+  }
   await requireActiveMembers(groupId, [playerId])
   const { data, error } = await db
     .from('session_participant')
@@ -393,6 +404,10 @@ export async function addParticipant(groupId: string, sessionId: string, playerI
 export async function removeParticipant(groupId: string, sessionId: string, playerId: string): Promise<void> {
   if (!playerId) throw new ApiError(400, 'player_id required')
   await requireOpenSession(groupId, sessionId)
+  const participant = await requireParticipantSettlementState(sessionId, playerId)
+  if (participant.settled_at !== null) {
+    throw new ApiError(409, 'Undo cash out before removing participant')
+  }
   const ts = now()
   const [{ error: pErr }, { error: bErr }] = await Promise.all([
     db.from('session_participant').update({ deleted_at: ts, updated_at: ts }).eq('session_id', sessionId).eq('player_id', playerId),
@@ -400,6 +415,74 @@ export async function removeParticipant(groupId: string, sessionId: string, play
   ])
   ensure(pErr)
   ensure(bErr)
+}
+
+interface ParticipantSettlementRow {
+  id: string
+  settled_at: string | null
+}
+
+async function requireParticipantSettlementState(sessionId: string, playerId: string): Promise<ParticipantSettlementRow> {
+  const { data, error } = await db
+    .from('session_participant')
+    .select('id, settled_at')
+    .eq('session_id', sessionId)
+    .eq('player_id', playerId)
+    .is('deleted_at', null)
+    .maybeSingle()
+  ensure(error)
+  if (!data) throw new ApiError(404, 'Participant not found')
+  return data as ParticipantSettlementRow
+}
+
+export async function cashOutParticipant(
+  groupId: string,
+  sessionId: string,
+  playerId: string,
+  finalChips: number,
+) {
+  if (!playerId) throw new ApiError(400, 'player_id required')
+  if (!Number.isInteger(finalChips) || finalChips < 0) {
+    throw new ApiError(400, 'final_chips must be a non-negative integer')
+  }
+  await requireOpenSession(groupId, sessionId)
+  const participant = await requireParticipantSettlementState(sessionId, playerId)
+  if (participant.settled_at !== null) throw new ApiError(409, 'Participant has already cashed out')
+
+  const ts = now()
+  const { data, error } = await db
+    .from('session_participant')
+    .update({ final_chips: finalChips, settled_at: ts, updated_at: ts })
+    .eq('session_id', sessionId)
+    .eq('player_id', playerId)
+    .is('deleted_at', null)
+    .is('settled_at', null)
+    .select('player_id, final_chips, settled_at')
+    .maybeSingle()
+  ensure(error)
+  if (!data) throw new ApiError(409, 'Participant has already cashed out')
+  return data
+}
+
+export async function undoParticipantCashOut(groupId: string, sessionId: string, playerId: string) {
+  if (!playerId) throw new ApiError(400, 'player_id required')
+  await requireOpenSession(groupId, sessionId)
+  const participant = await requireParticipantSettlementState(sessionId, playerId)
+  if (participant.settled_at === null) throw new ApiError(409, 'Participant has not cashed out')
+
+  const ts = now()
+  const { data, error } = await db
+    .from('session_participant')
+    .update({ final_chips: null, settled_at: null, updated_at: ts })
+    .eq('session_id', sessionId)
+    .eq('player_id', playerId)
+    .is('deleted_at', null)
+    .not('settled_at', 'is', null)
+    .select('player_id, final_chips, settled_at')
+    .maybeSingle()
+  ensure(error)
+  if (!data) throw new ApiError(409, 'Participant has not cashed out')
+  return data
 }
 
 // Record a buy-in. The participant is lazily created on their first buy-in,
@@ -413,12 +496,15 @@ export async function addBuyin(groupId: string, sessionId: string, playerId: str
 
   const { data: existing, error: existingError } = await db
     .from('session_participant')
-    .select('id')
+    .select('id, settled_at')
     .eq('session_id', sessionId)
     .eq('player_id', playerId)
     .is('deleted_at', null)
     .maybeSingle()
   ensure(existingError)
+  if (existing && (existing as ParticipantSettlementRow).settled_at !== null) {
+    throw new ApiError(409, 'Cashed-out participant cannot buy in')
+  }
   if (!existing) await requireActiveMembers(groupId, [playerId])
 
   const { error: pErr } = await db
@@ -437,6 +523,19 @@ export async function addBuyin(groupId: string, sessionId: string, playerId: str
 
 export async function revokeBuyin(groupId: string, sessionId: string, buyinId: string): Promise<void> {
   await requireOpenSession(groupId, sessionId)
+  const { data: buyin, error: buyinError } = await db
+    .from('buy_in')
+    .select('player_id')
+    .eq('id', buyinId)
+    .eq('session_id', sessionId)
+    .is('deleted_at', null)
+    .maybeSingle()
+  ensure(buyinError)
+  if (!buyin) throw new ApiError(404, 'Buy-in not found')
+  const participant = await requireParticipantSettlementState(sessionId, (buyin as { player_id: string }).player_id)
+  if (participant.settled_at !== null) {
+    throw new ApiError(409, 'Cashed-out participant cannot revoke buy-ins')
+  }
   const ts = now()
   const { error } = await db
     .from('buy_in')
@@ -458,23 +557,47 @@ export async function settleSession(
 
   const { data: parts, error: participantError } = await db
     .from('session_participant')
-    .select('player_id')
+    .select('player_id, final_chips, settled_at')
     .is('deleted_at', null)
     .eq('session_id', sessionId)
   ensure(participantError)
-  const participantIds = new Set(((parts ?? []) as { player_id: string }[]).map(p => p.player_id))
-  if (participantIds.size === 0) throw new ApiError(400, 'No participants')
+  const participants = (parts ?? []) as Array<{
+    player_id: string
+    final_chips: number | null
+    settled_at: string | null
+  }>
+  if (participants.length === 0) throw new ApiError(400, 'No participants')
 
-  const finalMap = new Map<string, number>()
+  const requestedFinals = new Map<string, number>()
   requireUniquePlayerIds((finals ?? []).map(final => final.player_id))
   for (const f of finals ?? []) {
     if (!Number.isInteger(f.final_chips) || f.final_chips < 0) {
       throw new ApiError(400, `Invalid final_chips for ${f.player_id}`)
     }
-    finalMap.set(f.player_id, f.final_chips)
+    requestedFinals.set(f.player_id, f.final_chips)
   }
-  for (const pid of participantIds) {
-    if (!finalMap.has(pid)) throw new ApiError(400, `Missing final_chips for participant ${pid}`)
+
+  const finalMap = new Map<string, number>()
+  const activeParticipantIds: string[] = []
+  for (const participant of participants) {
+    if (participant.settled_at !== null) {
+      if (!Number.isInteger(participant.final_chips) || participant.final_chips! < 0) {
+        throw new ApiError(500, `Cashed-out participant ${participant.player_id} has invalid final_chips`)
+      }
+      const requested = requestedFinals.get(participant.player_id)
+      if (requested !== undefined && requested !== participant.final_chips) {
+        throw new ApiError(409, `Frozen final_chips do not match for participant ${participant.player_id}`)
+      }
+      finalMap.set(participant.player_id, participant.final_chips!)
+      continue
+    }
+
+    const requested = requestedFinals.get(participant.player_id)
+    if (requested === undefined) {
+      throw new ApiError(400, `Missing final_chips for participant ${participant.player_id}`)
+    }
+    finalMap.set(participant.player_id, requested)
+    activeParticipantIds.push(participant.player_id)
   }
 
   const { data: buyins, error: buyinError } = await db
@@ -485,22 +608,28 @@ export async function settleSession(
   ensure(buyinError)
   const totalBuyin = buyinSum((buyins ?? []) as { amount: number }[])
   let totalFinal = 0
-  for (const pid of participantIds) totalFinal += finalMap.get(pid)!
+  for (const participant of participants) totalFinal += finalMap.get(participant.player_id)!
   const diff = requireConservation(totalBuyin, totalFinal, force)
 
-  // Each player gets a different final_chips value, so this is one update per
-  // participant; run them concurrently instead of serially.
+  // Cashed-out participants keep their original settlement time and frozen
+  // final chips; only active participants are finalized here.
   const ts = now()
   const results = await Promise.all(
-    [...participantIds].map(pid =>
+    activeParticipantIds.map(pid =>
       db.from('session_participant')
         .update({ final_chips: finalMap.get(pid)!, settled_at: ts, updated_at: ts })
         .eq('session_id', sessionId)
         .eq('player_id', pid)
         .is('deleted_at', null)
+        .is('settled_at', null)
+        .select('id')
+        .maybeSingle()
     )
   )
-  for (const { error } of results) ensure(error)
+  for (const { data, error } of results) {
+    ensure(error)
+    if (!data) throw new ApiError(409, 'Participant state changed during settlement')
+  }
 
   const { error: sErr } = await db
     .from('session')

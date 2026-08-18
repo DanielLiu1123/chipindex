@@ -4,6 +4,7 @@
 
 import type {
   BuyInCommand,
+  CashOutParticipantCommand,
   GroupPlayerCommand,
   ImportSessionCommand,
   NameCommand,
@@ -92,6 +93,12 @@ export const revokeBuyIn = (groupId: string, sessionId: string, buyInId: string)
 
 export const removeSessionParticipant = (groupId: string, sessionId: string, playerId: string) =>
   request<void>('DELETE', `/api/groups/${groupId}/sessions/${sessionId}/participant`, { player_id: playerId } satisfies GroupPlayerCommand)
+
+export const cashOutSessionParticipant = (groupId: string, sessionId: string, command: CashOutParticipantCommand) =>
+  request('POST', `/api/groups/${groupId}/sessions/${sessionId}/participant/cashout`, command)
+
+export const undoSessionParticipantCashOut = (groupId: string, sessionId: string, playerId: string) =>
+  request<void>('DELETE', `/api/groups/${groupId}/sessions/${sessionId}/participant/cashout`, { player_id: playerId } satisfies GroupPlayerCommand)
 
 export const settleSession = (groupId: string, sessionId: string, command: SettleSessionCommand) =>
   request<{ id: string; diff: number }>('POST', `/api/groups/${groupId}/sessions/${sessionId}/settle`, command)

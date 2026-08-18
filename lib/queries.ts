@@ -350,7 +350,7 @@ interface SessionAggregateSource {
     started_at: string | null
     status: SessionStatus
   }
-  participants: Array<{ id: string; player_id: string; final_chips: number | null }>
+  participants: Array<{ id: string; player_id: string; final_chips: number | null; settled_at: string | null }>
   buy_ins: LiveBuyIn[]
   names: Map<string, string>
 }
@@ -368,7 +368,7 @@ async function loadSessionAggregate(groupId: string, id: string): Promise<Sessio
 
   const [partsResult, buyinsResult] = await Promise.all([
     db.from('session_participant')
-      .select('id, player_id, final_chips')
+      .select('id, player_id, final_chips, settled_at')
       .is('deleted_at', null)
       .eq('session_id', id)
       .order('created_at', { ascending: true }),
@@ -452,6 +452,8 @@ export interface LiveParticipant {
   name: string
   total_buyin: number
   buy_ins: LiveBuyIn[]
+  final_chips: number | null
+  settled_at: string | null
 }
 export interface LiveSessionData {
   id: string
@@ -476,6 +478,8 @@ function liveSessionFromAggregate(source: SessionAggregateSource): LiveSessionDa
         name: source.names.get(participant.player_id) ?? participant.player_id,
         total_buyin: buyinSum(buy_ins),
         buy_ins,
+        final_chips: participant.final_chips,
+        settled_at: participant.settled_at,
       }
     }),
   }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseBuyInCommand, parseCreateSessionCommand, readCommand } from './commands'
+import { parseBuyInCommand, parseCashOutParticipantCommand, parseCreateSessionCommand, readCommand } from './commands'
 
 describe('parseCreateSessionCommand', () => {
   it('rejects an unknown status instead of treating it as an imported session', () => {
@@ -50,5 +50,19 @@ describe('readCommand', () => {
       status: 400,
       message: 'Invalid JSON body',
     })
+  })
+})
+
+describe('parseCashOutParticipantCommand', () => {
+  it('accepts zero final chips as a valid cash out', () => {
+    expect(parseCashOutParticipantCommand({ player_id: 'p1', final_chips: 0 })).toEqual({
+      player_id: 'p1',
+      final_chips: 0,
+    })
+  })
+
+  it.each([-1, 1.5])('rejects invalid final chips: %s', final_chips => {
+    expect(() => parseCashOutParticipantCommand({ player_id: 'p1', final_chips }))
+      .toThrow(expect.objectContaining({ status: 400 }))
   })
 })

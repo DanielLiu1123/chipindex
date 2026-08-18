@@ -54,6 +54,11 @@ export interface BuyInCommand {
   amount: number
 }
 
+export interface CashOutParticipantCommand {
+  player_id: string
+  final_chips: number
+}
+
 export interface FinalEntry {
   player_id: string
   final_chips: number

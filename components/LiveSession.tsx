@@ -5,15 +5,19 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import PlayerSelect from '@/components/PlayerSelect'
 import ConfirmModal from '@/components/ConfirmModal'
+import CashOutModal from '@/components/CashOutModal'
+import ChipValue from '@/components/ChipValue'
 import type { Player } from '@/types'
 import type { LiveSessionData, LiveParticipant } from '@/lib/queries'
 import {
   addBuyIn as createBuyIn,
   ApiClientError,
+  cashOutSessionParticipant,
   createPlayerInGroup,
   removeSessionParticipant,
   revokeBuyIn,
   settleSession,
+  undoSessionParticipantCashOut,
 } from '@/lib/client'
 
 export default function LiveSession({ groupId, session, allPlayers }: { groupId: string; session: LiveSessionData; allPlayers: Player[] }) {
@@ -28,10 +32,14 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
   const [finals, setFinals] = useState<Record<string, string>>({})
   const [settleError, setSettleError] = useState<{ diff: number } | null>(null)
   const [confirmRemove, setConfirmRemove] = useState<LiveParticipant | null>(null)
+  const [cashOut, setCashOut] = useState<LiveParticipant | null>(null)
+  const [cashOutError, setCashOutError] = useState('')
   const [error, setError] = useState('')
 
   const unit = session.buy_in_unit
   const pot = session.participants.reduce((s, p) => s + p.total_buyin, 0)
+  const cashedOutTotal = session.participants.reduce((sum, participant) =>
+    sum + (participant.settled_at !== null ? participant.final_chips ?? 0 : 0), 0)
   const usedIds = session.participants.map(p => p.player_id)
   const availablePlayers = allPlayers.filter(p => !usedIds.includes(p.id))
 
@@ -65,6 +73,24 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
     setConfirmRemove(null)
     await removeParticipant(pid)
   }
+
+  async function doCashOut(finalChips: number) {
+    if (!cashOut) return
+    setPending(true)
+    setCashOutError('')
+    try {
+      await cashOutSessionParticipant(groupId, session.id, { player_id: cashOut.player_id, final_chips: finalChips })
+      setCashOut(null)
+      router.refresh()
+    } catch (e) {
+      setCashOutError(e instanceof Error ? e.message : `Could not cash out ${cashOut.name}. Please try again.`)
+    } finally {
+      setPending(false)
+    }
+  }
+
+  const undoCashOut = (playerId: string) =>
+    act(() => undoSessionParticipantCashOut(groupId, session.id, playerId))
 
   function addCustom(player_id: string) {
     const v = Number(custom[player_id])
@@ -100,9 +126,14 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
   }
 
   // ── settle ────────────────────────────────────────────
-  const totalFinal = session.participants.reduce((s, p) => s + (Number(finals[p.player_id]) || 0), 0)
+  const totalFinal = session.participants.reduce((sum, participant) => sum + (
+    participant.settled_at !== null
+      ? participant.final_chips ?? 0
+      : Number(finals[participant.player_id]) || 0
+  ), 0)
   const settleDiff = totalFinal - pot
-  const allFinalsFilled = session.participants.every(p => finals[p.player_id] !== undefined && finals[p.player_id] !== '')
+  const allFinalsFilled = session.participants.every(p =>
+    p.settled_at !== null || (finals[p.player_id] !== undefined && finals[p.player_id] !== ''))
 
   async function submitSettle(force: boolean) {
     setPending(true)
@@ -110,7 +141,9 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
     setSettleError(null)
     try {
       await settleSession(groupId, session.id, {
-        finals: session.participants.map(p => ({ player_id: p.player_id, final_chips: Number(finals[p.player_id]) })),
+        finals: session.participants
+          .filter(participant => participant.settled_at === null)
+          .map(participant => ({ player_id: participant.player_id, final_chips: Number(finals[participant.player_id]) })),
         force,
       })
       router.push(`/groups/${groupId}/sessions/${session.id}`)
@@ -134,6 +167,13 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
         onConfirm={doRemove}
         onCancel={() => setConfirmRemove(null)}
       />
+      <CashOutModal
+        participant={cashOut}
+        pending={pending}
+        error={cashOutError}
+        onConfirm={doCashOut}
+        onCancel={() => { setCashOut(null); setCashOutError('') }}
+      />
       <div className="mb-6">
         <Link href={`/groups/${groupId}/sessions`} className="text-muted text-xs hover:text-white tracking-widest">← SESSIONS</Link>
       </div>
@@ -149,6 +189,13 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
         <span className="text-accent text-lg">{pot.toLocaleString()}</span>
         <span className="text-xs text-muted">chips</span>
       </div>
+      {cashedOutTotal > 0 && (
+        <div className="-mt-5 mb-6 flex items-baseline gap-2">
+          <span className="text-xs text-muted tracking-widest">CASHED OUT</span>
+          <span className="text-white text-sm">{cashedOutTotal.toLocaleString()}</span>
+          <span className="text-xs text-muted">chips</span>
+        </div>
+      )}
 
       {error && <p className="text-danger text-xs mb-4">{error}</p>}
 
@@ -157,19 +204,29 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
         {session.participants.length === 0 && (
           <p className="text-muted text-xs tracking-widest py-6 text-center">NO PLAYERS YET — ADD SOMEONE BELOW</p>
         )}
-        {session.participants.map(p => (
-          <div key={p.player_id} className="border border-border">
+        {session.participants.map(p => {
+          const isCashedOut = p.settled_at !== null
+          return (
+          <div key={p.player_id} className={`border border-border ${isCashedOut ? 'bg-surface/40' : ''}`}>
             <div className="flex items-center gap-2 px-3 py-2.5">
               <button onClick={() => toggleExpand(p.player_id)} className="flex-1 text-left flex items-baseline gap-2 min-w-0">
                 <span className="text-white truncate">{p.name}</span>
-                <span className="text-xs text-muted">{p.buy_ins.length}×</span>
+                {isCashedOut ? (
+                  <span className="text-xs text-muted whitespace-nowrap">CASHED OUT · {new Date(p.settled_at!).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
+                ) : <span className="text-xs text-muted">{p.buy_ins.length}×</span>}
               </button>
-              <span className="text-sm text-white tabular-nums">{p.total_buyin.toLocaleString()}</span>
-              {!settling && (
+              {isCashedOut ? (
+                <span className="text-xs whitespace-nowrap"><ChipValue chips={(p.final_chips ?? 0) - p.total_buyin} /></span>
+              ) : <span className="text-sm text-white tabular-nums">{p.total_buyin.toLocaleString()}</span>}
+              {!settling && !isCashedOut && (
                 <>
                   <button onClick={() => addBuyIn(p.player_id, unit)} disabled={pending}
                     className="text-xs text-accent border border-accent/40 hover:border-accent px-2 py-1 tracking-widest transition-colors disabled:opacity-40">
                     +{unit.toLocaleString()}
+                  </button>
+                  <button onClick={() => { setCashOutError(''); setCashOut(p) }} disabled={pending}
+                    className="text-xs text-amber-400 border border-amber-400/40 hover:border-amber-400 px-2 py-1 tracking-widest transition-colors disabled:opacity-40">
+                    CASH OUT
                   </button>
                   <button onClick={() => setConfirmRemove(p)} disabled={pending}
                     className="text-muted hover:text-danger text-sm px-1 transition-colors disabled:opacity-40" aria-label="remove player">
@@ -177,7 +234,19 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
                   </button>
                 </>
               )}
+              {!settling && isCashedOut && (
+                <button onClick={() => undoCashOut(p.player_id)} disabled={pending}
+                  className="text-xs text-muted hover:text-white px-1 tracking-widest transition-colors disabled:opacity-40">
+                  UNDO
+                </button>
+              )}
             </div>
+
+            {isCashedOut && (
+              <div className="px-3 pb-2.5 text-xs text-muted">
+                Buy-in {p.total_buyin.toLocaleString()} · Final {(p.final_chips ?? 0).toLocaleString()} · Net {(p.final_chips ?? 0) - p.total_buyin >= 0 ? '+' : ''}{((p.final_chips ?? 0) - p.total_buyin).toLocaleString()}
+              </div>
+            )}
 
             {expanded.has(p.player_id) && !settling && (
               <div className="border-t border-border px-3 py-2 bg-surface/50">
@@ -186,13 +255,15 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
                     {p.buy_ins.map(b => (
                       <div key={b.id} className="flex items-center justify-between text-xs text-muted">
                         <span>{new Date(b.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })} · +{b.amount.toLocaleString()}</span>
-                        <button onClick={() => undoBuyIn(b.id)} disabled={pending}
-                          className="hover:text-danger transition-colors px-1">✕</button>
+                        {!isCashedOut && (
+                          <button onClick={() => undoBuyIn(b.id)} disabled={pending}
+                            className="hover:text-danger transition-colors px-1">✕</button>
+                        )}
                       </div>
                     ))}
                   </div>
                 )}
-                <div className="flex items-center gap-2">
+                {!isCashedOut && <div className="flex items-center gap-2">
                   <input type="number" inputMode="numeric" value={custom[p.player_id] ?? ''} min="1"
                     onChange={e => setCustom(c => ({ ...c, [p.player_id]: e.target.value }))}
                     onKeyDown={e => { if (e.key === 'Enter') addCustom(p.player_id) }}
@@ -200,11 +271,11 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
                     className="flex-1 bg-surface border border-border text-white text-xs px-3 py-2 outline-none focus:border-white transition-colors placeholder:text-muted" />
                   <button onClick={() => addCustom(p.player_id)} disabled={pending}
                     className="text-xs text-accent tracking-widest px-2 py-2 hover:underline disabled:opacity-40">ADD</button>
-                </div>
+                </div>}
               </div>
             )}
           </div>
-        ))}
+        )})}
       </div>
 
       {/* add player */}
@@ -240,16 +311,28 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
         </button>
       ) : (
         <div className="border border-border p-4">
-          <p className="text-xs text-muted tracking-widest mb-4">FINAL CHIPS — each player counts their own stack</p>
+          <p className="text-xs text-muted tracking-widest mb-1">FINAL CHIPS</p>
+          <p className="text-xs text-muted mb-4">Enter final chips for active players. Cashed-out players are already locked.</p>
           <div className="flex flex-col gap-2 mb-4">
             {session.participants.map(p => (
               <div key={p.player_id} className="flex items-center gap-3">
-                <span className="flex-1 text-white text-sm truncate">{p.name}</span>
+                <span className="flex-1 flex items-baseline gap-2 min-w-0">
+                  <span className="text-white text-sm truncate">{p.name}</span>
+                  {p.settled_at !== null && (
+                    <span className="shrink-0 text-[10px] text-muted tracking-widest">CASHED OUT</span>
+                  )}
+                </span>
                 <span className="text-xs text-muted">buy-in {p.total_buyin.toLocaleString()}</span>
-                <input type="number" inputMode="numeric" min="0" value={finals[p.player_id] ?? ''}
-                  onChange={e => setFinals(f => ({ ...f, [p.player_id]: e.target.value }))}
-                  placeholder="final"
-                  className="w-28 bg-surface border border-border text-white text-sm px-3 py-2 outline-none focus:border-white transition-colors placeholder:text-muted text-right" />
+                {p.settled_at !== null ? (
+                  <div className="w-28 border border-transparent px-3 py-2 text-right">
+                    <span className="text-sm text-white tabular-nums">{(p.final_chips ?? 0).toLocaleString()}</span>
+                  </div>
+                ) : (
+                  <input type="number" inputMode="numeric" min="0" value={finals[p.player_id] ?? ''}
+                    onChange={e => setFinals(f => ({ ...f, [p.player_id]: e.target.value }))}
+                    placeholder="final"
+                    className="w-28 bg-surface border border-border text-white text-sm px-3 py-2 outline-none focus:border-white transition-colors placeholder:text-muted text-right" />
+                )}
               </div>
             ))}
           </div>
