@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { createPlayerInGroup, startSession } from './client'
+import { cashOutSessionParticipant, createPlayerInGroup, startSession, undoSessionParticipantCashOut } from './client'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -62,6 +62,29 @@ describe('createPlayerInGroup', () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'Alice' }),
+    })
+  })
+})
+
+describe('participant cash out', () => {
+  it('owns the cash-out and undo route contracts', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({ player_id: 'p1' }) })
+      .mockResolvedValueOnce({ ok: true, status: 204, json: () => Promise.resolve({}) })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await cashOutSessionParticipant('g1', 's1', { player_id: 'p1', final_chips: 5600 })
+    await undoSessionParticipantCashOut('g1', 's1', 'p1')
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/groups/g1/sessions/s1/participant/cashout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ player_id: 'p1', final_chips: 5600 }),
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/groups/g1/sessions/s1/participant/cashout', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ player_id: 'p1' }),
     })
   })
 })

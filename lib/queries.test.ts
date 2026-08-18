@@ -204,6 +204,30 @@ describe('getLeaderboardData', () => {
 })
 
 describe('getSessionPageData', () => {
+  it('exposes frozen final chips and participant settlement time for an open session', async () => {
+    mockQueryResponses({
+      session: [{ data: { id: 's1', date: '2026-08-19', description: null, exchange_rate: 40, buy_in_unit: 2000, started_at: null, status: 'OPEN' } }],
+      session_participant: [{ data: [{ id: 'part-1', player_id: 'alice', final_chips: 5600, settled_at: '2026-08-19T14:36:00Z' }] }],
+      buy_in: [{ data: [{ id: 'buy-1', player_id: 'alice', amount: 4000, created_at: '2026-08-19T12:00:00Z' }] }],
+      player: [{ data: [{ id: 'alice', name: 'Alice' }] }],
+    })
+
+    const result = await getSessionPageData('g1', 's1')
+
+    expect(dbMocks.chains.find(query => query.table === 'session_participant')?.select)
+      .toHaveBeenCalledWith('id, player_id, final_chips, settled_at')
+    expect(result).toMatchObject({
+      status: 'OPEN',
+      session: {
+        participants: [{
+          player_id: 'alice',
+          final_chips: 5600,
+          settled_at: '2026-08-19T14:36:00Z',
+        }],
+      },
+    })
+  })
+
   it('loads a settled session once and only fetches names for its participants', async () => {
     mockQueryResponses({
       session: [{ data: { id: 's1', date: '2026-08-08', description: null, exchange_rate: 40, buy_in_unit: 2000, started_at: null, status: 'SETTLED' } }],
