@@ -1,6 +1,6 @@
 import { withAuth } from '@/lib/http'
 import { getGroups } from '@/lib/queries'
-import { createGroup } from '@/lib/mutations'
+import { createGroup } from '@/lib/group-mutations'
 import { parseNameCommand, readCommand } from '@/lib/commands'
 
 export const GET = withAuth(async () => Response.json(await getGroups()))

@@ -1,5 +1,5 @@
 import { withAuth } from '@/lib/http'
-import { updateSettledSession, softDeleteSession } from '@/lib/mutations'
+import { updateSettledSession, softDeleteSession } from '@/lib/session-mutations'
 import { parseUpdateSessionCommand, readCommand } from '@/lib/commands'
 
 type Ctx = { params: Promise<{ groupId: string; id: string }> }

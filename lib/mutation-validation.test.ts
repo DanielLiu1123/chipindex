@@ -4,7 +4,7 @@ const dbMocks = vi.hoisted(() => ({ from: vi.fn() }))
 
 vi.mock('./db', () => ({ db: { from: dbMocks.from } }))
 
-import { importSession, startSession } from './mutations'
+import { importSession, startSession } from './session-mutations'
 
 const meta = { date: '2026-08-14', exchange_rate: 40, description: null }
 

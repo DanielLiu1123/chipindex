@@ -1,5 +1,5 @@
 import { withAuth } from '@/lib/http'
-import { addParticipant, removeParticipant } from '@/lib/mutations'
+import { addParticipant, removeParticipant } from '@/lib/live-session-mutations'
 import { parseGroupPlayerCommand, readCommand } from '@/lib/commands'
 
 type Ctx = { params: Promise<{ groupId: string; id: string }> }

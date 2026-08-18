@@ -1,6 +1,6 @@
 import { withAuth, ApiError } from '@/lib/http'
 import { getGroup } from '@/lib/queries'
-import { renameGroup } from '@/lib/mutations'
+import { renameGroup } from '@/lib/group-mutations'
 import { parseNameCommand, readCommand } from '@/lib/commands'
 
 type Ctx = { params: Promise<{ groupId: string }> }

@@ -1,5 +1,5 @@
 import { withAuth } from '@/lib/http'
-import { revokeBuyin } from '@/lib/mutations'
+import { revokeBuyin } from '@/lib/live-session-mutations'
 
 export const DELETE = withAuth(async (_req, { params }: { params: Promise<{ groupId: string; id: string; buyinId: string }> }) => {
   const { groupId, id, buyinId } = await params

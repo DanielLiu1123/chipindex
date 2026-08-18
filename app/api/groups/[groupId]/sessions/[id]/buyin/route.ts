@@ -1,5 +1,5 @@
 import { withAuth } from '@/lib/http'
-import { addBuyin } from '@/lib/mutations'
+import { addBuyin } from '@/lib/live-session-mutations'
 import { parseBuyInCommand, readCommand } from '@/lib/commands'
 
 export const POST = withAuth(async (req, { params }: { params: Promise<{ groupId: string; id: string }> }) => {

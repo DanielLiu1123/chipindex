@@ -43,6 +43,10 @@ function throwIfQueryError(error: unknown): void {
   if (error) throw error
 }
 
+function exchangeRate(value: number | null): number {
+  return value ?? 40
+}
+
 async function fetchAllResultRows<T>(
   fetchPage: (from: number, to: number) => PromiseLike<{ data: T[] | null; error?: unknown }>,
 ): Promise<T[]> {
@@ -89,7 +93,7 @@ export const getGroups = cache(async (): Promise<Group[]> => {
     .is('deleted_at', null)
     .order('name')
   if (error) throw error
-  return (data ?? []) as Group[]
+  return data ?? []
 })
 
 export const getGroup = cache(async (groupId: string): Promise<Group | null> => {
@@ -100,7 +104,7 @@ export const getGroup = cache(async (groupId: string): Promise<Group | null> => 
     .is('deleted_at', null)
     .maybeSingle()
   if (error) throw error
-  return data as Group | null
+  return data
 })
 
 export const getGroupPlayers = cache(async (groupId: string): Promise<Array<{ player: Player; group_player: GroupPlayer }>> => {
@@ -110,7 +114,7 @@ export const getGroupPlayers = cache(async (groupId: string): Promise<Array<{ pl
     .eq('group_id', groupId)
     .is('deleted_at', null)
   if (error) throw error
-  const rows = (groupPlayers ?? []) as GroupPlayer[]
+  const rows = groupPlayers ?? []
   if (rows.length === 0) return []
 
   const { data: players, error: playerError } = await db
@@ -119,7 +123,7 @@ export const getGroupPlayers = cache(async (groupId: string): Promise<Array<{ pl
     .in('id', rows.map(row => row.player_id))
     .is('deleted_at', null)
   if (playerError) throw playerError
-  const playerById = new Map(((players ?? []) as Player[]).map(player => [player.id, player]))
+  const playerById = new Map((players ?? []).map(player => [player.id, player]))
   return rows
     .flatMap(row => {
       const player = playerById.get(row.player_id)
@@ -140,7 +144,7 @@ export async function getAllPlayers(): Promise<Player[]> {
     .is('deleted_at', null)
     .order('created_at')
   if (error) throw error
-  return (data ?? []) as Player[]
+  return data ?? []
 }
 
 async function playerNameMap(playerIds?: string[]): Promise<Map<string, string>> {
@@ -150,7 +154,7 @@ async function playerNameMap(playerIds?: string[]): Promise<Map<string, string>>
   if (ids) query = query.in('id', ids)
   const { data, error } = await query
   if (error) throw error
-  return new Map(((data ?? []) as Array<Pick<Player, 'id' | 'name'>>).map(p => [p.id, p.name]))
+  return new Map((data ?? []).map(player => [player.id, player.name]))
 }
 
 export interface LeaderboardData {
@@ -169,7 +173,10 @@ export async function getLeaderboardData(groupId: string): Promise<LeaderboardDa
       .order('date', { ascending: true }),
   ])
   throwIfQueryError(sessionResult.error)
-  const sessionRows = (sessionResult.data ?? []) as Array<{ id: string; date: string; exchange_rate: number }>
+  const sessionRows = (sessionResult.data ?? []).map(session => ({
+    ...session,
+    exchange_rate: exchangeRate(session.exchange_rate),
+  }))
   const bySession = await resultsBySession(sessionRows.map(session => session.id))
   const playerById = new Map(activeRows.map(row => [row.player.id, row.player]))
   const historicalIds = [...new Set(
@@ -183,7 +190,7 @@ export async function getLeaderboardData(groupId: string): Promise<LeaderboardDa
       .in('id', historicalIds)
       .is('deleted_at', null)
     throwIfQueryError(error)
-    for (const player of (data ?? []) as Player[]) playerById.set(player.id, player)
+    for (const player of data ?? []) playerById.set(player.id, player)
   }
 
   return {
@@ -286,7 +293,11 @@ async function fetchSessionSlice(
       .order('id', { ascending: false })
       .range(from, from + limit - 1)
   throwIfQueryError(error)
-  return (data ?? []) as SessionListSource[]
+  return (data ?? []).map(session => ({
+    ...session,
+    exchange_rate: exchangeRate(session.exchange_rate),
+    status,
+  }))
 }
 
 export async function getSessionsPage(groupId: string, requestedPage = 1, requestedPageSize = 10): Promise<SessionsPage> {
@@ -340,6 +351,11 @@ export interface SessionDetail {
 
 type SessionStatus = 'OPEN' | 'SETTLED'
 
+function sessionStatus(value: string): SessionStatus {
+  if (value === 'OPEN' || value === 'SETTLED') return value
+  throw new Error(`Unknown session status: ${value}`)
+}
+
 interface SessionAggregateSource {
   session: {
     id: string
@@ -380,11 +396,15 @@ async function loadSessionAggregate(groupId: string, id: string): Promise<Sessio
   ])
   throwIfQueryError(partsResult.error)
   throwIfQueryError(buyinsResult.error)
-  const participants = (partsResult.data ?? []) as SessionAggregateSource['participants']
-  const buy_ins = (buyinsResult.data ?? []) as LiveBuyIn[]
+  const participants = partsResult.data ?? []
+  const buy_ins = buyinsResult.data ?? []
   const names = await playerNameMap(participants.map(participant => participant.player_id))
   return {
-    session: sessionResult.data as SessionAggregateSource['session'],
+    session: {
+      ...sessionResult.data,
+      exchange_rate: exchangeRate(sessionResult.data.exchange_rate),
+      status: sessionStatus(sessionResult.data.status),
+    },
     participants,
     buy_ins,
     names,
