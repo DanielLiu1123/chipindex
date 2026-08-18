@@ -1,4 +1,4 @@
-import type { Tables } from '@/lib/database.types'
+import type { Tables } from './database.types'
 
 export type Player = Tables<'player'>
 export type Group = Tables<'group'>

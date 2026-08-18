@@ -9,7 +9,7 @@ import {
   type ParticipantResultRow,
   type ResultEntry,
 } from './session-results'
-import type { Group, GroupPlayer, Player } from '@/types'
+import type { Group, GroupPlayer, Player } from '@/lib/domain-types'
 
 export type { ResultEntry } from './session-results'
 

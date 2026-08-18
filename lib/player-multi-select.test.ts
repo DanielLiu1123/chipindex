@@ -3,7 +3,7 @@ import { Children, isValidElement, type ReactElement, type ReactNode } from 'rea
 import * as ReactJsxRuntime from 'react/jsx-runtime'
 import ts from 'typescript'
 import { beforeEach, describe, expect, it } from 'vitest'
-import type { Player } from '@/types'
+import type { Player } from '@/lib/domain-types'
 
 type StateUpdater<T> = T | ((previous: T) => T)
 type Props = { players: Player[]; excludedIds: string[]; onAdd: (ids: string[]) => void; onNew?: () => void }

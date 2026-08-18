@@ -8,7 +8,7 @@ import ConfirmModal from '@/components/ConfirmModal'
 import CashOutModal from '@/components/CashOutModal'
 import LiveParticipantList from '@/components/LiveParticipantList'
 import LiveSettlementPanel from '@/components/LiveSettlementPanel'
-import type { Player } from '@/types'
+import type { Player } from '@/lib/domain-types'
 import type { LiveSessionData, LiveParticipant } from '@/lib/queries'
 import { activeFinalEntries, summarizeLiveSession } from '@/lib/live-session'
 import {

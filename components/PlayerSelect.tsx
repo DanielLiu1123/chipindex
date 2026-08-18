@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import type { Player } from '@/types'
+import type { Player } from '@/lib/domain-types'
 
 interface PlayerSelectProps {
   value: string

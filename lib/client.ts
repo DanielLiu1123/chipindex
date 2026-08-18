@@ -13,7 +13,7 @@ import type {
   StartSessionCommand,
   UpdateSessionCommand,
 } from './contracts'
-import type { Group, GroupPlayer, Player } from '@/types'
+import type { Group, GroupPlayer, Player } from '@/lib/domain-types'
 
 export class ApiClientError extends Error {
   status: number

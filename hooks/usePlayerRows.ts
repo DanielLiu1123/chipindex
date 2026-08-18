@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import type { Player } from '@/types'
+import type { Player } from '@/lib/domain-types'
 import { createPlayerInGroup, listPlayers } from '@/lib/client'
 
 // Shared state for the session forms' dynamic player rows: the player list,

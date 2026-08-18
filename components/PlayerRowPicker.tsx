@@ -1,6 +1,6 @@
 'use client'
 
-import type { Player } from '@/types'
+import type { Player } from '@/lib/domain-types'
 import type { PlayerRowBase } from '@/hooks/usePlayerRows'
 import PlayerSelect from '@/components/PlayerSelect'
 

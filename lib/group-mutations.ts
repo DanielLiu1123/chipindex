@@ -1,7 +1,7 @@
 import { db } from './db'
 import { ApiError } from './http'
 import { ensure, now, requireGroup, requirePlayer } from './mutation-guards'
-import type { Group, GroupPlayer, Player } from '@/types'
+import type { Group, GroupPlayer, Player } from '@/lib/domain-types'
 
 export async function createGroup(name: string): Promise<Group> {
   const trimmed = name?.trim()

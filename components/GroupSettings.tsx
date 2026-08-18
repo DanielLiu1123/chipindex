@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import ConfirmModal from '@/components/ConfirmModal'
 import PlayerMultiSelect from '@/components/PlayerMultiSelect'
 import { addGroupPlayer, createPlayerInGroup, deleteGroupPlayer, renameGroup } from '@/lib/client'
-import type { Group, GroupPlayer, Player } from '@/types'
+import type { Group, GroupPlayer, Player } from '@/lib/domain-types'
 
 function byCreatedAt(
   a: { group_player: GroupPlayer },

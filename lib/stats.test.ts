@@ -6,7 +6,7 @@ import type {
   PlayerDetail,
   PlayerHistoryEntry,
 } from './queries'
-import type { GroupPlayer, Player } from '@/types'
+import type { GroupPlayer, Player } from '@/lib/domain-types'
 
 const players: Player[] = [
   { id: 'alice', name: 'Alice', created_at: '2026-01-01', updated_at: '2026-01-01', deleted_at: null },
