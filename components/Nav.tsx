@@ -7,7 +7,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { listGroups, logout } from '@/lib/client'
 import { isActivePath } from '@/lib/navigation'
 import { DEFAULT_SESSION_PAGE_SIZE, sessionPageHref } from '@/lib/session-pagination'
-import type { Group } from '@/types'
+import type { Group } from '@/lib/domain-types'
 
 export default function Nav() {
   const pathname = usePathname()

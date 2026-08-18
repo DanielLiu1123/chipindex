@@ -16,7 +16,7 @@ const dbMocks = vi.hoisted(() => ({
 
 vi.mock('./db', () => ({ db: { from: dbMocks.from } }))
 
-import { createGroupPlayer, createPlayer, deleteGroupPlayer, renamePlayer } from './mutations'
+import { createGroupPlayer, createPlayer, deleteGroupPlayer, renamePlayer } from './group-mutations'
 
 type QueryResponse = { data: unknown; error: { message: string } | null }
 type QueryChain = (typeof dbMocks.chains)[number]

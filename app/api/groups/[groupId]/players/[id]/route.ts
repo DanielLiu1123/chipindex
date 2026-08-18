@@ -1,5 +1,5 @@
 import { withAuth } from '@/lib/http'
-import { renamePlayer } from '@/lib/mutations'
+import { renamePlayer } from '@/lib/group-mutations'
 import { parseNameCommand, readCommand } from '@/lib/commands'
 
 export const PATCH = withAuth(async (req, { params }: { params: Promise<{ groupId: string; id: string }> }) => {

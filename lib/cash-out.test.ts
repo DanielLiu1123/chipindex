@@ -4,7 +4,7 @@ const dbMocks = vi.hoisted(() => ({ from: vi.fn(), chains: [] as Array<{ table: 
 
 vi.mock('./db', () => ({ db: { from: dbMocks.from } }))
 
-import { addBuyin, addParticipant, cashOutParticipant, removeParticipant, revokeBuyin, settleSession, undoParticipantCashOut } from './mutations'
+import { addBuyin, addParticipant, cashOutParticipant, removeParticipant, revokeBuyin, settleSession, undoParticipantCashOut } from './live-session-mutations'
 
 type QueryResponse = { data: unknown; error: { message: string } | null }
 

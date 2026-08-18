@@ -1,4 +1,4 @@
-import type { Player } from '@/types'
+import type { Player } from '@/lib/domain-types'
 import type { LeaderboardSessionRow, PlayerDetail, PlayerHistoryEntry } from '@/lib/queries'
 import { netChips, toCny } from '@/lib/settlement'
 

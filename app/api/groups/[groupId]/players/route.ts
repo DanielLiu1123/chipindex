@@ -1,6 +1,6 @@
 import { withAuth, ApiError } from '@/lib/http'
 import { getGroup, getPlayers } from '@/lib/queries'
-import { createPlayer } from '@/lib/mutations'
+import { createPlayer } from '@/lib/group-mutations'
 import { parseNameCommand, readCommand } from '@/lib/commands'
 
 type Ctx = { params: Promise<{ groupId: string }> }

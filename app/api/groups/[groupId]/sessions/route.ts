@@ -1,5 +1,5 @@
 import { withAuth } from '@/lib/http'
-import { importSession, startSession } from '@/lib/mutations'
+import { importSession, startSession } from '@/lib/session-mutations'
 import { parseCreateSessionCommand, readCommand } from '@/lib/commands'
 
 export const POST = withAuth(async (req, { params }: { params: Promise<{ groupId: string }> }) => {

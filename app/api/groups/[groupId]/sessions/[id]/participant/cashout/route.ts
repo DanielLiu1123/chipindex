@@ -1,6 +1,6 @@
 import { parseCashOutParticipantCommand, parseGroupPlayerCommand, readCommand } from '@/lib/commands'
 import { withAuth } from '@/lib/http'
-import { cashOutParticipant, undoParticipantCashOut } from '@/lib/mutations'
+import { cashOutParticipant, undoParticipantCashOut } from '@/lib/live-session-mutations'
 
 type Ctx = { params: Promise<{ groupId: string; id: string }> }
 

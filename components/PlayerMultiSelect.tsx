@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import type { Player } from '@/types'
+import type { Player } from '@/lib/domain-types'
 
 export default function PlayerMultiSelect({ players, excludedIds, onAdd, onNew }: {
   players: Player[]
