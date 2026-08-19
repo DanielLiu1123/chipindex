@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
+import { transformSync } from 'esbuild'
 import { Children, isValidElement, type ReactElement, type ReactNode } from 'react'
 import * as ReactJsxRuntime from 'react/jsx-runtime'
-import ts from 'typescript'
 import { beforeEach, describe, expect, it } from 'vitest'
 import type { Player } from '@/lib/domain-types'
 
@@ -24,9 +24,12 @@ function useStateHarness<T>(initial: T): [T, (next: StateUpdater<T>) => void] {
 
 function loadComponent(): Component {
   const source = readFileSync(new URL('../components/PlayerMultiSelect.tsx', import.meta.url), 'utf8')
-  const output = ts.transpileModule(source, {
-    compilerOptions: { esModuleInterop: true, jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
-  }).outputText
+  const output = transformSync(source, {
+    format: 'cjs',
+    jsx: 'automatic',
+    loader: 'tsx',
+    target: 'es2020',
+  }).code
   const module = { exports: {} as Record<string, unknown> }
   const mocks: Record<string, unknown> = {
     react: { useState: useStateHarness, useRef: () => ({ current: null }), useEffect: () => undefined },

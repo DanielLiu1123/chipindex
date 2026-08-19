@@ -3,7 +3,7 @@ import path from 'node:path'
 
 export default defineConfig({
   resolve: {
-    alias: { '@': path.resolve(__dirname) },
+    alias: { '@': path.resolve(import.meta.dirname) },
   },
   test: {
     include: ['lib/**/*.test.ts'],
