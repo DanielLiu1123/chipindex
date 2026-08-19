@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs'
+import { transformSync } from 'esbuild'
 import { createElement, Fragment, type ReactNode } from 'react'
 import * as ReactJsxRuntime from 'react/jsx-runtime'
 import { renderToStaticMarkup } from 'react-dom/server'
-import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 
 interface Entry {
@@ -26,14 +26,12 @@ function loadSessionEntriesTable(): SessionEntriesTableComponent {
     new URL('../components/SessionEntriesTable.tsx', import.meta.url),
     'utf8',
   )
-  const output = ts.transpileModule(source, {
-    compilerOptions: {
-      esModuleInterop: true,
-      jsx: ts.JsxEmit.ReactJSX,
-      module: ts.ModuleKind.CommonJS,
-      target: ts.ScriptTarget.ES2020,
-    },
-  }).outputText
+  const output = transformSync(source, {
+    format: 'cjs',
+    jsx: 'automatic',
+    loader: 'tsx',
+    target: 'es2020',
+  }).code
   const module = { exports: {} as Record<string, unknown> }
   const mocks: Record<string, unknown> = {
     react: {
