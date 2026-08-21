@@ -49,33 +49,35 @@ export default function LiveParticipantList({
 
     return (
       <div key={participant.player_id} className={`border border-border ${cashedOut ? 'bg-surface/40' : ''}`}>
-        <div className="flex items-center gap-2 px-3 py-2.5">
-          <button onClick={() => onToggle(participant.player_id)} className="flex-1 text-left flex items-baseline gap-2 min-w-0">
-            <span className="text-white truncate">{participant.name}</span>
+        <div className="flex flex-col gap-3 px-3 py-3 sm:flex-row sm:items-center sm:gap-2 sm:py-2.5">
+          <div className="flex items-start gap-3 sm:contents">
+            <button onClick={() => onToggle(participant.player_id)} className="flex min-w-0 flex-1 items-start gap-2 text-left sm:items-baseline">
+              <span className="min-w-0 flex-1 whitespace-normal break-words leading-snug text-white sm:flex-none">{participant.name}</span>
+              {cashedOut ? (
+                <span className="shrink-0 whitespace-nowrap text-xs text-muted">
+                  CASHED OUT · {new Date(participant.settled_at!).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              ) : <span className="shrink-0 text-xs text-muted">{participant.buy_ins.length}×</span>}
+            </button>
             {cashedOut ? (
-              <span className="text-xs text-muted whitespace-nowrap">
-                CASHED OUT · {new Date(participant.settled_at!).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-              </span>
-            ) : <span className="text-xs text-muted">{participant.buy_ins.length}×</span>}
-          </button>
-          {cashedOut ? (
-            <span className="text-xs whitespace-nowrap"><ChipValue chips={netChips} /></span>
-          ) : <span className="text-sm text-white tabular-nums">{participant.total_buyin.toLocaleString()}</span>}
+              <span className="shrink-0 whitespace-nowrap text-xs"><ChipValue chips={netChips} /></span>
+            ) : <span className="shrink-0 whitespace-nowrap text-sm text-white tabular-nums">{participant.total_buyin.toLocaleString()}</span>}
+          </div>
           {interactive && !cashedOut && (
-            <>
+            <div className="flex items-center gap-2 sm:contents">
               <button onClick={() => onAddBuyIn(participant.player_id, buyInUnit)} disabled={pending}
-                className="text-xs text-accent border border-accent/40 hover:border-accent px-2 py-1 tracking-widest transition-colors disabled:opacity-40">
+                className="flex-1 border border-accent/40 px-2 py-1.5 text-xs tracking-widest text-accent transition-colors hover:border-accent disabled:opacity-40 sm:flex-none sm:py-1">
                 +{buyInUnit.toLocaleString()}
               </button>
               <button onClick={() => onCashOut(participant)} disabled={pending}
-                className="text-xs text-amber-400 border border-amber-400/40 hover:border-amber-400 px-2 py-1 tracking-widest transition-colors disabled:opacity-40">
+                className="flex-1 border border-amber-400/40 px-2 py-1.5 text-xs tracking-widest text-amber-400 transition-colors hover:border-amber-400 disabled:opacity-40 sm:flex-none sm:py-1">
                 CASH OUT
               </button>
               <button onClick={() => onRemove(participant)} disabled={pending}
-                className="text-muted hover:text-danger text-sm px-1 transition-colors disabled:opacity-40" aria-label="remove player">
+                className="px-1 text-sm text-muted transition-colors hover:text-danger disabled:opacity-40" aria-label="remove player">
                 ✕
               </button>
-            </>
+            </div>
           )}
           {interactive && cashedOut && (
             <button onClick={() => onUndoCashOut(participant.player_id)} disabled={pending}
