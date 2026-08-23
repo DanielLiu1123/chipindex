@@ -143,7 +143,7 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
       <ConfirmModal
         open={confirmRemove !== null}
         title={confirmRemove ? `Remove ${confirmRemove.name}?` : ''}
-        description={confirmRemove ? `This will delete their ${confirmRemove.buy_ins.length} buy-in(s) (${confirmRemove.total_buyin.toLocaleString()} chips).` : undefined}
+        description={confirmRemove ? `This will delete ${confirmRemove.settled_at !== null ? `their ${confirmRemove.final_chips?.toLocaleString() ?? 0}-chip cash-out result and ` : ''}${confirmRemove.buy_ins.length} buy-in(s) (${confirmRemove.total_buyin.toLocaleString()} chips).` : undefined}
         confirmLabel="REMOVE"
         onConfirm={doRemove}
         onCancel={() => setConfirmRemove(null)}
@@ -181,26 +181,28 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
       {error && <p className="text-danger text-xs mb-4">{error}</p>}
 
       {/* participants + buy-ins */}
-      <div className="flex flex-col gap-1 mb-6">
-        <LiveParticipantList
-          participants={session.participants}
-          expanded={expanded}
-          customAmounts={custom}
-          buyInUnit={unit}
-          pending={pending}
-          interactive={!settling}
-          onToggle={toggleExpand}
-          onCustomAmountChange={(playerId, value) => setCustom(current => ({ ...current, [playerId]: value }))}
-          onAddBuyIn={(playerId, amount) => {
-            setCustom(current => ({ ...current, [playerId]: '' }))
-            void addBuyIn(playerId, amount)
-          }}
-          onRevokeBuyIn={buyInId => { void undoBuyIn(buyInId) }}
-          onCashOut={participant => { setCashOutError(''); setCashOut(participant) }}
-          onUndoCashOut={playerId => { void undoCashOut(playerId) }}
-          onRemove={setConfirmRemove}
-        />
-      </div>
+      {!settling && (
+        <div className="flex flex-col gap-1 mb-6">
+          <LiveParticipantList
+            participants={session.participants}
+            expanded={expanded}
+            customAmounts={custom}
+            buyInUnit={unit}
+            pending={pending}
+            interactive
+            onToggle={toggleExpand}
+            onCustomAmountChange={(playerId, value) => setCustom(current => ({ ...current, [playerId]: value }))}
+            onAddBuyIn={(playerId, amount) => {
+              setCustom(current => ({ ...current, [playerId]: '' }))
+              void addBuyIn(playerId, amount)
+            }}
+            onRevokeBuyIn={buyInId => { void undoBuyIn(buyInId) }}
+            onCashOut={participant => { setCashOutError(''); setCashOut(participant) }}
+            onUndoCashOut={playerId => { void undoCashOut(playerId) }}
+            onRemove={setConfirmRemove}
+          />
+        </div>
+      )}
 
       {/* add player */}
       {!settling && (

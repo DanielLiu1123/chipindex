@@ -35,8 +35,7 @@ export async function addParticipant(groupId: string, sessionId: string, playerI
 export async function removeParticipant(groupId: string, sessionId: string, playerId: string): Promise<void> {
   if (!playerId) throw new ApiError(400, 'player_id required')
   await requireOpenSession(groupId, sessionId)
-  const participant = await requireParticipantSettlementState(sessionId, playerId)
-  if (participant.settled_at !== null) throw new ApiError(409, 'Undo cash out before removing participant')
+  await requireParticipantSettlementState(sessionId, playerId)
   const timestamp = now()
   const [participantResult, buyInResult] = await Promise.all([
     db.from('session_participant').update({ deleted_at: timestamp, updated_at: timestamp }).eq('session_id', sessionId).eq('player_id', playerId),

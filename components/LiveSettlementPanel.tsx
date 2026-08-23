@@ -18,24 +18,21 @@ export default function LiveSettlementPanel({ participants, finals, buyInUnit, p
   return (
     <div className="border border-border p-4">
       <p className="text-xs text-muted tracking-widest mb-1">FINAL CHIPS</p>
-      <p className="text-xs text-muted mb-4">Enter final chips for active players. Cashed-out players are already locked.</p>
+      <p className="text-xs text-muted mb-4">Enter final chips for active players.</p>
       <div className="flex flex-col gap-2 mb-4">
         {participants.map(participant => (
           <div key={participant.player_id} className="flex items-center gap-3">
-            <span className="flex-1 flex items-baseline gap-2 min-w-0">
-              <span className="text-white text-sm truncate">{participant.name}</span>
-              {isCashedOut(participant) && <span className="shrink-0 text-[10px] text-muted tracking-widest">CASHED OUT</span>}
-            </span>
+            <span className="min-w-0 flex-1 truncate text-sm text-white">{participant.name}</span>
             <span className="text-xs text-muted">buy-in {participant.total_buyin.toLocaleString()}</span>
             {isCashedOut(participant) ? (
-              <div className="w-28 border border-transparent px-3 py-2 text-right">
+              <div className="w-20 border border-transparent px-2 py-2 text-right sm:w-28 sm:px-3">
                 <span className="text-sm text-white tabular-nums">{(participant.final_chips ?? 0).toLocaleString()}</span>
               </div>
             ) : (
               <input type="number" inputMode="numeric" min="0" value={finals[participant.player_id] ?? ''}
                 onChange={event => onFinalChange(participant.player_id, event.target.value)}
                 placeholder="final"
-                className="w-28 bg-surface border border-border text-white text-sm px-3 py-2 outline-none focus:border-white transition-colors placeholder:text-muted text-right" />
+                className="w-20 bg-surface border border-border text-white text-sm px-2 py-2 outline-none focus:border-white transition-colors placeholder:text-muted text-right sm:w-28 sm:px-3" />
             )}
           </div>
         ))}

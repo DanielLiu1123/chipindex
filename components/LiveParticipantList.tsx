@@ -48,54 +48,57 @@ export default function LiveParticipantList({
     const netChips = finalChips - participant.total_buyin
 
     return (
-      <div key={participant.player_id} className={`border border-border ${cashedOut ? 'bg-surface/40' : ''}`}>
+      <div key={participant.player_id} className="border border-border">
         {cashedOut ? (
-          <div className="px-3 py-2.5">
-            <div className="flex min-w-0 items-center gap-2">
-              <button onClick={() => onToggle(participant.player_id)} className="min-w-0 flex-1 text-left">
-                <span className="block truncate leading-snug text-white">{participant.name}</span>
-              </button>
-              <span className="shrink-0 whitespace-nowrap text-[10px] tracking-widest text-muted">
-                FINAL <span className="text-sm tracking-normal text-white tabular-nums">{finalChips.toLocaleString()}</span>
-              </span>
-              {interactive && (
+          <div className="flex flex-nowrap items-center gap-1.5 px-3 py-2.5 sm:gap-2">
+            <button
+              onClick={() => onToggle(participant.player_id)}
+              title={participant.name}
+              className="min-w-0 flex-1 truncate text-left text-sm leading-snug text-white sm:text-base"
+            >
+              {participant.name}
+            </button>
+            <span className="shrink-0 whitespace-nowrap text-[10px] tracking-widest text-muted sm:text-xs">
+              NET <ChipValue chips={netChips} className="tracking-normal tabular-nums" />
+            </span>
+            {interactive && (
+              <div className="contents">
                 <button onClick={() => onUndoCashOut(participant.player_id)} disabled={pending}
-                  className="h-7 shrink-0 border border-border px-2 text-[10px] tracking-widest text-muted transition-colors hover:border-muted hover:text-white disabled:opacity-40"
+                  className="min-w-[4.75rem] shrink-0 cursor-pointer border border-white/40 bg-white/5 px-1.5 py-1.5 text-[10px] tracking-wide text-white transition-colors hover:border-white hover:bg-white hover:text-bg active:bg-accent focus-visible:border-accent focus-visible:outline-none disabled:cursor-default disabled:opacity-40 sm:px-2 sm:py-1 sm:text-xs sm:tracking-widest"
                   aria-label={`undo ${participant.name} cash out`}>
                   UNDO
                 </button>
-              )}
-            </div>
-            <button onClick={() => onToggle(participant.player_id)} className="mt-1 flex w-full min-w-0 items-baseline gap-2 overflow-hidden text-left text-[10px] text-muted">
-              <span className="shrink-0 tracking-widest">
-                CASHED OUT {new Date(participant.settled_at!).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-              </span>
-              <span className="min-w-0 truncate">
-                · Buy-in {participant.total_buyin.toLocaleString()} · Net <ChipValue chips={netChips} />
-              </span>
-            </button>
+                <button onClick={() => onRemove(participant)} disabled={pending}
+                  className="shrink-0 px-0.5 text-xs text-muted transition-colors hover:text-danger disabled:opacity-40 sm:px-1 sm:text-sm" aria-label="remove player">
+                  ✕
+                </button>
+              </div>
+            )}
           </div>
         ) : (
-          <div className="flex flex-col gap-3 px-3 py-3 sm:flex-row sm:items-center sm:gap-2 sm:py-2.5">
-            <div className="flex items-start gap-3 sm:contents">
-              <button onClick={() => onToggle(participant.player_id)} className="flex min-w-0 flex-1 items-start gap-2 text-left sm:items-baseline">
-                <span className="min-w-0 flex-1 whitespace-normal break-words leading-snug text-white sm:flex-none">{participant.name}</span>
-                <span className="shrink-0 text-xs text-muted">{participant.buy_ins.length}×</span>
-              </button>
-              <span className="shrink-0 whitespace-nowrap text-sm text-white tabular-nums">{participant.total_buyin.toLocaleString()}</span>
-            </div>
+          <div className="flex flex-nowrap items-center gap-1.5 px-3 py-2.5 sm:gap-2">
+            <button
+              onClick={() => onToggle(participant.player_id)}
+              title={participant.name}
+              className="min-w-0 flex-1 truncate text-left text-sm leading-snug text-white sm:text-base"
+            >
+              {participant.name}
+            </button>
+            <span className="shrink-0 whitespace-nowrap text-[11px] text-muted tabular-nums sm:text-xs">
+              {participant.buy_ins.length}× <span className="text-white">{participant.total_buyin.toLocaleString()}</span>
+            </span>
             {interactive && (
-              <div className="flex items-center gap-2 sm:contents">
+              <div className="contents">
                 <button onClick={() => onAddBuyIn(participant.player_id, buyInUnit)} disabled={pending}
-                  className="flex-1 border border-accent/40 px-2 py-1.5 text-xs tracking-widest text-accent transition-colors hover:border-accent disabled:opacity-40 sm:flex-none sm:py-1">
+                  className="shrink-0 border border-accent/40 px-1.5 py-1.5 text-[10px] tracking-wide text-accent transition-colors hover:border-accent disabled:opacity-40 sm:px-2 sm:py-1 sm:text-xs sm:tracking-widest">
                   +{buyInUnit.toLocaleString()}
                 </button>
                 <button onClick={() => onCashOut(participant)} disabled={pending}
-                  className="flex-1 border border-amber-400/40 px-2 py-1.5 text-xs tracking-widest text-amber-400 transition-colors hover:border-amber-400 disabled:opacity-40 sm:flex-none sm:py-1">
+                  className="min-w-[4.75rem] shrink-0 border border-amber-400/40 px-1.5 py-1.5 text-[10px] tracking-wide text-amber-400 transition-colors hover:border-amber-400 disabled:opacity-40 sm:px-2 sm:py-1 sm:text-xs sm:tracking-widest">
                   CASH OUT
                 </button>
                 <button onClick={() => onRemove(participant)} disabled={pending}
-                  className="px-1 text-sm text-muted transition-colors hover:text-danger disabled:opacity-40" aria-label="remove player">
+                  className="shrink-0 px-0.5 text-xs text-muted transition-colors hover:text-danger disabled:opacity-40 sm:px-1 sm:text-sm" aria-label="remove player">
                   ✕
                 </button>
               </div>
@@ -105,6 +108,17 @@ export default function LiveParticipantList({
 
         {interactive && expanded.has(participant.player_id) && (
           <div className="border-t border-border px-3 py-2 bg-surface/50">
+            {cashedOut && (
+              <div className="mb-2 flex min-w-0 items-baseline gap-2 overflow-hidden text-[10px] text-muted">
+                <span className="shrink-0 tracking-widest">
+                  CASHED OUT {new Date(participant.settled_at!).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+                <span className="min-w-0 truncate">
+                  · BUY-IN <span className="text-white tabular-nums">{participant.total_buyin.toLocaleString()}</span>
+                  {' · '}FINAL <span className="text-white tabular-nums">{finalChips.toLocaleString()}</span>
+                </span>
+              </div>
+            )}
             {participant.buy_ins.length > 0 && (
               <div className="flex flex-col gap-1 mb-2">
                 {participant.buy_ins.map(buyIn => (
