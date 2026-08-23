@@ -8,12 +8,12 @@ import PlayerMultiSelect from '@/components/PlayerMultiSelect'
 import { addGroupPlayer, createPlayerInGroup, deleteGroupPlayer, renameGroup } from '@/lib/client'
 import type { Group, GroupPlayer, Player } from '@/lib/domain-types'
 
-function byCreatedAt(
-  a: { group_player: GroupPlayer },
-  b: { group_player: GroupPlayer },
+function byJoinedAt(
+  a: { player: Player; group_player: GroupPlayer },
+  b: { player: Player; group_player: GroupPlayer },
 ): number {
   return a.group_player.created_at.localeCompare(b.group_player.created_at)
-    || a.group_player.id.localeCompare(b.group_player.id)
+    || a.player.id.localeCompare(b.player.id)
 }
 
 function formatJoinedAt(value: string): string {
@@ -74,7 +74,7 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
         const group_player = await addGroupPlayer(group.id, playerId)
         return { player, group_player }
       }))
-      setGroupPlayers(current => [...current, ...added].sort(byCreatedAt))
+      setGroupPlayers(current => [...current, ...added].sort(byJoinedAt))
     })
   }
 
@@ -84,7 +84,7 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
     if (!playerName) return
     return run(async () => {
       const row = await createPlayerInGroup(group.id, playerName)
-      setGroupPlayers(current => [...current, row].sort(byCreatedAt))
+      setGroupPlayers(current => [...current, row].sort(byJoinedAt))
       setNewPlayerName('')
       setAddingNewPlayer(false)
     })

@@ -130,7 +130,7 @@ export const getGroupPlayers = cache(async (groupId: string): Promise<Array<{ pl
       return player ? [{ player, group_player: row }] : []
     })
     .sort((a, b) => a.group_player.created_at.localeCompare(b.group_player.created_at)
-      || a.group_player.id.localeCompare(b.group_player.id))
+      || a.player.id.localeCompare(b.player.id))
 })
 
 export const getPlayers = cache(async (groupId: string): Promise<Player[]> => {
@@ -143,6 +143,7 @@ export async function getAllPlayers(): Promise<Player[]> {
     .select('id, name, created_at, updated_at, deleted_at')
     .is('deleted_at', null)
     .order('created_at')
+    .order('id')
   if (error) throw error
   return data ?? []
 }
@@ -242,7 +243,12 @@ async function buildSessionRows(rows: SessionListSource[]): Promise<SessionRow[]
   return rows.map(session => {
     const entries = byId.get(session.id) ?? []
     const top = entries.length > 0
-      ? entries.reduce((best, entry) => (entry.chips > best.chips ? entry : best), entries[0])
+      ? entries.reduce((best, entry) => (
+          entry.chips > best.chips
+          || (entry.chips === best.chips && entry.player_id.localeCompare(best.player_id) < 0)
+            ? entry
+            : best
+        ), entries[0])
       : null
     return {
       id: session.id,
@@ -366,7 +372,7 @@ interface SessionAggregateSource {
     started_at: string | null
     status: SessionStatus
   }
-  participants: Array<{ id: string; player_id: string; final_chips: number | null; settled_at: string | null }>
+  participants: Array<{ id: string; player_id: string; final_chips: number | null; settled_at: string | null; created_at: string }>
   buy_ins: LiveBuyIn[]
   names: Map<string, string>
 }
@@ -384,7 +390,7 @@ async function loadSessionAggregate(groupId: string, id: string): Promise<Sessio
 
   const [partsResult, buyinsResult] = await Promise.all([
     db.from('session_participant')
-      .select('id, player_id, final_chips, settled_at')
+      .select('id, player_id, final_chips, settled_at, created_at')
       .is('deleted_at', null)
       .eq('session_id', id)
       .order('created_at', { ascending: true }),
@@ -425,7 +431,7 @@ function sessionDetailFromAggregate(source: SessionAggregateSource): SessionDeta
       buy_ins: flow.map(buyIn => ({ amount: buyIn.amount, created_at: buyIn.created_at })),
       players: { name: source.names.get(participant.player_id) ?? participant.player_id },
     }
-  })
+  }).sort((a, b) => b.chips - a.chips || a.player_id.localeCompare(b.player_id))
   const { buy_in_unit: _buyInUnit, started_at: _startedAt, ...session } = source.session
   return { ...session, session_entries }
 }
@@ -488,10 +494,13 @@ export interface LiveSessionData {
 
 function liveSessionFromAggregate(source: SessionAggregateSource): LiveSessionData {
   const flowByPlayer = groupByPlayer(source.buy_ins)
+  const participants = [...source.participants].sort((a, b) =>
+    a.created_at.localeCompare(b.created_at)
+    || a.player_id.localeCompare(b.player_id))
   return {
     ...source.session,
     buy_in_unit: source.session.buy_in_unit ?? BUY_IN_UNIT,
-    participants: source.participants.map(participant => {
+    participants: participants.map(participant => {
       const buy_ins = flowByPlayer.get(participant.player_id) ?? []
       return {
         player_id: participant.player_id,

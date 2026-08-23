@@ -1,4 +1,5 @@
 interface TooltipSortItem {
+  dataKey?: unknown
   name?: unknown
   value?: unknown
 }
@@ -7,7 +8,7 @@ export function sortTooltipItems<T extends TooltipSortItem>(items: readonly T[] 
   return [...(items ?? [])].sort((a, b) => {
     const valueDiff = Number(b.value) - Number(a.value)
     if (valueDiff !== 0) return valueDiff
-    return String(a.name ?? '').localeCompare(String(b.name ?? ''))
+    return String(a.dataKey ?? a.name ?? '').localeCompare(String(b.dataKey ?? b.name ?? ''))
   })
 }
 

@@ -16,7 +16,8 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
   }
 
   const settled = data.session
-  const entries = [...settled.session_entries].sort((a, b) => b.chips - a.chips)
+  const entries = [...settled.session_entries]
+    .sort((a, b) => b.chips - a.chips || a.player_id.localeCompare(b.player_id))
   const total = entries.reduce((sum, entry) => sum + entry.chips, 0)
   return <>
     <div className="mb-6"><Link href={`/groups/${groupId}/sessions`} className="text-muted text-xs hover:text-white tracking-widest">← SESSIONS</Link></div>
