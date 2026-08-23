@@ -128,6 +128,16 @@ describe('computeLeaderboardStats', () => {
   it('sorts by CNY descending', () => {
     expect(stats.map(s => s.player.id)).toEqual(['alice', 'carol', 'bob'])
   })
+
+  it('uses player id when leaderboard totals are tied', () => {
+    const tiedPlayers: Player[] = [
+      { id: 'player-b', name: 'A', created_at: '2026-01-01', updated_at: '2026-01-01', deleted_at: null },
+      { id: 'player-a', name: 'Z', created_at: '2026-01-01', updated_at: '2026-01-01', deleted_at: null },
+    ]
+
+    expect(computeLeaderboardStats(tiedPlayers, []).map(stat => stat.player.id))
+      .toEqual(['player-a', 'player-b'])
+  })
 })
 
 describe('filterLowActivityPlayers', () => {

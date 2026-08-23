@@ -10,7 +10,6 @@ import type { LeaderboardSessionRow } from '@/lib/queries'
 
 function buildChartData(sessions: LeaderboardSessionRow[], stats: PlayerStats[], mode: 'chips' | 'cny'): { date: string; [player: string]: string | number }[] {
   const sorted = [...sessions].sort((a, b) => a.date.localeCompare(b.date))
-  const playerNames = stats.map(s => s.player.name)
   const playerIds = stats.map(s => s.player.id)
 
   const cumulative = new Map<string, number>()
@@ -18,13 +17,13 @@ function buildChartData(sessions: LeaderboardSessionRow[], stats: PlayerStats[],
 
   return sorted.map(session => {
     const row: { date: string; [k: string]: string | number } = { date: session.date }
-    playerIds.forEach((pid, i) => {
+    playerIds.forEach(pid => {
       const entry = session.session_entries.find(e => e.player_id === pid)
       if (entry) {
         const delta = mode === 'cny' ? entry.chips / session.exchange_rate : entry.chips
         cumulative.set(pid, (cumulative.get(pid) ?? 0) + delta)
       }
-      row[playerNames[i]] = mode === 'cny' ? Math.round((cumulative.get(pid) ?? 0) * 100) / 100 : (cumulative.get(pid) ?? 0)
+      row[pid] = mode === 'cny' ? Math.round((cumulative.get(pid) ?? 0) * 100) / 100 : (cumulative.get(pid) ?? 0)
     })
     return row
   })
@@ -40,7 +39,7 @@ export default function LeaderboardView({ groupId, stats, sessions }: { groupId:
   const [hideLowActivity, setHideLowActivity] = useState(true)
   const activityFilter = useMemo(() => filterLowActivityPlayers(stats), [stats])
   const displayedStats = hideLowActivity ? activityFilter.visibleStats : stats
-  const playerNames = displayedStats.map(s => s.player.name)
+  const chartPlayers = displayedStats.map(stat => ({ id: stat.player.id, name: stat.player.name }))
   const chartData = useMemo(
     () => buildChartData(sessions, displayedStats, chartMode),
     [sessions, displayedStats, chartMode],
@@ -60,7 +59,7 @@ export default function LeaderboardView({ groupId, stats, sessions }: { groupId:
     return [...displayedStats].sort((a, b) => {
       const diff = a[sortKey] - b[sortKey]
       if (diff !== 0) return dir * diff
-      return a.player.name.localeCompare(b.player.name)
+      return a.player.id.localeCompare(b.player.id)
     })
   }, [displayedStats, sortKey, sortDir])
 
@@ -188,7 +187,7 @@ export default function LeaderboardView({ groupId, stats, sessions }: { groupId:
             <LeaderboardChart
               key={hideLowActivity ? 'low-activity-hidden' : 'all-players'}
               data={chartData}
-              players={playerNames}
+              players={chartPlayers}
               mode={chartMode}
             />
           )}

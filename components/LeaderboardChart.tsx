@@ -11,12 +11,13 @@ const COLORS = [
 ]
 
 interface ChartPoint { date: string; [player: string]: string | number }
+interface ChartPlayer { id: string; name: string }
 
 export function SortedTooltipContent(props: TooltipContentProps<TooltipValueType>) {
   return <DefaultTooltipContent {...prepareSortedTooltipProps(props)} />
 }
 
-export default function LeaderboardChart({ data, players, mode }: { data: ChartPoint[]; players: string[]; mode: 'chips' | 'cny' }) {
+export default function LeaderboardChart({ data, players, mode }: { data: ChartPoint[]; players: ChartPlayer[]; mode: 'chips' | 'cny' }) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
 
   function toggle(name: string) {
@@ -28,7 +29,7 @@ export default function LeaderboardChart({ data, players, mode }: { data: ChartP
     })
   }
 
-  const visible = selected.size === 0 ? new Set(players) : selected
+  const visible = selected.size === 0 ? new Set(players.map(player => player.id)) : selected
 
   return (
     <div>
@@ -61,8 +62,8 @@ export default function LeaderboardChart({ data, players, mode }: { data: ChartP
               fontSize: 11,
               color: '#ffffff',
             }}
-            formatter={(v, name) => {
-              if (!visible.has(name as string)) return [null, null]
+            formatter={(v, name, item) => {
+              if (!visible.has(String(item.dataKey))) return [null, null]
               const n = Number(v)
               if (mode === 'cny') {
                 const formatted = n >= 0 ? `¥${formatAmount(n)}` : `-¥${formatAmount(Math.abs(n))}`
@@ -72,15 +73,16 @@ export default function LeaderboardChart({ data, players, mode }: { data: ChartP
             }}
             labelStyle={{ color: '#666666', marginBottom: 4 }}
           />
-          {players.map((name, i) => (
+          {players.map((player, i) => (
             <Line
-              key={name}
+              key={player.id}
               type="linear"
-              dataKey={name}
+              dataKey={player.id}
+              name={player.name}
               stroke={COLORS[i % COLORS.length]}
-              strokeWidth={visible.has(name) ? 1.5 : 0}
-              dot={visible.has(name) ? { r: 3, fill: COLORS[i % COLORS.length], strokeWidth: 0 } : false}
-              activeDot={visible.has(name) ? { r: 4, strokeWidth: 0 } : false}
+              strokeWidth={visible.has(player.id) ? 1.5 : 0}
+              dot={visible.has(player.id) ? { r: 3, fill: COLORS[i % COLORS.length], strokeWidth: 0 } : false}
+              activeDot={visible.has(player.id) ? { r: 4, strokeWidth: 0 } : false}
               connectNulls
             />
           ))}
@@ -88,12 +90,12 @@ export default function LeaderboardChart({ data, players, mode }: { data: ChartP
       </ResponsiveContainer>
 
       <div className="flex flex-wrap justify-center gap-2 mt-4 px-2">
-        {players.map((name, i) => {
-          const isActive = selected.size === 0 || selected.has(name)
+        {players.map((player, i) => {
+          const isActive = selected.size === 0 || selected.has(player.id)
           return (
             <button
-              key={name}
-              onClick={() => toggle(name)}
+              key={player.id}
+              onClick={() => toggle(player.id)}
               className="flex items-center gap-1.5 px-2.5 py-1 text-xs tracking-wide transition-opacity"
               style={{ opacity: isActive ? 1 : 0.3 }}
             >
@@ -102,7 +104,7 @@ export default function LeaderboardChart({ data, players, mode }: { data: ChartP
                 style={{ backgroundColor: COLORS[i % COLORS.length] }}
               />
               <span style={{ color: isActive ? '#aaaaaa' : '#555555', fontFamily: 'JetBrains Mono' }}>
-                {name}
+                {player.name}
               </span>
             </button>
           )

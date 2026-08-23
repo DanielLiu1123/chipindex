@@ -40,7 +40,7 @@ function topChips(entries: { chips: number }[]): number | null {
   return entries.reduce((m, e) => (e.chips > m ? e.chips : m), entries[0].chips)
 }
 
-// Home leaderboard: sorted by CNY → chips → name
+// Home leaderboard: sorted by CNY → chips → player id
 export function computeLeaderboardStats(players: Player[], sessions: LeaderboardSessionRow[]): PlayerStats[] {
   const sessionTop = new Map<string, number | null>()
   for (const s of sessions) sessionTop.set(s.id, topChips(s.session_entries))
@@ -76,7 +76,7 @@ export function computeLeaderboardStats(players: Player[], sessions: Leaderboard
     .sort((a, b) => {
       if (b.total_yuan !== a.total_yuan) return b.total_yuan - a.total_yuan
       if (b.total_chips !== a.total_chips) return b.total_chips - a.total_chips
-      return a.player.name.localeCompare(b.player.name)
+      return a.player.id.localeCompare(b.player.id)
     })
 }
 
