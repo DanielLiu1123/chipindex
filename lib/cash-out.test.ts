@@ -109,12 +109,11 @@ describe('participant cash out', () => {
     })
   })
 
-  it('blocks buy-in changes and participant removal after cash out', async () => {
+  it('blocks buy-in changes after cash out', async () => {
     for (const action of [
       () => addBuyin('g1', 's1', 'p1', 2000),
       () => addParticipant('g1', 's1', 'p1'),
       () => revokeBuyin('g1', 's1', 'b1'),
-      () => removeParticipant('g1', 's1', 'p1'),
     ]) {
       dbMocks.from.mockReset()
       mockResponses({
@@ -124,5 +123,23 @@ describe('participant cash out', () => {
       })
       await expect(action()).rejects.toMatchObject({ status: 409 })
     }
+  })
+
+  it('removes a cashed-out participant and their buy-ins', async () => {
+    mockResponses({
+      session: [{ data: { status: 'OPEN' }, error: null }],
+      session_participant: [
+        { data: { id: 'part-1', settled_at: '2026-08-19T12:00:00Z' }, error: null },
+        { data: null, error: null },
+      ],
+      buy_in: [{ data: null, error: null }],
+    })
+
+    await expect(removeParticipant('g1', 's1', 'p1')).resolves.toBeUndefined()
+
+    expect(dbMocks.chains.find(chain => chain.table === 'session_participant' && chain.update.mock.calls.length > 0)?.update)
+      .toHaveBeenCalledWith(expect.objectContaining({ deleted_at: expect.any(String) }))
+    expect(dbMocks.chains.find(chain => chain.table === 'buy_in' && chain.update.mock.calls.length > 0)?.update)
+      .toHaveBeenCalledWith(expect.objectContaining({ deleted_at: expect.any(String) }))
   })
 })
