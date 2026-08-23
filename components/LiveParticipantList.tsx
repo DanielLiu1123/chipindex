@@ -64,7 +64,7 @@ export default function LiveParticipantList({
             {interactive && (
               <div className="contents">
                 <button onClick={() => onUndoCashOut(participant.player_id)} disabled={pending}
-                  className="min-w-[4.75rem] shrink-0 cursor-pointer border border-white/40 bg-white/5 px-1.5 py-1.5 text-[10px] tracking-wide text-white transition-colors hover:border-white hover:bg-white hover:text-bg active:bg-accent focus-visible:border-accent focus-visible:outline-none disabled:cursor-default disabled:opacity-40 sm:px-2 sm:py-1 sm:text-xs sm:tracking-widest"
+                  className="w-[4.75rem] shrink-0 border border-sky-400/40 px-1.5 py-1.5 text-[10px] tracking-wide text-sky-400 transition-colors hover:border-sky-400 disabled:opacity-40 sm:w-24 sm:px-2 sm:py-1 sm:text-xs sm:tracking-widest"
                   aria-label={`undo ${participant.name} cash out`}>
                   UNDO
                 </button>
@@ -94,7 +94,7 @@ export default function LiveParticipantList({
                   +{buyInUnit.toLocaleString()}
                 </button>
                 <button onClick={() => onCashOut(participant)} disabled={pending}
-                  className="min-w-[4.75rem] shrink-0 border border-amber-400/40 px-1.5 py-1.5 text-[10px] tracking-wide text-amber-400 transition-colors hover:border-amber-400 disabled:opacity-40 sm:px-2 sm:py-1 sm:text-xs sm:tracking-widest">
+                  className="w-[4.75rem] shrink-0 border border-amber-400/40 px-1.5 py-1.5 text-[10px] tracking-wide text-amber-400 transition-colors hover:border-amber-400 disabled:opacity-40 sm:w-24 sm:px-2 sm:py-1 sm:text-xs sm:tracking-widest">
                   CASH OUT
                 </button>
                 <button onClick={() => onRemove(participant)} disabled={pending}

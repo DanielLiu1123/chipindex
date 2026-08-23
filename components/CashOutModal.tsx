@@ -42,38 +42,39 @@ export default function CashOutModal({ participant, pending, error, onConfirm, o
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => !pending && onCancel()}>
-      <form className="bg-surface border border-border w-full max-w-sm mx-4 p-6" onSubmit={submit} onClick={event => event.stopPropagation()}>
-        <p className="text-white text-sm font-medium mb-5">CASH OUT — {participant.name.toUpperCase()}</p>
+      <form className="mx-4 w-full max-w-xs border border-border bg-surface p-4" onSubmit={submit} onClick={event => event.stopPropagation()}>
+        <p className="mb-4 text-sm font-medium text-white">CASH OUT — {participant.name.toUpperCase()}</p>
 
-        <div className="flex items-center justify-between text-xs mb-4">
+        <div className="mb-3 flex items-center justify-between text-xs">
           <span className="text-muted tracking-widest">TOTAL BUY-IN</span>
           <span className="text-white tabular-nums">{participant.total_buyin.toLocaleString()}</span>
         </div>
 
-        <label className="block text-xs text-muted tracking-widest mb-2" htmlFor="cash-out-final-chips">FINAL CHIPS</label>
-        <input
-          id="cash-out-final-chips"
-          type="number"
-          inputMode="numeric"
-          min="0"
-          step="1"
-          autoFocus
-          value={value}
-          onChange={event => setValue(event.target.value)}
-          placeholder="final chips"
-          disabled={pending}
-          className="w-full bg-bg border border-border text-white text-right px-3 py-2.5 outline-none focus:border-white transition-colors placeholder:text-muted disabled:opacity-50"
-        />
+        <div className="flex items-center gap-3">
+          <label className="shrink-0 text-xs tracking-widest text-muted" htmlFor="cash-out-final-chips">FINAL CHIPS</label>
+          <input
+            id="cash-out-final-chips"
+            type="number"
+            inputMode="numeric"
+            min="0"
+            step="1"
+            autoFocus
+            value={value}
+            onChange={event => setValue(event.target.value)}
+            disabled={pending}
+            className="min-w-0 flex-1 border border-border bg-bg px-3 py-2 text-right text-white outline-none transition-colors focus:border-white disabled:opacity-50"
+          />
+        </div>
         {value && !valid && <p className="text-danger text-xs mt-2">Enter a non-negative whole number.</p>}
 
-        <div className="flex items-center justify-between text-xs border-t border-border mt-4 pt-4">
+        <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-xs">
           <span className="text-muted tracking-widest">NET RESULT</span>
           {valid ? <ChipValue chips={netChips(finalChips, participant.total_buyin)} /> : <span className="text-muted">—</span>}
         </div>
 
         {error && <p className="text-danger text-xs mt-3">{error}</p>}
 
-        <div className="flex gap-2 justify-end mt-5">
+        <div className="mt-4 flex justify-end gap-2">
           <button type="button" onClick={onCancel} disabled={pending}
             className="text-xs font-medium tracking-widest text-muted hover:text-white border border-border hover:border-white px-4 py-2 transition-colors disabled:opacity-40">
             CANCEL
