@@ -41,9 +41,11 @@ export default function CashOutModal({ participant, pending, error, onConfirm, o
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => !pending && onCancel()}>
-      <form className="mx-4 w-full max-w-xs border border-border bg-surface p-4" onSubmit={submit} onClick={event => event.stopPropagation()}>
-        <p className="mb-4 text-sm font-medium text-white">CASH OUT — {participant.name.toUpperCase()}</p>
+    <div className="modal-backdrop fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/60 sm:items-center" onClick={() => !pending && onCancel()}>
+      <form role="dialog" aria-modal="true" aria-labelledby="cash-out-modal-title"
+        className="max-h-[calc(100dvh-2rem)] w-full max-w-xs overflow-y-auto border border-border bg-surface p-4"
+        onSubmit={submit} onClick={event => event.stopPropagation()}>
+        <p id="cash-out-modal-title" className="mb-4 text-sm font-medium text-white">CASH OUT — {participant.name.toUpperCase()}</p>
 
         <div className="mb-3 flex items-center justify-between text-xs">
           <span className="text-muted tracking-widest">TOTAL BUY-IN</span>
@@ -74,13 +76,13 @@ export default function CashOutModal({ participant, pending, error, onConfirm, o
 
         {error && <p className="text-danger text-xs mt-3">{error}</p>}
 
-        <div className="mt-4 flex justify-end gap-2">
+        <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <button type="button" onClick={onCancel} disabled={pending}
-            className="text-xs font-medium tracking-widest text-muted hover:text-white border border-border hover:border-white px-4 py-2 transition-colors disabled:opacity-40">
+            className="min-h-11 border border-border px-4 py-2 text-xs font-medium tracking-widest text-muted transition-colors hover:border-white hover:text-white disabled:opacity-40">
             CANCEL
           </button>
           <button type="submit" disabled={!valid || pending}
-            className="text-xs font-medium tracking-widest text-bg bg-white hover:bg-accent px-4 py-2 transition-colors disabled:opacity-40">
+            className="min-h-11 bg-white px-4 py-2 text-xs font-medium tracking-widest text-bg transition-colors hover:bg-accent disabled:opacity-40">
             {pending ? 'CASHING OUT...' : 'CONFIRM'}
           </button>
         </div>

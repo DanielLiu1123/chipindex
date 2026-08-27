@@ -156,16 +156,16 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
         onCancel={() => { setCashOut(null); setCashOutError('') }}
       />
       <div className="mb-6">
-        <Link href={`/groups/${groupId}/sessions`} className="text-muted text-xs hover:text-white tracking-widest">← SESSIONS</Link>
+        <Link href={`/groups/${groupId}/sessions`} className="inline-flex min-h-11 items-center text-xs tracking-widest text-muted hover:text-white sm:min-h-0">← SESSIONS</Link>
       </div>
 
-      <div className="flex items-center gap-2 mb-1">
+      <div className="mb-1 flex flex-wrap items-center gap-2">
         <span className="inline-block w-2 h-2 rounded-full bg-accent animate-pulse" />
         <span className="text-xs text-accent tracking-widest">LIVE</span>
         <span className="text-white">{session.date}</span>
         {session.description && <span className="text-sm text-muted">· {session.description}</span>}
       </div>
-      <div className="mb-6 flex items-baseline gap-2">
+      <div className="mb-6 flex flex-wrap items-baseline gap-2">
         <span className="text-xs text-muted tracking-widest">POT (TOTAL BUY-IN)</span>
         <span className="text-accent text-lg">{pot.toLocaleString()}</span>
         <span className="text-xs text-muted">chips</span>

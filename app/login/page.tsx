@@ -29,7 +29,7 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen bg-bg flex flex-col items-center justify-center">
+    <div className="flex min-h-[calc(100dvh-3rem)] flex-col items-center justify-center bg-bg sm:min-h-[calc(100dvh-4rem)]">
       <div className="w-full max-w-xs">
         <p className="text-accent tracking-widest text-sm mb-8">CHIPINDEX</p>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -38,14 +38,13 @@ function LoginForm() {
             value={password}
             onChange={e => { setPassword(e.target.value); setError(false) }}
             placeholder="password"
-            autoFocus
-            className={`bg-surface border ${error ? 'border-danger' : 'border-border'} text-white text-sm px-4 py-3 w-full outline-none focus:border-white transition-colors placeholder:text-muted`}
+            className={`bg-surface border ${error ? 'border-danger' : 'border-border'} text-white text-base px-4 py-3 w-full outline-none focus:border-white transition-colors placeholder:text-muted`}
           />
           {error && <p className="text-danger text-xs">wrong password</p>}
           <button
             type="submit"
             disabled={loading}
-            className="bg-white text-bg text-xs font-medium tracking-widest py-3 hover:bg-accent transition-colors disabled:opacity-40"
+            className="min-h-11 bg-white py-3 text-xs font-medium tracking-widest text-bg transition-colors hover:bg-accent disabled:opacity-40"
           >
             {loading ? '...' : 'ENTER'}
           </button>

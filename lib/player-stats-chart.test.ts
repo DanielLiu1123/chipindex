@@ -250,6 +250,14 @@ beforeEach(() => {
 })
 
 describe('PlayerStatsChart', () => {
+  it('renders a wrapping mobile player summary', () => {
+    const { markup } = renderStats(createStatsProps([point]))
+
+    expect(markup).toContain('aria-label="Player summary"')
+    expect(markup).toContain('flex-col')
+    expect(markup).toContain('grid w-full grid-cols-2')
+  })
+
   it('renders one history point with only the value controls', () => {
     const data = [point]
     const { markup, tree } = renderStats(createStatsProps(data))

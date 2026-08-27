@@ -108,10 +108,10 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
     <h1 className="text-xs text-muted tracking-widest mb-6">MANAGE GROUP</h1>
     <section className="max-w-lg mb-10">
       <label className="text-xs text-muted tracking-widest block mb-2">NAME</label>
-      <div className="flex gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row">
         <input value={name} onChange={event => setName(event.target.value)} className="flex-1 bg-surface border border-border text-white px-3 py-2 outline-none focus:border-white" />
         <button onClick={rename} disabled={pending || !name.trim() || name.trim() === savedName}
-          className="border border-border text-xs tracking-widest px-4 disabled:opacity-40 hover:border-white">SAVE</button>
+          className="min-h-11 border border-border px-4 text-xs tracking-widest hover:border-white disabled:opacity-40">SAVE</button>
       </div>
     </section>
 

@@ -26,7 +26,7 @@ export default function DeleteSessionButton({ groupId, sessionId }: { groupId: s
       />
       <button
         onClick={e => { e.stopPropagation(); setOpen(true) }}
-        className="text-xs font-medium tracking-widest text-red-500 hover:text-red-400 border border-red-500/40 hover:border-red-400 px-2.5 py-1 transition-colors"
+        className="min-h-11 border border-red-500/40 px-2.5 py-1 text-xs font-medium tracking-widest text-red-500 transition-colors hover:border-red-400 hover:text-red-400 sm:min-h-0"
       >
         DELETE
       </button>

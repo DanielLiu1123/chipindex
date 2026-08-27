@@ -31,19 +31,22 @@ export default function PlayerStatsChart({
 
   return (
     <>
-      <div className="flex items-baseline justify-between mb-8">
+      <section aria-label="Player summary" className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-baseline sm:justify-between">
         <PlayerNameEditor groupId={groupId} id={id} initialName={initialName} />
-        <div className="flex gap-6 text-xs text-muted items-baseline">
-          <span>{sessions} sessions</span>
-          <span>{wins} wins</span>
-          <span>{pogCount} pog</span>
-          {mode === 'cny' ? (
-            <ChipValue chips={totalCny} prefix="¥" className="text-sm" />
-          ) : (
-            <ChipValue chips={totalChips} className="text-sm" />
-          )}
-        </div>
-      </div>
+        <dl className="grid w-full grid-cols-2 gap-x-6 gap-y-3 text-xs sm:flex sm:w-auto sm:items-baseline sm:gap-6">
+          <div><dt className="text-[9px] tracking-widest text-muted sm:sr-only">SESSIONS</dt><dd className="text-muted">{sessions} sessions</dd></div>
+          <div className="text-right sm:text-left"><dt className="text-[9px] tracking-widest text-muted sm:sr-only">WINS</dt><dd className="text-muted">{wins} wins</dd></div>
+          <div><dt className="text-[9px] tracking-widest text-muted sm:sr-only">POG</dt><dd className="text-muted">{pogCount} pog</dd></div>
+          <div className="text-right sm:text-left">
+            <dt className="text-[9px] tracking-widest text-muted sm:sr-only">TOTAL</dt>
+            <dd>{mode === 'cny' ? (
+              <ChipValue chips={totalCny} prefix="¥" className="text-sm" />
+            ) : (
+              <ChipValue chips={totalChips} className="text-sm" />
+            )}</dd>
+          </div>
+        </dl>
+      </section>
 
       {data.length > 0 && (
         <div className="mb-10 -mx-2">
@@ -57,7 +60,7 @@ export default function PlayerStatsChart({
                   type="button"
                   aria-pressed={mode === 'cny'}
                   onClick={() => setMode('cny')}
-                  className={`text-xs tracking-widest transition-colors ${mode === 'cny' ? 'text-white' : 'text-muted hover:text-white'}`}
+                  className={`inline-flex min-h-11 items-center text-xs tracking-widest transition-colors sm:min-h-0 ${mode === 'cny' ? 'text-white' : 'text-muted hover:text-white'}`}
                 >
                   CNY
                 </button>
@@ -66,7 +69,7 @@ export default function PlayerStatsChart({
                   type="button"
                   aria-pressed={mode === 'chips'}
                   onClick={() => setMode('chips')}
-                  className={`text-xs tracking-widest transition-colors ${mode === 'chips' ? 'text-white' : 'text-muted hover:text-white'}`}
+                  className={`inline-flex min-h-11 items-center text-xs tracking-widest transition-colors sm:min-h-0 ${mode === 'chips' ? 'text-white' : 'text-muted hover:text-white'}`}
                 >
                   CHIPS
                 </button>

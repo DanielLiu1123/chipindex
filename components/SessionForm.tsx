@@ -57,7 +57,7 @@ export default function SessionForm({ groupId }: { groupId: string }) {
   return (
     <>
       <div className="mb-6">
-        <Link href={`/groups/${groupId}/sessions`} className="text-muted text-xs hover:text-white tracking-widest">← SESSIONS</Link>
+        <Link href={`/groups/${groupId}/sessions`} className="inline-flex min-h-11 items-center text-xs tracking-widest text-muted hover:text-white sm:min-h-0">← SESSIONS</Link>
       </div>
       <h1 className="text-xs text-muted tracking-widest mb-6">IMPORT SESSION</h1>
       <form onSubmit={handleSubmit} className="flex flex-col gap-6 max-w-lg">
@@ -70,14 +70,14 @@ export default function SessionForm({ groupId }: { groupId: string }) {
           <label className="text-xs text-muted tracking-widest block mb-3">PLAYERS</label>
           <div className="flex flex-col gap-2">
             {rows.map(row => (
-              <div key={row.uid} className="flex gap-2 items-center">
+              <div key={row.uid} className="grid grid-cols-[minmax(0,1fr)_6rem_2.75rem] items-center gap-2 sm:grid-cols-[minmax(0,1fr)_7rem_2rem]">
                 <PlayerRowPicker row={row} players={players} usedIds={usedIds}
                   onPatch={patch => updateRow(row.uid, patch)} />
                 <input type="number" value={row.chips} onChange={e => updateRow(row.uid, { chips: e.target.value })}
                   placeholder="chips (±)"
-                  className="w-28 bg-surface border border-border text-white text-sm px-4 py-2.5 outline-none focus:border-white transition-colors placeholder:text-muted" />
+                  className="w-full border border-border bg-surface px-2 py-2.5 text-right text-sm text-white outline-none transition-colors placeholder:text-muted focus:border-white sm:px-4" />
                 <button type="button" onClick={() => removeRow(row.uid)}
-                  className="text-muted hover:text-danger text-xs px-2 py-2.5 transition-colors">✕</button>
+                  className="flex h-11 w-11 items-center justify-center text-xs text-muted transition-colors hover:text-danger sm:h-8 sm:w-8">✕</button>
               </div>
             ))}
             <button type="button" onClick={() => setRows(r => [...r, newRow()])}

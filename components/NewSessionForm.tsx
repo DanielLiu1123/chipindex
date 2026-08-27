@@ -61,7 +61,7 @@ export default function NewSessionForm({ groupId }: { groupId: string }) {
   return (
     <>
       <div className="mb-6">
-        <Link href={`/groups/${groupId}/sessions`} className="text-muted text-xs hover:text-white tracking-widest">← SESSIONS</Link>
+        <Link href={`/groups/${groupId}/sessions`} className="inline-flex min-h-11 items-center text-xs tracking-widest text-muted hover:text-white sm:min-h-0">← SESSIONS</Link>
       </div>
       <h1 className="text-xs text-muted tracking-widest mb-6">NEW SESSION</h1>
       <form onSubmit={handleStart} className="flex flex-col gap-6 max-w-lg">
@@ -77,7 +77,7 @@ export default function NewSessionForm({ groupId }: { groupId: string }) {
               const playerName = players.find(player => player.id === row.playerId)?.name
               const accessibleName = (playerName ?? row.newName) || 'new player'
               return <div key={row.uid}
-                className={`group flex gap-2 items-center border bg-surface/30 px-3 py-1.5 transition-colors hover:border-white/30 ${row.isNew ? 'border-accent/50' : 'border-border'}`}>
+                className={`group grid grid-cols-[minmax(0,1fr)_6rem_2.75rem] items-center gap-2 border bg-surface/30 px-3 py-1.5 transition-colors hover:border-white/30 sm:grid-cols-[minmax(0,1fr)_7rem_2rem] ${row.isNew ? 'border-accent/50' : 'border-border'}`}>
                 {row.isNew ? (
                   <input type="text" value={row.newName} onChange={e => updateRow(row.uid, { newName: e.target.value })}
                     placeholder="new player name"
@@ -90,10 +90,10 @@ export default function NewSessionForm({ groupId }: { groupId: string }) {
                 <input type="number" value={row.buyin} onChange={e => updateRow(row.uid, { buyin: e.target.value })}
                   aria-label={`buy-in for ${accessibleName}`}
                   placeholder="buy-in" min="0"
-                  className="w-28 shrink-0 bg-bg/40 border border-border text-white text-sm px-3 py-1.5 outline-none focus:border-white transition-colors placeholder:text-muted text-right" />
+                  className="w-full shrink-0 border border-border bg-bg/40 px-2 py-1.5 text-right text-sm text-white outline-none transition-colors placeholder:text-muted focus:border-white sm:px-3" />
                 <button type="button" onClick={() => removeRow(row.uid)}
                   aria-label={`remove ${accessibleName}`}
-                  className="w-8 h-8 shrink-0 flex items-center justify-center border border-transparent text-muted hover:text-danger hover:border-danger/40 hover:bg-danger/10 text-lg leading-none transition-colors">×</button>
+                  className="flex h-11 w-11 shrink-0 items-center justify-center border border-transparent text-lg leading-none text-muted transition-colors hover:border-danger/40 hover:bg-danger/10 hover:text-danger sm:h-8 sm:w-8">×</button>
               </div>
             })}
             <PlayerMultiSelect

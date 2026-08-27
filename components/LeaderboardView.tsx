@@ -31,6 +31,27 @@ function buildChartData(sessions: LeaderboardSessionRow[], stats: PlayerStats[],
 
 type SortKey = 'total_yuan' | 'total_chips' | 'sessions_played' | 'win_rate' | 'pog_count'
 
+function SortHeader({
+  label,
+  active,
+  direction,
+  onToggle,
+}: {
+  label: string
+  active: boolean
+  direction: 'asc' | 'desc'
+  onToggle: () => void
+}) {
+  return (
+    <th className="py-3 text-right font-normal">
+      <button onClick={onToggle}
+        className={`tracking-widest transition-colors ${active ? 'text-white' : 'text-muted hover:text-white'}`}>
+        {label}{active ? (direction === 'desc' ? ' ↓' : ' ↑') : ''}
+      </button>
+    </th>
+  )
+}
+
 export default function LeaderboardView({ groupId, stats, sessions }: { groupId: string; stats: PlayerStats[]; sessions: LeaderboardSessionRow[] }) {
   const [view, setView] = useState<'table' | 'chart'>('table')
   const [chartMode, setChartMode] = useState<'chips' | 'cny'>('cny')
@@ -63,35 +84,24 @@ export default function LeaderboardView({ groupId, stats, sessions }: { groupId:
     })
   }, [displayedStats, sortKey, sortDir])
 
-  function SortHeader({ label, sortKey: key }: { label: string; sortKey: SortKey }) {
-    const active = sortKey === key
-    return (
-      <th className="text-right py-3 font-normal">
-        <button onClick={() => toggleSort(key)}
-          className={`tracking-widest transition-colors ${active ? 'text-white' : 'text-muted hover:text-white'}`}>
-          {label}{active ? (sortDir === 'desc' ? ' ↓' : ' ↑') : ''}
-        </button>
-      </th>
-    )
-  }
-
   return (
     <>
-      <div className={`flex items-baseline justify-between ${activityFilter.hiddenCount > 0 ? 'mb-3' : 'mb-6'}`}>
+      <div className={`flex flex-wrap items-center justify-between gap-2 ${activityFilter.hiddenCount > 0 ? 'mb-3' : 'mb-6'}`}>
         <div className="flex items-baseline gap-4">
           <div className="flex gap-3">
             <button onClick={() => setView('table')}
-              className={`text-xs tracking-widest transition-colors ${view === 'table' ? 'text-white' : 'text-muted hover:text-white'}`}>
+              className={`inline-flex min-h-11 items-center text-xs tracking-widest transition-colors sm:min-h-0 ${view === 'table' ? 'text-white' : 'text-muted hover:text-white'}`}>
               TABLE
             </button>
             <span className="text-muted text-xs">/</span>
             <button onClick={() => setView('chart')}
-              className={`text-xs tracking-widest transition-colors ${view === 'chart' ? 'text-white' : 'text-muted hover:text-white'}`}>
+              className={`inline-flex min-h-11 items-center text-xs tracking-widest transition-colors sm:min-h-0 ${view === 'chart' ? 'text-white' : 'text-muted hover:text-white'}`}>
               CHART
             </button>
           </div>
         </div>
-        <Link href={`/groups/${groupId}/sessions/new`} className="text-xs text-accent tracking-widest hover:underline">+ NEW SESSION</Link>
+        <Link href={`/groups/${groupId}/sessions/new`}
+          className="inline-flex min-h-11 items-center text-xs tracking-widest text-accent hover:underline sm:min-h-0">+ NEW SESSION</Link>
       </div>
 
       {activityFilter.hiddenCount > 0 && (
@@ -100,7 +110,7 @@ export default function LeaderboardView({ groupId, stats, sessions }: { groupId:
             type="button"
             aria-pressed={hideLowActivity}
             onClick={() => setHideLowActivity(hidden => !hidden)}
-            className="flex items-center gap-2 text-[#aaaaaa] transition-colors hover:text-white"
+            className="flex min-h-11 items-center gap-2 text-[#aaaaaa] transition-colors hover:text-white sm:min-h-0"
           >
             <span
               aria-hidden="true"
@@ -121,16 +131,77 @@ export default function LeaderboardView({ groupId, stats, sessions }: { groupId:
       )}
 
       {view === 'table' ? (
-        <table className="w-full text-sm">
+        <>
+          <div className="mb-2 flex items-center gap-2 sm:hidden">
+            <label className="text-[10px] tracking-widest text-muted" htmlFor="mobile-leaderboard-sort">SORT</label>
+            <select
+              id="mobile-leaderboard-sort"
+              aria-label="Mobile leaderboard sort"
+              value={sortKey}
+              onChange={event => setSortKey(event.target.value as SortKey)}
+              className="min-h-11 min-w-0 flex-1 border border-border bg-surface px-3 text-white outline-none focus:border-white"
+            >
+              <option value="total_yuan">CNY</option>
+              <option value="total_chips">CHIPS</option>
+              <option value="sessions_played">SESSIONS</option>
+              <option value="win_rate">WIN RATE</option>
+              <option value="pog_count">POG</option>
+            </select>
+            <button
+              type="button"
+              aria-label={sortDir === 'desc' ? 'Sort descending' : 'Sort ascending'}
+              onClick={() => setSortDir(direction => direction === 'desc' ? 'asc' : 'desc')}
+              className="inline-flex min-h-11 min-w-11 items-center justify-center border border-border text-accent"
+            >
+              {sortDir === 'desc' ? '↓' : '↑'}
+            </button>
+          </div>
+
+          <ol className="sm:hidden" aria-label="Leaderboard">
+            {stats.length === 0 && (
+              <li className="py-12 text-center text-xs tracking-widest text-muted">NO PLAYERS YET</li>
+            )}
+            {sortedStats.map((stat, index) => (
+              <li key={stat.player.id} className="border-b border-border">
+                <Link href={`/groups/${groupId}/players/${stat.player.id}`} className="block py-4 active:bg-surface">
+                  <div className="mb-3 flex min-w-0 items-baseline gap-3">
+                    <span className="w-5 shrink-0 text-xs text-muted">{index + 1}</span>
+                    <span className="min-w-0 flex-1 truncate text-base text-white">{stat.player.name}</span>
+                    <ChipValue chips={stat.total_yuan} prefix="¥" className="text-sm" />
+                  </div>
+                  <dl className="grid grid-cols-4 gap-2 pl-8">
+                    <div>
+                      <dt className="mb-1 text-[9px] tracking-widest text-muted">CHIPS</dt>
+                      <dd className="text-xs"><ChipValue chips={stat.total_chips} /></dd>
+                    </div>
+                    <div className="text-right">
+                      <dt className="mb-1 text-[9px] tracking-widest text-muted">SESSIONS</dt>
+                      <dd className="text-xs text-muted">{stat.sessions_played}</dd>
+                    </div>
+                    <div className="text-right">
+                      <dt className="mb-1 text-[9px] tracking-widest text-muted">WIN RATE</dt>
+                      <dd className="text-xs text-muted">{(stat.win_rate * 100).toFixed(0)}%</dd>
+                    </div>
+                    <div className="text-right">
+                      <dt className="mb-1 text-[9px] tracking-widest text-muted">POG</dt>
+                      <dd className="text-xs text-muted">{stat.pog_count}</dd>
+                    </div>
+                  </dl>
+                </Link>
+              </li>
+            ))}
+          </ol>
+
+          <table className="hidden w-full text-sm sm:table">
           <thead>
             <tr className="border-b border-border text-muted text-xs tracking-widest">
               <th className="text-left py-3 font-normal w-8">#</th>
               <th className="text-left py-3 font-normal">PLAYER</th>
-              <SortHeader label="CNY" sortKey="total_yuan" />
-              <SortHeader label="CHIPS" sortKey="total_chips" />
-              <SortHeader label="SESSIONS" sortKey="sessions_played" />
-              <SortHeader label="WIN%" sortKey="win_rate" />
-              <SortHeader label="POG" sortKey="pog_count" />
+              <SortHeader label="CNY" active={sortKey === 'total_yuan'} direction={sortDir} onToggle={() => toggleSort('total_yuan')} />
+              <SortHeader label="CHIPS" active={sortKey === 'total_chips'} direction={sortDir} onToggle={() => toggleSort('total_chips')} />
+              <SortHeader label="SESSIONS" active={sortKey === 'sessions_played'} direction={sortDir} onToggle={() => toggleSort('sessions_played')} />
+              <SortHeader label="WIN%" active={sortKey === 'win_rate'} direction={sortDir} onToggle={() => toggleSort('win_rate')} />
+              <SortHeader label="POG" active={sortKey === 'pog_count'} direction={sortDir} onToggle={() => toggleSort('pog_count')} />
             </tr>
           </thead>
           <tbody>
@@ -165,7 +236,8 @@ export default function LeaderboardView({ groupId, stats, sessions }: { groupId:
               </tr>
             ))}
           </tbody>
-        </table>
+          </table>
+        </>
       ) : (
         <div className="-mx-2">
           <div className="flex justify-end px-2 mb-4">

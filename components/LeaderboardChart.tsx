@@ -33,16 +33,17 @@ export default function LeaderboardChart({ data, players, mode }: { data: ChartP
 
   return (
     <div>
-      <ResponsiveContainer width="100%" height={360}>
+      <div className="h-72 sm:h-[360px]">
+      <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
           <XAxis
             dataKey="date"
-            tick={{ fill: '#666666', fontSize: 10, fontFamily: 'JetBrains Mono' }}
+            tick={{ fill: '#888888', fontSize: 10, fontFamily: 'JetBrains Mono' }}
             axisLine={false}
             tickLine={false}
           />
           <YAxis
-            tick={{ fill: '#666666', fontSize: 10, fontFamily: 'JetBrains Mono' }}
+            tick={{ fill: '#888888', fontSize: 10, fontFamily: 'JetBrains Mono' }}
             axisLine={false}
             tickLine={false}
             width={60}
@@ -71,7 +72,7 @@ export default function LeaderboardChart({ data, players, mode }: { data: ChartP
               }
               return [n > 0 ? `+${n.toLocaleString()}` : n.toLocaleString(), name as string]
             }}
-            labelStyle={{ color: '#666666', marginBottom: 4 }}
+            labelStyle={{ color: '#888888', marginBottom: 4 }}
           />
           {players.map((player, i) => (
             <Line
@@ -88,6 +89,7 @@ export default function LeaderboardChart({ data, players, mode }: { data: ChartP
           ))}
         </LineChart>
       </ResponsiveContainer>
+      </div>
 
       <div className="flex flex-wrap justify-center gap-2 mt-4 px-2">
         {players.map((player, i) => {
@@ -96,7 +98,7 @@ export default function LeaderboardChart({ data, players, mode }: { data: ChartP
             <button
               key={player.id}
               onClick={() => toggle(player.id)}
-              className="flex items-center gap-1.5 px-2.5 py-1 text-xs tracking-wide transition-opacity"
+              className="flex min-h-11 items-center gap-1.5 px-2.5 py-1 text-xs tracking-wide transition-opacity sm:min-h-0"
               style={{ opacity: isActive ? 1 : 0.3 }}
             >
               <span

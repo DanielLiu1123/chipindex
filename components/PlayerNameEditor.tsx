@@ -59,14 +59,14 @@ export default function PlayerNameEditor({ groupId, id, initialName }: { groupId
         onBlur={save}
         onKeyDown={handleKeyDown}
         disabled={saving}
-        className="text-white text-lg bg-transparent border-b border-white outline-none w-48 disabled:opacity-50"
+        className="w-full max-w-48 border-b border-white bg-transparent text-lg text-white outline-none disabled:opacity-50"
       />
     )
   }
 
   return (
     <button onClick={() => setEditing(true)}
-      className="text-white text-lg hover:text-accent transition-colors">
+      className="max-w-full truncate text-left text-lg text-white transition-colors hover:text-accent">
       {name}
     </button>
   )

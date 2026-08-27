@@ -72,4 +72,13 @@ describe('Nav rendering', () => {
     expect(html).toContain('SESSIONS')
     expect(html).toContain('MANAGE')
   })
+
+  it('renders compact, touch-sized navigation for narrow screens', () => {
+    const html = renderToStaticMarkup(createElement(loadNav('/groups/g1')))
+
+    expect(html).toContain('<span class="sm:hidden">BOARD</span>')
+    expect(html).toContain('<span class="hidden sm:inline">LEADERBOARD</span>')
+    expect(html).toContain('grid w-full grid-cols-4')
+    expect(html).toContain('min-h-11')
+  })
 })

@@ -59,7 +59,7 @@ export default function PlayerSelect({ value, players, onChange, className = '' 
       </button>
 
       {open && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-surface border border-border shadow-lg">
+        <div className="fixed inset-x-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-50 max-h-[min(70dvh,24rem)] border border-border bg-surface shadow-lg sm:absolute sm:inset-x-0 sm:bottom-auto sm:top-full sm:mt-1 sm:max-h-none">
           <div className="border-b border-border px-3 py-2">
             <input
               ref={inputRef}
@@ -70,7 +70,7 @@ export default function PlayerSelect({ value, players, onChange, className = '' 
               className="w-full bg-transparent text-sm text-white placeholder:text-muted outline-none"
             />
           </div>
-          <div className="overflow-y-auto max-h-48">
+          <div className="max-h-[calc(70dvh-7rem)] overflow-y-auto sm:max-h-48">
             {filtered.length === 0 ? (
               <p className="px-4 py-2.5 text-sm text-muted">no results</p>
             ) : (

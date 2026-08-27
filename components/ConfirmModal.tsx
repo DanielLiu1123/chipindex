@@ -33,26 +33,29 @@ export default function ConfirmModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+      className="modal-backdrop fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/60 sm:items-center"
       onClick={onCancel}
     >
       <div
-        className="bg-surface border border-border w-full max-w-sm mx-4 p-6 flex flex-col gap-6"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirm-modal-title"
+        className="flex max-h-[calc(100dvh-2rem)] w-full max-w-sm flex-col gap-6 overflow-y-auto border border-border bg-surface p-5 sm:p-6"
         onClick={e => e.stopPropagation()}
       >
         <div>
-          <p className="text-white text-sm font-medium">{title}</p>
+          <p id="confirm-modal-title" className="text-sm font-medium text-white">{title}</p>
           {description && <p className="text-muted text-xs mt-1">{description}</p>}
         </div>
-        <div className="flex gap-2 justify-end">
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <button
             onClick={onCancel}
-            className="text-xs font-medium tracking-widest text-muted hover:text-white border border-border hover:border-white px-4 py-2 transition-colors">
+            className="min-h-11 border border-border px-4 py-2 text-xs font-medium tracking-widest text-muted transition-colors hover:border-white hover:text-white">
             CANCEL
           </button>
           <button
             onClick={onConfirm}
-            className="text-xs font-medium tracking-widest text-red-500 hover:text-red-400 border border-red-500/40 hover:border-red-400 px-4 py-2 transition-colors">
+            className="min-h-11 border border-red-500/40 px-4 py-2 text-xs font-medium tracking-widest text-red-500 transition-colors hover:border-red-400 hover:text-red-400">
             {confirmLabel}
           </button>
         </div>

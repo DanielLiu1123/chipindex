@@ -73,6 +73,18 @@ function classTokensFor(markup: string, tag: 'th' | 'td'): string[][] {
 }
 
 describe('PlayerSessionHistoryTable', () => {
+  it('renders a complete mobile session-history list alongside the desktop table', () => {
+    const html = renderTable()
+
+    expect(html).toContain('aria-label="Session history"')
+    expect(html).toContain('class="sm:hidden"')
+    expect(html).toContain('class="hidden w-full text-sm sm:table"')
+    expect(html).toContain('CUMULATIVE CNY')
+    expect(html).toContain('CUMULATIVE CHIPS')
+    expect(html).toContain('¥112.5')
+    expect(html).toContain('4500')
+  })
+
   it('renders concise mobile cumulative headers alongside the desktop labels', () => {
     const html = renderTable()
 

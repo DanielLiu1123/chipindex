@@ -141,6 +141,20 @@ function renderTooltip(payload: HistoryPoint): string {
 beforeEach(resetCaptured)
 
 describe('PlayerChart', () => {
+  it('makes dense mobile histories horizontally scrollable with a usage hint', () => {
+    const data = Array.from({ length: 14 }, (_, index) => ({
+      ...point,
+      session_id: `s${index + 1}`,
+      date: `2026-07-${String(index + 1).padStart(2, '0')}`,
+    }))
+
+    const html = renderChart({ data })
+
+    expect(html).toContain('aria-label="Scrollable session chart"')
+    expect(html).toContain('SWIPE TO VIEW ALL SESSIONS')
+    expect(html).toContain('--mobile-chart-width:416px')
+  })
+
   it('renders only a non-animated chips candle series with the low-high range', () => {
     renderChart()
 

@@ -70,15 +70,15 @@ export default function Nav() {
 
   return (
     <header className="border-b border-border">
-      <div className="max-w-4xl mx-auto px-6 min-h-12 py-2 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-4 min-w-0">
-          <Link href={home} className="flex items-center gap-2 text-accent font-medium tracking-widest text-sm">
+      <div className="nav-shell mx-auto flex min-h-12 max-w-4xl flex-wrap items-center justify-between gap-2 py-2 sm:gap-3">
+        <div className="flex w-full min-w-0 items-center gap-3 sm:w-auto sm:gap-4">
+          <Link href={home} className="flex shrink-0 items-center gap-2 text-sm font-medium tracking-widest text-accent">
             <Image src="/icon.svg" alt="" width={20} height={20} /> CHIPINDEX
           </Link>
-          <div ref={groupSelectRef} className="relative w-40">
+          <div ref={groupSelectRef} className="relative min-w-0 flex-1 sm:w-40 sm:flex-none">
             <button type="button" onClick={() => setGroupSelectOpen(open => !open)}
               aria-label="Current group" aria-haspopup="listbox" aria-expanded={groupSelectOpen}
-              className="w-full flex items-center justify-between gap-3 bg-surface border border-border text-xs px-3 py-2 outline-none focus:border-white transition-colors text-left">
+              className="flex min-h-11 w-full items-center justify-between gap-3 border border-border bg-surface px-3 py-2 text-left text-xs outline-none transition-colors focus:border-white sm:min-h-0">
               <span className={`truncate ${current ? 'text-white' : 'text-muted'}`}>{current?.name ?? 'SELECT GROUP'}</span>
               <svg className={`w-3 h-3 shrink-0 text-muted transition-transform duration-150 ${groupSelectOpen ? 'rotate-180' : ''}`}
                 viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -104,18 +104,23 @@ export default function Nav() {
             </div>}
           </div>
         </div>
-        <nav className="flex items-center gap-5">
+        <nav className={manage
+          ? 'grid w-full grid-cols-4 items-center gap-1 sm:flex sm:w-auto sm:gap-5'
+          : 'flex w-full items-center justify-end sm:w-auto'}>
           {manage && (
             <>
               <Link href={home} aria-current={homeActive ? 'page' : undefined}
-                className={`text-xs tracking-widest transition-colors ${homeActive ? 'text-white' : 'text-muted hover:text-white'}`}>LEADERBOARD</Link>
+                className={`inline-flex min-h-11 items-center justify-center px-1 text-[10px] tracking-widest transition-colors sm:min-h-0 sm:px-0 sm:text-xs ${homeActive ? 'text-white' : 'text-muted hover:text-white'}`}>
+                <span className="sm:hidden">BOARD</span><span className="hidden sm:inline">LEADERBOARD</span>
+              </Link>
               <Link href={sessions} aria-current={sessionsActive ? 'page' : undefined}
-                className={`text-xs tracking-widest transition-colors ${sessionsActive ? 'text-white' : 'text-muted hover:text-white'}`}>SESSIONS</Link>
+                className={`inline-flex min-h-11 items-center justify-center px-1 text-[10px] tracking-widest transition-colors sm:min-h-0 sm:px-0 sm:text-xs ${sessionsActive ? 'text-white' : 'text-muted hover:text-white'}`}>SESSIONS</Link>
               <Link href={manage} aria-current={manageActive ? 'page' : undefined}
-                className={`text-xs tracking-widest transition-colors ${manageActive ? 'text-white' : 'text-muted hover:text-white'}`}>MANAGE</Link>
+                className={`inline-flex min-h-11 items-center justify-center px-1 text-[10px] tracking-widest transition-colors sm:min-h-0 sm:px-0 sm:text-xs ${manageActive ? 'text-white' : 'text-muted hover:text-white'}`}>MANAGE</Link>
             </>
           )}
-          <button onClick={handleLogout} className="text-xs tracking-widest text-muted hover:text-danger transition-colors">EXIT</button>
+          <button onClick={handleLogout}
+            className="inline-flex min-h-11 items-center justify-center px-1 text-[10px] tracking-widest text-muted transition-colors hover:text-danger sm:min-h-0 sm:px-0 sm:text-xs">EXIT</button>
         </nav>
       </div>
     </header>

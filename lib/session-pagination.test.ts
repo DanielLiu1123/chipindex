@@ -1,4 +1,7 @@
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
+import SessionPagination from '@/components/SessionPagination'
 
 import {
   getSessionPaginationItems,
@@ -8,6 +11,20 @@ import {
 } from './session-pagination'
 
 describe('session pagination parameters', () => {
+  it('keeps long pagination compact on mobile', () => {
+    const html = renderToStaticMarkup(createElement(SessionPagination, {
+      sessionsPath: '/groups/g1/sessions',
+      page: 4,
+      pageSize: 10,
+      totalPages: 7,
+    }))
+
+    expect(html).toContain('aria-current="page"')
+    expect(html).toContain('max-sm:hidden')
+    expect(html).toContain('aria-label="Previous page"')
+    expect(html).toContain('aria-label="Next page"')
+  })
+
   it('centers a long pagination range around the current page', () => {
     expect(getSessionPaginationItems(6, 20)).toEqual([
       1,

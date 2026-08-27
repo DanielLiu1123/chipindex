@@ -28,7 +28,7 @@ export default function NewGroupForm() {
     <input value={name} onChange={event => setName(event.target.value)} autoFocus placeholder="group name"
       className="bg-surface border border-border text-white text-sm px-4 py-2.5 outline-none focus:border-white" />
     {error && <p className="text-xs text-danger">{error}</p>}
-    <button disabled={saving || !name.trim()} className="bg-white text-bg text-xs tracking-widest py-3 disabled:opacity-40">
+    <button disabled={saving || !name.trim()} className="min-h-11 bg-white py-3 text-xs tracking-widest text-bg disabled:opacity-40">
       {saving ? 'CREATING...' : 'CREATE GROUP'}
     </button>
   </form>

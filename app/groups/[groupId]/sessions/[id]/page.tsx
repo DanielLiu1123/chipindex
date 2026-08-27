@@ -20,7 +20,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
     .sort((a, b) => b.chips - a.chips || a.player_id.localeCompare(b.player_id))
   const total = entries.reduce((sum, entry) => sum + entry.chips, 0)
   return <>
-    <div className="mb-6"><Link href={`/groups/${groupId}/sessions`} className="text-muted text-xs hover:text-white tracking-widest">← SESSIONS</Link></div>
+    <div className="mb-6"><Link href={`/groups/${groupId}/sessions`} className="inline-flex min-h-11 items-center text-xs tracking-widest text-muted hover:text-white sm:min-h-0">← SESSIONS</Link></div>
     <div className="flex items-center justify-between mb-2">
       <h1 className="text-white">{settled.date}</h1>
       <Link href={`/groups/${groupId}/sessions/${id}/edit`} className="text-xs text-accent tracking-widest border border-accent/50 hover:border-accent px-2.5 py-1 transition-colors">EDIT</Link>

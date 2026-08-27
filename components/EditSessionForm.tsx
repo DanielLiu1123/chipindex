@@ -134,7 +134,7 @@ export default function EditSessionForm({ groupId, sessionId, session }: {
       />
 
       <div className="mb-6">
-        <Link href={`/groups/${groupId}/sessions/${sessionId}`} className="text-muted text-xs hover:text-white tracking-widest">← SESSION</Link>
+        <Link href={`/groups/${groupId}/sessions/${sessionId}`} className="inline-flex min-h-11 items-center text-xs tracking-widest text-muted hover:text-white sm:min-h-0">← SESSION</Link>
       </div>
       <h1 className="text-xs text-muted tracking-widest mb-6">EDIT SESSION</h1>
 
@@ -165,22 +165,22 @@ export default function EditSessionForm({ groupId, sessionId, session }: {
                     </div>
                   ) : (
                     <>
-                      <div className="flex items-center gap-2 px-3 py-2.5">
+                      <div className="grid grid-cols-[minmax(0,1fr)_5.5rem_2.75rem] items-center gap-2 px-3 py-2.5 sm:grid-cols-[minmax(0,1fr)_6rem_5rem_2.75rem]">
                         {row.isNew ? (
                           <input type="text" value={row.newName} autoFocus onChange={e => updateRow(row.uid, { newName: e.target.value })}
                             placeholder="new player name"
-                            className="flex-1 bg-transparent border-b border-accent text-white text-sm py-1 outline-none placeholder:text-muted" />
+                            className="col-span-3 min-w-0 border-b border-accent bg-transparent py-1 text-sm text-white outline-none placeholder:text-muted sm:col-span-1" />
                         ) : (
-                          <button type="button" onClick={() => toggle(row.uid)} className="flex-1 text-left flex items-baseline gap-2 min-w-0">
+                          <button type="button" onClick={() => toggle(row.uid)} className="col-span-3 flex min-w-0 items-baseline gap-2 text-left sm:col-span-1">
                             <span className="text-white truncate">{row.name}</span>
                             <span className="text-xs text-muted">buy-in {total.toLocaleString()} · {row.buyins.length}×</span>
                           </button>
                         )}
                         <input type="number" value={row.final} onChange={e => updateRow(row.uid, { final: e.target.value })}
                           placeholder="final" min="0"
-                          className="w-24 bg-surface border border-border text-white text-sm px-3 py-2 outline-none focus:border-white transition-colors placeholder:text-muted text-right" />
-                        <span className="w-20 text-right text-sm"><ChipValue chips={net} /></span>
-                        <button type="button" onClick={() => requestRemove(row)} className="text-muted hover:text-danger text-sm px-1 transition-colors" aria-label="remove player">✕</button>
+                          className="w-full border border-border bg-surface px-2 py-2 text-right text-sm text-white outline-none transition-colors placeholder:text-muted focus:border-white sm:px-3" />
+                        <span className="min-w-0 text-right text-sm"><ChipValue chips={net} /></span>
+                        <button type="button" onClick={() => requestRemove(row)} className="flex h-11 w-11 items-center justify-center text-sm text-muted transition-colors hover:text-danger" aria-label="remove player">✕</button>
                       </div>
 
                       {expanded.has(row.uid) && !row.isNew && (
@@ -211,7 +211,7 @@ export default function EditSessionForm({ groupId, sessionId, session }: {
           </div>
         </div>
 
-        <div className="flex items-center justify-between text-xs tracking-widest border-t border-border pt-3">
+        <div className="flex flex-col gap-2 border-t border-border pt-3 text-xs tracking-widest sm:flex-row sm:items-center sm:justify-between">
           <span className="text-muted">Σ FINAL / Σ BUY-IN</span>
           <span className={diff === 0 ? 'text-accent' : 'text-amber-400'}>
             {totalFinal.toLocaleString()} / {totalBuyin.toLocaleString()}

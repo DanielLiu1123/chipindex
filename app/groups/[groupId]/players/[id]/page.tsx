@@ -13,7 +13,7 @@ export default async function PlayerDetailPage({ params }: { params: Promise<{ g
   if (!player) notFound()
   const { history, totalCny, totalChips, wins, pogCount } = computePlayerHistory(player)
   return <>
-    <div className="mb-6"><Link href={`/groups/${groupId}`} className="text-muted text-xs hover:text-white tracking-widest">← LEADERBOARD</Link></div>
+    <div className="mb-6"><Link href={`/groups/${groupId}`} className="inline-flex min-h-11 items-center text-xs tracking-widest text-muted hover:text-white sm:min-h-0">← LEADERBOARD</Link></div>
     <PlayerStatsChart groupId={groupId} id={id} initialName={player.name} data={history} totalCny={totalCny}
       totalChips={totalChips} sessions={history.length} wins={wins} pogCount={pogCount} />
     <p className="text-xs text-muted tracking-widest mb-4">SESSION HISTORY</p>

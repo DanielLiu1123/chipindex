@@ -1,6 +1,6 @@
 'use client'
 
-import { createElement, useCallback, useMemo } from 'react'
+import { createElement, useCallback, useMemo, type CSSProperties } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Bar,
@@ -31,6 +31,7 @@ export default function PlayerChart({
   const bestIdx = useMemo(() => data.reduce((bi, p, i) => (p[sessionKey] > data[bi][sessionKey] ? i : bi), 0), [data, sessionKey])
   const worstIdx = useMemo(() => data.reduce((wi, p, i) => (p[sessionKey] < data[wi][sessionKey] ? i : wi), 0), [data, sessionKey])
   const showExtrema = data.length > 1 && bestIdx !== worstIdx
+  const mobileChartWidth = Math.max(320, data.length * 24 + 80)
   const dateBySessionId = useMemo(
     () => new Map(data.map(point => [point.session_id, point.date])),
     [data],
@@ -64,11 +65,11 @@ export default function PlayerChart({
     })
   }, [activateSession, bestIdx, data.length, mode, showExtrema, worstIdx])
 
-  return createElement(
+  const chart = createElement(
     ResponsiveContainer,
     {
       width: '100%',
-      height: 220,
+      height: '100%',
       children: createElement(
         ComposedChart,
         { data, margin: { top: 18, right: 8, bottom: 12, left: 0 } },
@@ -76,12 +77,12 @@ export default function PlayerChart({
           dataKey: 'session_id',
           interval: 'preserveStartEnd',
           tickFormatter: (sessionId: string) => dateBySessionId.get(sessionId) ?? sessionId,
-          tick: { fill: '#666666', fontSize: 10, fontFamily: 'JetBrains Mono' },
+          tick: { fill: '#888888', fontSize: 10, fontFamily: 'JetBrains Mono' },
           axisLine: false,
           tickLine: false,
         }),
         createElement(YAxis, {
-          tick: { fill: '#666666', fontSize: 10, fontFamily: 'JetBrains Mono' },
+          tick: { fill: '#888888', fontSize: 10, fontFamily: 'JetBrains Mono' },
           axisLine: false,
           tickLine: false,
           width: 50,
@@ -104,7 +105,7 @@ export default function PlayerChart({
             return createElement(
               'div',
               { style: { background: '#111111', border: '1px solid #222222', fontFamily: 'JetBrains Mono', fontSize: 11, color: '#ffffff', padding: '8px 12px', lineHeight: 1.8 } },
-              createElement('div', { style: { color: '#666666', marginBottom: 4 } }, p.date),
+              createElement('div', { style: { color: '#888888', marginBottom: 4 } }, p.date),
               createElement('div', null, `buy-ins: ${p.buy_in_count}× · ${p.total_buyin.toLocaleString()} chips`),
               createElement('div', null, 'final: ', p.final_chips === null ? '—' : `${p.final_chips.toLocaleString()} chips`),
               createElement(
@@ -113,7 +114,7 @@ export default function PlayerChart({
                 'session: ',
                 createElement('span', { style: { color: sessionColor } }, fmtVal(val, mode === 'cny')),
               ),
-              createElement('div', { style: { color: '#666666' } }, 'cumulative: ', fmtVal(cumVal, mode === 'cny')),
+              createElement('div', { style: { color: '#888888' } }, 'cumulative: ', fmtVal(cumVal, mode === 'cny')),
               p.description
                 ? createElement('div', { style: { color: '#888888', marginTop: 4, maxWidth: 200 } }, p.description)
                 : null,
@@ -129,5 +130,28 @@ export default function PlayerChart({
         }),
       ),
     },
+  )
+
+  return createElement(
+    'div',
+    null,
+    data.length > 10
+      ? createElement('p', {
+          className: 'mb-2 text-[10px] tracking-widest text-muted sm:hidden',
+        }, 'SWIPE TO VIEW ALL SESSIONS')
+      : null,
+    createElement(
+      'div',
+      {
+        role: 'region',
+        tabIndex: 0,
+        'aria-label': 'Scrollable session chart',
+        className: 'overflow-x-auto overscroll-x-contain pb-2',
+      },
+      createElement('div', {
+        className: 'h-[220px] min-w-full max-sm:w-[var(--mobile-chart-width)]',
+        style: { '--mobile-chart-width': `${mobileChartWidth}px` } as CSSProperties,
+      }, chart),
+    ),
   )
 }
