@@ -46,7 +46,7 @@ export async function startSession(groupId: string, meta: SessionMeta, players: 
   requireUniquePlayerIds(players.map(player => player.player_id))
   for (const player of players) {
     if (!player.player_id) throw new ApiError(400, 'player_id required')
-    requireNonNegativeInteger(player.initial_buyin, 'initial_buyin')
+    requirePositiveInteger(player.initial_buyin, 'initial_buyin')
   }
   await Promise.all([requireGroup(groupId), requireActiveMembers(groupId, players.map(player => player.player_id))])
 
@@ -61,7 +61,7 @@ export async function startSession(groupId: string, meta: SessionMeta, players: 
   }).select().single()
   ensureData(session, error)
 
-  const buyIns = players.filter(player => player.initial_buyin > 0).map(player => ({
+  const buyIns = players.map(player => ({
     session_id: session.id,
     player_id: player.player_id,
     amount: player.initial_buyin,
@@ -92,9 +92,10 @@ export async function updateSettledSession(
     for (const buyIn of participant.buy_ins) requirePositiveInteger(buyIn.amount, `buy-in amount for ${participant.player_id}`)
   }
 
-  const { data: existingParticipants, error: existingError } = await db.from('session_participant').select('player_id').eq('session_id', id).is('deleted_at', null)
+  const { data: existingParticipants, error: existingError } = await db.from('session_participant').select('player_id, settled_at').eq('session_id', id).is('deleted_at', null)
   ensure(existingError)
   const existingIds = new Set((existingParticipants ?? []).map(row => row.player_id))
+  const existingSettledAt = new Map((existingParticipants ?? []).map(row => [row.player_id, row.settled_at]))
   await requireActiveMembers(groupId, participants.filter(row => !existingIds.has(row.player_id)).map(row => row.player_id))
 
   const totalBuyin = buyinSum(participants.flatMap(participant => participant.buy_ins))
@@ -114,7 +115,7 @@ export async function updateSettledSession(
     session_id: id,
     player_id: participant.player_id,
     final_chips: participant.final_chips,
-    settled_at: timestamp,
+    settled_at: participant.settled_at ?? existingSettledAt.get(participant.player_id) ?? timestamp,
   }))
   const buyInRows = participants.flatMap(participant => participant.buy_ins.map(buyIn => ({
     session_id: id,

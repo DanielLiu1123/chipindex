@@ -24,4 +24,11 @@ describe('session player validation', () => {
     ])).rejects.toMatchObject({ status: 400, message: 'Duplicate player_id' })
     expect(dbMocks.from).not.toHaveBeenCalled()
   })
+
+  it('rejects a zero initial buy-in before creating a live session', async () => {
+    await expect(startSession('g1', meta, [
+      { player_id: 'p1', initial_buyin: 0 },
+    ])).rejects.toMatchObject({ status: 400, message: 'initial_buyin must be a positive integer' })
+    expect(dbMocks.from).not.toHaveBeenCalled()
+  })
 })

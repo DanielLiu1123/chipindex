@@ -344,6 +344,7 @@ export interface SessionDetailEntry {
   final_chips: number | null
   total_buyin: number
   buy_ins: { amount: number; created_at: string }[]
+  settled_at: string | null
   players: { name: string } | null
 }
 export interface SessionDetail {
@@ -352,6 +353,8 @@ export interface SessionDetail {
   description: string | null
   exchange_rate: number
   status: string
+  started_at: string | null
+  ended_at: string | null
   session_entries: SessionDetailEntry[]
 }
 
@@ -370,6 +373,7 @@ interface SessionAggregateSource {
     exchange_rate: number
     buy_in_unit: number | null
     started_at: string | null
+    ended_at: string | null
     status: SessionStatus
   }
   participants: Array<{ id: string; player_id: string; final_chips: number | null; settled_at: string | null; created_at: string }>
@@ -380,7 +384,7 @@ interface SessionAggregateSource {
 async function loadSessionAggregate(groupId: string, id: string): Promise<SessionAggregateSource | null> {
   const sessionResult = await db
     .from('session')
-    .select('id, date, description, exchange_rate, buy_in_unit, started_at, status')
+    .select('id, date, description, exchange_rate, buy_in_unit, started_at, ended_at, status')
     .eq('group_id', groupId)
     .eq('id', id)
     .is('deleted_at', null)
@@ -429,10 +433,11 @@ function sessionDetailFromAggregate(source: SessionAggregateSource): SessionDeta
       final_chips: participant.final_chips,
       total_buyin,
       buy_ins: flow.map(buyIn => ({ amount: buyIn.amount, created_at: buyIn.created_at })),
+      settled_at: participant.settled_at,
       players: { name: source.names.get(participant.player_id) ?? participant.player_id },
     }
   }).sort((a, b) => b.chips - a.chips || a.player_id.localeCompare(b.player_id))
-  const { buy_in_unit: _buyInUnit, started_at: _startedAt, ...session } = source.session
+  const { buy_in_unit: _buyInUnit, ...session } = source.session
   return { ...session, session_entries }
 }
 
@@ -442,6 +447,7 @@ export interface EditParticipant {
   player_id: string
   name: string
   final_chips: number | null
+  settled_at: string | null
   buy_ins: EditBuyIn[]
 }
 export interface SessionForEdit {
@@ -449,6 +455,7 @@ export interface SessionForEdit {
   exchange_rate: number
   description: string | null
   status: string
+  ended_at: string | null
   participants: EditParticipant[]
 }
 
@@ -460,6 +467,7 @@ export async function getSessionForEdit(groupId: string, id: string): Promise<Se
     player_id: participant.player_id,
     name: source.names.get(participant.player_id) ?? participant.player_id,
     final_chips: participant.final_chips,
+    settled_at: participant.settled_at,
     buy_ins: (flowByPlayer.get(participant.player_id) ?? []).map(buyIn => ({ amount: buyIn.amount, created_at: buyIn.created_at })),
   }))
   const { id: _id, buy_in_unit: _buyInUnit, started_at: _startedAt, ...session } = source.session

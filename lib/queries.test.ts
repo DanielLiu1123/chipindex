@@ -24,6 +24,7 @@ import {
   getGroupPlayers,
   getLeaderboardData,
   getPlayerDetail,
+  getSessionForEdit,
   getSessionPageData,
   getSessionsPage,
 } from './queries'
@@ -322,8 +323,8 @@ describe('getSessionPageData', () => {
 
   it('loads a settled session once and only fetches names for its participants', async () => {
     mockQueryResponses({
-      session: [{ data: { id: 's1', date: '2026-08-08', description: null, exchange_rate: 40, buy_in_unit: 2000, started_at: null, status: 'SETTLED' } }],
-      session_participant: [{ data: [{ id: 'part-1', player_id: 'alice', final_chips: 6000 }] }],
+      session: [{ data: { id: 's1', date: '2026-08-08', description: null, exchange_rate: 40, buy_in_unit: 2000, started_at: '2026-08-08T09:00:00Z', ended_at: '2026-08-08T10:00:00Z', status: 'SETTLED' } }],
+      session_participant: [{ data: [{ id: 'part-1', player_id: 'alice', final_chips: 6000, settled_at: '2026-08-08T09:45:00Z' }] }],
       buy_in: [{ data: [{ id: 'buy-1', player_id: 'alice', amount: 2000, created_at: '2026-08-08T06:59:27Z' }] }],
       player: [{ data: [{ id: 'alice', name: 'Alice' }] }],
     })
@@ -337,7 +338,13 @@ describe('getSessionPageData', () => {
       status: 'SETTLED',
       session: {
         id: 's1',
-        session_entries: [{ player_id: 'alice', players: { name: 'Alice' } }],
+        started_at: '2026-08-08T09:00:00Z',
+        ended_at: '2026-08-08T10:00:00Z',
+        session_entries: [{
+          player_id: 'alice',
+          settled_at: '2026-08-08T09:45:00Z',
+          players: { name: 'Alice' },
+        }],
       },
     })
   })
@@ -375,6 +382,32 @@ describe('getSessionPageData', () => {
       'same-net-b',
       'low-player',
     ])
+  })
+})
+
+describe('getSessionForEdit', () => {
+  it('preserves effective buy-in, early cash-out and session end times', async () => {
+    mockQueryResponses({
+      session: [{ data: {
+        id: 's1', date: '2026-08-08', description: null, exchange_rate: 40, buy_in_unit: 2000,
+        started_at: '2026-08-08T09:00:00Z', ended_at: '2026-08-08T10:00:00Z', status: 'SETTLED',
+      } }],
+      session_participant: [{ data: [{
+        id: 'part-1', player_id: 'alice', final_chips: 3500,
+        settled_at: '2026-08-08T09:45:00Z', created_at: '2026-08-08T09:01:00Z',
+      }] }],
+      buy_in: [{ data: [{ id: 'buy-1', player_id: 'alice', amount: 2000, created_at: '2026-08-08T09:01:00Z' }] }],
+      player: [{ data: [{ id: 'alice', name: 'Alice' }] }],
+    })
+
+    await expect(getSessionForEdit('g1', 's1')).resolves.toMatchObject({
+      ended_at: '2026-08-08T10:00:00Z',
+      participants: [{
+        player_id: 'alice',
+        settled_at: '2026-08-08T09:45:00Z',
+        buy_ins: [{ created_at: '2026-08-08T09:01:00Z' }],
+      }],
+    })
   })
 })
 
