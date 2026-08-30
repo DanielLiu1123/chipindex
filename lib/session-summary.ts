@@ -24,6 +24,20 @@ export interface SessionSummaryOptions {
 
 const numberFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 })
 
+function tableCell(value: string): string {
+  return value.replace(/\|/g, '\\|')
+}
+
+function markdownTable(
+  headers: string[],
+  alignments: Array<'left' | 'right'>,
+  rows: string[][],
+): string {
+  const renderRow = (cells: string[]) => `| ${cells.map(tableCell).join(' | ')} |`
+  const separator = alignments.map(alignment => alignment === 'right' ? '---:' : ':---')
+  return [renderRow(headers), renderRow(separator), ...rows.map(renderRow)].join('\n')
+}
+
 function browserTime(value: string): string {
   return new Date(value).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 }
@@ -70,23 +84,40 @@ export function buildSessionSummary(
   if (input.started_at === null) {
     sections.push('Imported session · no live event log.')
   } else {
-    sections.push(`EVENTS\n${buildSessionLog({
+    const eventRows = buildSessionLog({
       started_at: input.started_at,
       ended_at: input.ended_at,
       participants: input.participants,
-    }, options.format_time ?? browserTime).join('\n')}`)
+    }, options.format_time ?? browserTime).map(line => {
+      const separator = line.indexOf(' ')
+      return [line.slice(0, separator), line.slice(separator + 1)]
+    })
+    sections.push(`EVENTS\n${markdownTable(['TIME', 'EVENT'], ['right', 'left'], eventRows)}`)
   }
 
   const sortedRows = [...rows].sort((a, b) => b.net - a.net
     || a.order - b.order
     || a.participant.player_id.localeCompare(b.participant.player_id))
-  const resultLines = sortedRows.map(row => {
+  const resultRows = sortedRows.map(row => {
     const name = normalizeSummaryText(row.participant.name)
-    const result = `${formatSignedChips(row.net)} · ${formatSignedCny(toCny(row.net, input.exchange_rate))}`
-    if (imported) return `${name} · ${result}`
-    return `${name} · buy-in ${row.totalBuyin.toLocaleString('en-US')} (${row.participant.buy_ins.length}x) · final ${(row.participant.final_chips ?? 0).toLocaleString('en-US')} · ${result}`
+    const net = formatSignedChips(row.net)
+    const cny = formatSignedCny(toCny(row.net, input.exchange_rate))
+    if (imported) return [name, net, cny]
+    return [
+      name,
+      `${row.totalBuyin.toLocaleString('en-US')} (${row.participant.buy_ins.length}x)`,
+      (row.participant.final_chips ?? 0).toLocaleString('en-US'),
+      net,
+      cny,
+    ]
   })
-  sections.push(`RESULTS\n${resultLines.join('\n')}`)
+  sections.push(imported
+    ? `RESULTS\n${markdownTable(['PLAYER', 'NET', 'CNY'], ['left', 'right', 'right'], resultRows)}`
+    : `RESULTS\n${markdownTable(
+      ['PLAYER', 'BUY-IN', 'FINAL', 'NET', 'CNY'],
+      ['left', 'right', 'right', 'right', 'right'],
+      resultRows,
+    )}`)
 
   const warnings: string[] = []
   if (!imported) {
@@ -105,13 +136,21 @@ export function buildSessionSummary(
     })), input.exchange_rate)
     const names = new Map(rows.map(row => [row.participant.player_id, normalizeSummaryText(row.participant.name)]))
     const payments = plan.transfers.length === 0
-      ? ['No transfers required.']
-      : plan.transfers.map(transfer =>
-        `${names.get(transfer.from_player_id)} → ${names.get(transfer.to_player_id)} · ${formatCents(transfer.amount_cents)}`)
+      ? 'No transfers required.'
+      : markdownTable(
+        ['FROM', 'TO', 'AMOUNT'],
+        ['left', 'left', 'right'],
+        plan.transfers.map(transfer => [
+          names.get(transfer.from_player_id) ?? transfer.from_player_id,
+          names.get(transfer.to_player_id) ?? transfer.to_player_id,
+          formatCents(transfer.amount_cents),
+        ]),
+      )
     if (plan.rounding_adjustment_cents > 0) {
-      payments.push(`Includes a ${formatCents(plan.rounding_adjustment_cents)} rounding adjustment.`)
+      sections.push(`PAYMENTS\n${payments}\n\nIncludes a ${formatCents(plan.rounding_adjustment_cents)} rounding adjustment.`)
+    } else {
+      sections.push(`PAYMENTS\n${payments}`)
     }
-    sections.push(`PAYMENTS\n${payments.join('\n')}`)
   }
 
   return sections.join('\n\n')

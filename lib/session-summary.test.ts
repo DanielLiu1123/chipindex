@@ -37,22 +37,28 @@ describe('buildSessionSummary', () => {
 3 players · total buy-in 8,000 chips
 
 EVENTS
-12:03 Session started
-12:04 Alice joined · buy-in 2,000
-12:04 Bob joined · buy-in 2,000
-12:05 Carol joined · buy-in 2,000
-12:42 Alice buy-in · +2,000
-14:05 Bob cashed out · 3,500
-15:12 Session ended
+| TIME | EVENT |
+| ---: | :--- |
+| 12:03 | Session started |
+| 12:04 | Alice joined · buy-in 2,000 |
+| 12:04 | Bob joined · buy-in 2,000 |
+| 12:05 | Carol joined · buy-in 2,000 |
+| 12:42 | Alice buy-in · +2,000 |
+| 14:05 | Bob cashed out · 3,500 |
+| 15:12 | Session ended |
 
 RESULTS
-Bob · buy-in 2,000 (1x) · final 3,500 · +1,500 chips · +¥37.5
-Carol · buy-in 2,000 (1x) · final 2,500 · +500 chips · +¥12.5
-Alice · buy-in 4,000 (2x) · final 2,000 · -2,000 chips · -¥50
+| PLAYER | BUY-IN | FINAL | NET | CNY |
+| :--- | ---: | ---: | ---: | ---: |
+| Bob | 2,000 (1x) | 3,500 | +1,500 chips | +¥37.5 |
+| Carol | 2,000 (1x) | 2,500 | +500 chips | +¥12.5 |
+| Alice | 4,000 (2x) | 2,000 | -2,000 chips | -¥50 |
 
 PAYMENTS
-Alice → Bob · ¥37.5
-Alice → Carol · ¥12.5`)
+| FROM | TO | AMOUNT |
+| :--- | :--- | ---: |
+| Alice | Bob | ¥37.5 |
+| Alice | Carol | ¥12.5 |`)
   })
 
   it('does not present synthesized import rows as live events or buy-in history', () => {
@@ -82,8 +88,9 @@ Alice → Carol · ¥12.5`)
     expect(summary).toContain('3 players\n\nImported session · no live event log.')
     expect(summary).not.toContain('EVENTS')
     expect(summary).not.toContain('buy-in 4,000')
-    expect(summary).toContain('Alice · -2,000 chips · -¥50')
-    expect(summary).toContain('Alice → Bob · ¥37.5')
+    expect(summary).toContain('| PLAYER | NET | CNY |')
+    expect(summary).toContain('| Alice | -2,000 chips | -¥50 |')
+    expect(summary).toContain('| Alice | Bob | ¥37.5 |')
   })
 
   it('warns about missing buy-ins and suppresses payments for an unbalanced session', () => {
@@ -115,8 +122,8 @@ Alice → Carol · ¥12.5`)
       ],
     }, { format_time: value => value.slice(11, 16) })
 
-    expect(summary).toContain('Alice · buy-in 1 (1x) · final 0 · -1 chips · -¥0.33')
-    expect(summary).toContain('Alice → Carol · ¥0.34')
+    expect(summary).toContain('| Alice | 1 (1x) | 0 | -1 chips | -¥0.33 |')
+    expect(summary).toContain('| Alice | Carol | ¥0.34 |')
     expect(summary).toContain('Includes a ¥0.01 rounding adjustment.')
   })
 })
