@@ -14,11 +14,21 @@ import { buyinSum, netChips } from '@/lib/settlement'
 import { BUY_IN_UNIT } from '@/lib/synth'
 import { uid } from '@/lib/uid'
 
-interface BuyInRow { amount: string; created_at?: string }
+interface BuyInRow { amount: string; created_at: string }
 interface ParticipantRow extends PlayerRowBase {
   name: string
   final: string
   buyins: BuyInRow[]
+}
+
+function toDateTimeLocal(value: string): string {
+  const date = new Date(value)
+  const pad = (part: number) => String(part).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
+
+function toIsoTimestamp(value: string): string {
+  return new Date(value).toISOString()
 }
 
 function rowsFromSession(session: SessionForEdit): ParticipantRow[] {
@@ -29,7 +39,7 @@ function rowsFromSession(session: SessionForEdit): ParticipantRow[] {
     isNew: false,
     newName: '',
     final: participant.final_chips != null ? String(participant.final_chips) : '',
-    buyins: participant.buy_ins.map(buyIn => ({ amount: String(buyIn.amount), created_at: buyIn.created_at })),
+    buyins: participant.buy_ins.map(buyIn => ({ amount: String(buyIn.amount), created_at: toDateTimeLocal(buyIn.created_at) })),
   }))
 }
 
@@ -49,6 +59,7 @@ export default function EditSessionForm({ groupId, sessionId, session }: {
   const [error, setError] = useState('')
   const [saveError, setSaveError] = useState<{ diff: number } | null>(null)
   const [confirmRemove, setConfirmRemove] = useState<ParticipantRow | null>(null)
+  const defaultEventTime = toDateTimeLocal(session.ended_at ?? new Date().toISOString())
 
   function toggle(uid: string) {
     setExpanded(s => {
@@ -60,7 +71,10 @@ export default function EditSessionForm({ groupId, sessionId, session }: {
   }
 
   function addRow() {
-    setRows(r => [...r, { uid: uid(), playerId: '', name: '', isNew: false, newName: '', final: '', buyins: [{ amount: String(BUY_IN_UNIT) }] }])
+    setRows(r => [...r, {
+      uid: uid(), playerId: '', name: '', isNew: false, newName: '', final: '',
+      buyins: [{ amount: String(BUY_IN_UNIT), created_at: defaultEventTime }],
+    }])
   }
 
   function buyinTotal(row: ParticipantRow) {
@@ -84,7 +98,7 @@ export default function EditSessionForm({ groupId, sessionId, session }: {
         final_chips: Number(row.final),
         buy_ins: row.buyins
           .filter(b => Number(b.amount) > 0)
-          .map(b => ({ amount: Number(b.amount), ...(b.created_at ? { created_at: b.created_at } : {}) })),
+          .map(b => ({ amount: Number(b.amount), created_at: toIsoTimestamp(b.created_at) })),
       })))
 
       await updateSession(groupId, sessionId, {
@@ -183,12 +197,16 @@ export default function EditSessionForm({ groupId, sessionId, session }: {
                         <button type="button" onClick={() => requestRemove(row)} className="text-muted hover:text-danger text-sm px-1 transition-colors" aria-label="remove player">✕</button>
                       </div>
 
-                      {expanded.has(row.uid) && !row.isNew && (
+                      {(expanded.has(row.uid) || row.isNew) && (
                         <div className="border-t border-border px-3 py-2 bg-surface/50">
                           <p className="text-xs text-muted tracking-widest mb-2">BUY-INS</p>
                           <div className="flex flex-col gap-1">
                             {row.buyins.map((b, i) => (
-                              <div key={i} className="flex items-center gap-2">
+                              <div key={i} className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                                <input type="datetime-local" step="1" value={b.created_at}
+                                  aria-label={`buy-in time for ${row.name || row.newName || 'player'}`}
+                                  onChange={e => updateRow(row.uid, { buyins: row.buyins.map((x, j) => j === i ? { ...x, created_at: e.target.value } : x) })}
+                                  className="w-full bg-surface border border-border text-white text-xs px-3 py-2 outline-none focus:border-white transition-colors sm:w-52" />
                                 <input type="number" value={b.amount} min="1"
                                   onChange={e => updateRow(row.uid, { buyins: row.buyins.map((x, j) => j === i ? { ...x, amount: e.target.value } : x) })}
                                   className="flex-1 bg-surface border border-border text-white text-xs px-3 py-2 outline-none focus:border-white transition-colors text-right" />
@@ -196,7 +214,7 @@ export default function EditSessionForm({ groupId, sessionId, session }: {
                                   className="text-muted hover:text-danger text-xs px-1 transition-colors">✕</button>
                               </div>
                             ))}
-                            <button type="button" onClick={() => updateRow(row.uid, { buyins: [...row.buyins, { amount: String(unit) }] })}
+                            <button type="button" onClick={() => updateRow(row.uid, { buyins: [...row.buyins, { amount: String(unit), created_at: defaultEventTime }] })}
                               className="text-xs text-muted hover:text-white tracking-widest text-left py-1.5 transition-colors">+ ADD BUY-IN</button>
                           </div>
                         </div>

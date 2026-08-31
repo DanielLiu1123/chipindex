@@ -69,6 +69,12 @@ function description(value: unknown): string | null {
   return value
 }
 
+function optionalTimestamp(value: unknown, field: string): string | undefined {
+  if (value === undefined) return undefined
+  if (typeof value !== 'string' || Number.isNaN(Date.parse(value))) invalid(`${field} must be an ISO timestamp`)
+  return value
+}
+
 function sessionMeta(body: JsonObject): SessionMetaCommand {
   const exchangeRate = number(body.exchange_rate, 'exchange_rate')
   if (exchangeRate <= 0) invalid('exchange_rate must be greater than 0')
@@ -115,7 +121,7 @@ export function parseCreateSessionCommand(value: unknown): CreateSessionCommand 
         const player = object(value, `players[${index}]`)
         return {
           player_id: string(player.player_id, `players[${index}].player_id`),
-          initial_buyin: integer(player.initial_buyin, `players[${index}].initial_buyin`, 0),
+          initial_buyin: integer(player.initial_buyin, `players[${index}].initial_buyin`, 1),
         }
       }),
     }
@@ -143,13 +149,10 @@ function parseEditedParticipant(value: unknown, index: number): EditedParticipan
     final_chips: integer(participant.final_chips, `participants[${index}].final_chips`, 0),
     buy_ins: array(participant.buy_ins, `participants[${index}].buy_ins`).map((value, buyInIndex) => {
       const buyIn = object(value, `participants[${index}].buy_ins[${buyInIndex}]`)
-      const createdAt = buyIn.created_at
-      if (createdAt !== undefined && (typeof createdAt !== 'string' || Number.isNaN(Date.parse(createdAt)))) {
-        invalid(`participants[${index}].buy_ins[${buyInIndex}].created_at must be an ISO timestamp`)
-      }
+      const createdAt = optionalTimestamp(buyIn.created_at, `participants[${index}].buy_ins[${buyInIndex}].created_at`)
       return {
         amount: integer(buyIn.amount, `participants[${index}].buy_ins[${buyInIndex}].amount`, 1),
-        ...(createdAt === undefined ? {} : { created_at: createdAt as string }),
+        ...(createdAt === undefined ? {} : { created_at: createdAt }),
       }
     }),
   }

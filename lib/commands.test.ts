@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseBuyInCommand, parseCashOutParticipantCommand, parseCreateSessionCommand, readCommand } from './commands'
+import { parseBuyInCommand, parseCashOutParticipantCommand, parseCreateSessionCommand, parseUpdateSessionCommand, readCommand } from './commands'
 
 describe('parseCreateSessionCommand', () => {
   it('rejects an unknown status instead of treating it as an imported session', () => {
@@ -26,6 +26,19 @@ describe('parseCreateSessionCommand', () => {
       description: null,
       players: [{ player_id: 'p1', initial_buyin: 2000 }],
     })
+  })
+
+  it('rejects a zero initial buy-in', () => {
+    expect(() => parseCreateSessionCommand({
+      status: 'OPEN',
+      date: '2026-08-14',
+      exchange_rate: 40,
+      description: null,
+      players: [{ player_id: 'p1', initial_buyin: 0 }],
+    })).toThrow(expect.objectContaining({
+      status: 400,
+      message: 'players[0].initial_buyin must be an integer >= 1',
+    }))
   })
 
   it('rejects invalid calendar dates before a database write', () => {
@@ -64,5 +77,26 @@ describe('parseCashOutParticipantCommand', () => {
   it.each([-1, 1.5])('rejects invalid final chips: %s', final_chips => {
     expect(() => parseCashOutParticipantCommand({ player_id: 'p1', final_chips }))
       .toThrow(expect.objectContaining({ status: 400 }))
+  })
+})
+
+describe('parseUpdateSessionCommand', () => {
+  it('accepts editable buy-in timestamps without trusting a client settlement timestamp', () => {
+    expect(parseUpdateSessionCommand({
+      date: '2026-08-14',
+      exchange_rate: 40,
+      description: null,
+      force: false,
+      participants: [{
+        player_id: 'p1',
+        final_chips: 3000,
+        settled_at: '2026-08-14T13:00:00.000Z',
+        buy_ins: [{ amount: 2000, created_at: '2026-08-14T12:00:00.000Z' }],
+      }],
+    }).participants[0]).toEqual({
+      player_id: 'p1',
+      final_chips: 3000,
+      buy_ins: [{ amount: 2000, created_at: '2026-08-14T12:00:00.000Z' }],
+    })
   })
 })

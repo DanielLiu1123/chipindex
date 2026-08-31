@@ -29,12 +29,14 @@ export default function NewSessionForm({ groupId }: { groupId: string }) {
   const [starting, setStarting] = useState(false)
   const [error, setError] = useState('')
 
-  const validRows = rows.filter(r => (r.playerId || r.newName.trim()) && r.buyin !== '' && Number(r.buyin) >= 0)
+  const selectedRows = rows.filter(r => r.playerId || r.newName.trim())
+  const validRows = selectedRows.filter(r => Number.isInteger(Number(r.buyin)) && Number(r.buyin) > 0)
 
   async function handleStart(e: React.FormEvent) {
     e.preventDefault()
     setError('')
     if (validRows.length === 0) { setError('Add at least one player.'); return }
+    if (validRows.length !== selectedRows.length) { setError('Every player needs a positive integer buy-in.'); return }
     setStarting(true)
     try {
       const playersPayload = await Promise.all(validRows.map(async row => ({
@@ -89,7 +91,7 @@ export default function NewSessionForm({ groupId }: { groupId: string }) {
                 )}
                 <input type="number" value={row.buyin} onChange={e => updateRow(row.uid, { buyin: e.target.value })}
                   aria-label={`buy-in for ${accessibleName}`}
-                  placeholder="buy-in" min="0"
+                  placeholder="buy-in" min="1"
                   className="w-28 shrink-0 bg-bg/40 border border-border text-white text-sm px-3 py-1.5 outline-none focus:border-white transition-colors placeholder:text-muted text-right" />
                 <button type="button" onClick={() => removeRow(row.uid)}
                   aria-label={`remove ${accessibleName}`}
