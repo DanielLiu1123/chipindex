@@ -33,6 +33,7 @@ export default function CopySessionSummaryButton({ groupName, session }: {
         date: session.date,
         description: session.description,
         exchange_rate: session.exchange_rate,
+        detail_url: `${window.location.origin}${window.location.pathname}`,
         started_at: session.started_at,
         ended_at: session.ended_at,
         participants: session.session_entries.map(entry => ({
@@ -51,8 +52,13 @@ export default function CopySessionSummaryButton({ groupName, session }: {
   }
 
   const label = state === 'copied' ? 'COPIED' : state === 'error' ? 'COPY FAILED' : 'COPY SUMMARY'
+  const stateClasses = state === 'error'
+    ? 'text-danger border-danger/50'
+    : state === 'copied'
+      ? 'text-accent border-accent/50 bg-accent/5'
+      : 'text-sky-400 border-sky-400/50 hover:border-sky-400 hover:bg-sky-400/10'
   return <button type="button" onClick={copySummary}
-    className={`text-xs tracking-widest border px-2.5 py-1 transition-colors ${state === 'error' ? 'text-danger border-danger/50' : 'text-accent border-accent/50 hover:border-accent'}`}>
+    className={`text-xs tracking-widest border px-2.5 py-1 transition-colors ${stateClasses}`}>
     {label}
   </button>
 }

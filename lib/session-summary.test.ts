@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { buildSessionSummary } from './session-summary'
 
+const detailUrl = 'https://chipindex.example/groups/g1/sessions/s1'
+
 describe('buildSessionSummary', () => {
   it('copies the effective live events, results and minimum payment plan', () => {
     const summary = buildSessionSummary({
@@ -8,6 +10,7 @@ describe('buildSessionSummary', () => {
       date: '2026-08-31',
       description: 'Weekly session',
       exchange_rate: 40,
+      detail_url: detailUrl,
       started_at: '2026-08-31T12:03:00.000Z',
       ended_at: '2026-08-31T15:12:00.000Z',
       participants: [
@@ -51,7 +54,9 @@ Alice · buy-in 4,000 (2x) · final 2,000 · -2,000 chips · -¥50
 
 PAYMENTS
 Alice → Bob · ¥37.5
-Alice → Carol · ¥12.5`)
+Alice → Carol · ¥12.5
+
+Session details: https://chipindex.example/groups/g1/sessions/s1`)
   })
 
   it('does not present synthesized import rows as live events or buy-in history', () => {
@@ -60,6 +65,7 @@ Alice → Carol · ¥12.5`)
       date: '2026-08-20',
       description: 'Imported history',
       exchange_rate: 40,
+      detail_url: detailUrl,
       started_at: null,
       ended_at: null,
       participants: [
@@ -83,6 +89,7 @@ Alice → Carol · ¥12.5`)
     expect(summary).not.toContain('buy-in 4,000')
     expect(summary).toContain('Alice · -2,000 chips · -¥50')
     expect(summary).toContain('Alice → Bob · ¥37.5')
+    expect(summary.endsWith(`Session details: ${detailUrl}`)).toBe(true)
   })
 
   it('warns about missing buy-ins and suppresses payments for an unbalanced session', () => {
@@ -91,6 +98,7 @@ Alice → Carol · ¥12.5`)
       date: '2026-08-31',
       description: null,
       exchange_rate: 40,
+      detail_url: detailUrl,
       started_at: '2026-08-31T12:00:00.000Z',
       ended_at: '2026-08-31T13:00:00.000Z',
       participants: [{
@@ -101,11 +109,12 @@ Alice → Carol · ¥12.5`)
     expect(summary).toContain('Friday Game')
     expect(summary).toContain('WARNING\nAlice Smith has no buy-in record.\nSession is unbalanced by +100 chips.')
     expect(summary).not.toContain('PAYMENTS')
+    expect(summary.endsWith(`Session details: ${detailUrl}`)).toBe(true)
   })
 
   it('discloses payment rounding without changing result rounding', () => {
     const summary = buildSessionSummary({
-      group_name: 'Friday Game', date: '2026-08-31', description: null, exchange_rate: 3,
+      group_name: 'Friday Game', date: '2026-08-31', description: null, exchange_rate: 3, detail_url: detailUrl,
       started_at: '2026-08-31T12:00:00.000Z', ended_at: '2026-08-31T13:00:00.000Z',
       participants: [
         { player_id: 'alice', name: 'Alice', final_chips: 0, settled_at: '2026-08-31T13:00:00.000Z', buy_ins: [{ amount: 1, created_at: '2026-08-31T12:01:00.000Z' }] },
@@ -117,5 +126,6 @@ Alice → Carol · ¥12.5`)
     expect(summary).toContain('Alice · buy-in 1 (1x) · final 0 · -1 chips · -¥0.33')
     expect(summary).toContain('Alice → Carol · ¥0.34')
     expect(summary).toContain('Includes a ¥0.01 rounding adjustment.')
+    expect(summary.endsWith(`Session details: ${detailUrl}`)).toBe(true)
   })
 })

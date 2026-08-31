@@ -13,6 +13,7 @@ export interface SessionSummaryInput {
   date: string
   description: string | null
   exchange_rate: number
+  detail_url: string
   started_at: string | null
   ended_at: string | null
   participants: SummaryParticipant[]
@@ -113,6 +114,8 @@ export function buildSessionSummary(
     }
     sections.push(`PAYMENTS\n${payments.join('\n')}`)
   }
+
+  sections.push(`Session details: ${input.detail_url}`)
 
   return sections.join('\n\n')
 }
