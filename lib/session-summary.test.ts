@@ -37,8 +37,7 @@ describe('buildSessionSummary', () => {
 3 players · total buy-in 8,000 chips
 
 EVENTS
-12:03 Session started
-12:04 Alice joined · buy-in 2,000
+12:03 Session started with Alice · buy-in 2,000
 12:04 Bob joined · buy-in 2,000
 12:05 Carol joined · buy-in 2,000
 12:42 Alice buy-in · +2,000

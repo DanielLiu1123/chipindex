@@ -24,6 +24,12 @@ interface EffectiveEvent {
   text: string
 }
 
+interface BuyInCluster {
+  occurred_at: string
+  amount: number
+  count: number
+}
+
 export type TimeFormatter = (value: string) => string
 
 export function normalizeSummaryText(value: string): string {
@@ -48,27 +54,77 @@ function isEarlyCashOut(settledAt: string | null, endedAt: string | null): settl
   return Date.parse(settledAt) < Date.parse(endedAt)
 }
 
+function formatNameList(names: string[]): string {
+  if (names.length <= 1) return names[0] ?? ''
+  if (names.length === 2) return names.join(' and ')
+  return `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
+}
+
+function clusterBuyIns(buyIns: SummaryBuyIn[]): BuyInCluster[] {
+  const clusters: BuyInCluster[] = []
+  for (const buyIn of buyIns) {
+    const current = clusters.at(-1)
+    if (current && Date.parse(buyIn.created_at) <= Date.parse(current.occurred_at) + 60_000) {
+      current.amount += buyIn.amount
+      current.count++
+    } else {
+      clusters.push({ occurred_at: buyIn.created_at, amount: buyIn.amount, count: 1 })
+    }
+  }
+  return clusters
+}
+
+function sessionStartedText(initialPlayers: Array<{ name: string; amount: number }>): string {
+  if (initialPlayers.length === 0) return 'Session started'
+  const sameAmount = initialPlayers.every(player => player.amount === initialPlayers[0].amount)
+  if (sameAmount) {
+    const each = initialPlayers.length > 1 ? ' each' : ''
+    return `Session started with ${formatNameList(initialPlayers.map(player => player.name))} · buy-in ${initialPlayers[0].amount.toLocaleString('en-US')}${each}`
+  }
+  return `Session started with ${formatNameList(initialPlayers.map(player =>
+    `${player.name} (${player.amount.toLocaleString('en-US')})`))}`
+}
+
 export function buildSessionLog(input: SessionLogInput, formatTime: TimeFormatter): string[] {
   const orderByPlayer = participantOrder(input.participants)
+  const prepared = input.participants.map(participant => ({
+    participant,
+    name: normalizeSummaryText(participant.name),
+    playerOrder: orderByPlayer.get(participant.player_id) ?? Number.MAX_SAFE_INTEGER,
+    buyIns: [...participant.buy_ins].sort((a, b) => a.created_at.localeCompare(b.created_at)),
+  }))
+  const startedAt = Date.parse(input.started_at)
+  const initialPlayerIds = new Set(prepared.filter(({ buyIns }) => {
+    const joinedAt = Date.parse(buyIns[0]?.created_at ?? '')
+    return joinedAt >= startedAt && joinedAt <= startedAt + 60_000
+  }).map(({ participant }) => participant.player_id))
+  const initialPlayers = prepared
+    .filter(({ participant }) => initialPlayerIds.has(participant.player_id))
+    .sort((a, b) => a.playerOrder - b.playerOrder)
+    .map(({ name, buyIns }) => ({ name, amount: buyIns[0].amount }))
   const events: EffectiveEvent[] = [{
     occurred_at: input.started_at,
     rank: 0,
     player_order: -1,
-    text: 'Session started',
+    text: sessionStartedText(initialPlayers),
   }]
 
-  for (const participant of input.participants) {
-    const name = normalizeSummaryText(participant.name)
-    const playerOrder = orderByPlayer.get(participant.player_id) ?? Number.MAX_SAFE_INTEGER
-    const buyIns = [...participant.buy_ins].sort((a, b) => a.created_at.localeCompare(b.created_at))
-    buyIns.forEach((buyIn, index) => events.push({
-      occurred_at: buyIn.created_at,
-      rank: index === 0 ? 1 : 2,
+  for (const { participant, name, playerOrder, buyIns } of prepared) {
+    const firstBuyIn = buyIns[0]
+    if (firstBuyIn && !initialPlayerIds.has(participant.player_id)) {
+      events.push({
+        occurred_at: firstBuyIn.created_at,
+        rank: 1,
+        player_order: playerOrder,
+        text: `${name} joined · buy-in ${firstBuyIn.amount.toLocaleString('en-US')}`,
+      })
+    }
+    for (const cluster of clusterBuyIns(buyIns.slice(1))) events.push({
+      occurred_at: cluster.occurred_at,
+      rank: 2,
       player_order: playerOrder,
-      text: index === 0
-        ? `${name} joined · buy-in ${buyIn.amount.toLocaleString('en-US')}`
-        : `${name} buy-in · +${buyIn.amount.toLocaleString('en-US')}`,
-    }))
+      text: `${name} buy-in · +${cluster.amount.toLocaleString('en-US')}${cluster.count > 1 ? ` (${cluster.count}x)` : ''}`,
+    })
     if (isEarlyCashOut(participant.settled_at, input.ended_at)) {
       events.push({
         occurred_at: participant.settled_at,
