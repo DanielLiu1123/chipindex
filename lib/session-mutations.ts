@@ -68,7 +68,7 @@ export async function startSession(groupId: string, meta: SessionMeta, players: 
   }))
   const [participantResult, buyInResult] = await Promise.all([
     db.from('session_participant').insert(players.map(player => ({ session_id: session.id, player_id: player.player_id }))),
-    buyIns.length ? db.from('buy_in').insert(buyIns) : Promise.resolve({ error: null }),
+    db.from('buy_in').insert(buyIns),
   ])
   ensure(participantResult.error)
   ensure(buyInResult.error)
@@ -115,7 +115,7 @@ export async function updateSettledSession(
     session_id: id,
     player_id: participant.player_id,
     final_chips: participant.final_chips,
-    settled_at: participant.settled_at ?? existingSettledAt.get(participant.player_id) ?? timestamp,
+    settled_at: existingSettledAt.get(participant.player_id) ?? session.ended_at ?? timestamp,
   }))
   const buyInRows = participants.flatMap(participant => participant.buy_ins.map(buyIn => ({
     session_id: id,

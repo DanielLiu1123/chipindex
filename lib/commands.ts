@@ -144,11 +144,9 @@ export function parseCreateSessionCommand(value: unknown): CreateSessionCommand 
 
 function parseEditedParticipant(value: unknown, index: number): EditedParticipant {
   const participant = object(value, `participants[${index}]`)
-  const settledAt = optionalTimestamp(participant.settled_at, `participants[${index}].settled_at`)
   return {
     player_id: string(participant.player_id, `participants[${index}].player_id`),
     final_chips: integer(participant.final_chips, `participants[${index}].final_chips`, 0),
-    ...(settledAt === undefined ? {} : { settled_at: settledAt }),
     buy_ins: array(participant.buy_ins, `participants[${index}].buy_ins`).map((value, buyInIndex) => {
       const buyIn = object(value, `participants[${index}].buy_ins[${buyInIndex}]`)
       const createdAt = optionalTimestamp(buyIn.created_at, `participants[${index}].buy_ins[${buyInIndex}].created_at`)

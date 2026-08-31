@@ -81,7 +81,7 @@ describe('parseCashOutParticipantCommand', () => {
 })
 
 describe('parseUpdateSessionCommand', () => {
-  it('preserves effective event timestamps for settled-session edits', () => {
+  it('accepts editable buy-in timestamps without trusting a client settlement timestamp', () => {
     expect(parseUpdateSessionCommand({
       date: '2026-08-14',
       exchange_rate: 40,
@@ -96,7 +96,6 @@ describe('parseUpdateSessionCommand', () => {
     }).participants[0]).toEqual({
       player_id: 'p1',
       final_chips: 3000,
-      settled_at: '2026-08-14T13:00:00.000Z',
       buy_ins: [{ amount: 2000, created_at: '2026-08-14T12:00:00.000Z' }],
     })
   })

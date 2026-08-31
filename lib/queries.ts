@@ -447,7 +447,6 @@ export interface EditParticipant {
   player_id: string
   name: string
   final_chips: number | null
-  settled_at: string | null
   buy_ins: EditBuyIn[]
 }
 export interface SessionForEdit {
@@ -467,7 +466,6 @@ export async function getSessionForEdit(groupId: string, id: string): Promise<Se
     player_id: participant.player_id,
     name: source.names.get(participant.player_id) ?? participant.player_id,
     final_chips: participant.final_chips,
-    settled_at: participant.settled_at,
     buy_ins: (flowByPlayer.get(participant.player_id) ?? []).map(buyIn => ({ amount: buyIn.amount, created_at: buyIn.created_at })),
   }))
   const { id: _id, buy_in_unit: _buyInUnit, started_at: _startedAt, ...session } = source.session

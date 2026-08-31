@@ -7,47 +7,46 @@ import {
   type TimeFormatter,
 } from './session-log'
 import { buyinSum, netChips, toCny } from './settlement'
+import { formatAmount } from './format'
 
-export interface SessionSummaryInput {
+export interface SessionSummaryData {
   group_name: string
   date: string
   description: string | null
   exchange_rate: number
-  detail_url: string
   started_at: string | null
   ended_at: string | null
   participants: SummaryParticipant[]
 }
 
 export interface SessionSummaryOptions {
+  detail_url: string
   format_time?: TimeFormatter
 }
-
-const numberFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 })
 
 function browserTime(value: string): string {
   return new Date(value).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 }
 
 function formatSignedChips(value: number): string {
-  if (value > 0) return `+${value.toLocaleString('en-US')} chips`
-  if (value < 0) return `-${Math.abs(value).toLocaleString('en-US')} chips`
+  if (value > 0) return `+${formatAmount(value)} chips`
+  if (value < 0) return `-${formatAmount(Math.abs(value))} chips`
   return '0 chips'
 }
 
 function formatSignedCny(value: number): string {
-  if (value > 0) return `+¥${numberFormat.format(value)}`
-  if (value < 0) return `-¥${numberFormat.format(Math.abs(value))}`
+  if (value > 0) return `+¥${formatAmount(value)}`
+  if (value < 0) return `-¥${formatAmount(Math.abs(value))}`
   return '¥0'
 }
 
 function formatCents(value: number): string {
-  return `¥${numberFormat.format(value / 100)}`
+  return `¥${formatAmount(value / 100)}`
 }
 
 export function buildSessionSummary(
-  input: SessionSummaryInput,
-  options: SessionSummaryOptions = {},
+  input: SessionSummaryData,
+  options: SessionSummaryOptions,
 ): string {
   const imported = input.started_at === null
   const orderByPlayer = participantOrder(input.participants)
@@ -61,10 +60,10 @@ export function buildSessionSummary(
   const header = [
     normalizeSummaryText(input.group_name),
     [input.date, input.description ? normalizeSummaryText(input.description) : ''].filter(Boolean).join(' · '),
-    `${numberFormat.format(input.exchange_rate)} chips = ¥1`,
+    `${formatAmount(input.exchange_rate)} chips = ¥1`,
     imported
       ? `${rows.length} ${rows.length === 1 ? 'player' : 'players'}`
-      : `${rows.length} ${rows.length === 1 ? 'player' : 'players'} · total buy-in ${totalBuyin.toLocaleString('en-US')} chips`,
+      : `${rows.length} ${rows.length === 1 ? 'player' : 'players'} · total buy-in ${formatAmount(totalBuyin)} chips`,
   ]
   const sections: string[] = [header.join('\n')]
 
@@ -85,7 +84,7 @@ export function buildSessionSummary(
     const name = normalizeSummaryText(row.participant.name)
     const result = `${formatSignedChips(row.net)} · ${formatSignedCny(toCny(row.net, input.exchange_rate))}`
     if (imported) return `${name} · ${result}`
-    return `${name} · buy-in ${row.totalBuyin.toLocaleString('en-US')} (${row.participant.buy_ins.length}x) · final ${(row.participant.final_chips ?? 0).toLocaleString('en-US')} · ${result}`
+    return `${name} · buy-in ${formatAmount(row.totalBuyin)} (${row.participant.buy_ins.length}x) · final ${formatAmount(row.participant.final_chips ?? 0)} · ${result}`
   })
   sections.push(`RESULTS\n${resultLines.join('\n')}`)
 
@@ -100,22 +99,21 @@ export function buildSessionSummary(
 
   if (totalNet === 0) {
     const plan = buildPaymentPlan(rows.map(row => ({
-      player_id: row.participant.player_id,
-      net_chips: row.net,
-      order: row.order,
+      playerId: row.participant.player_id,
+      netChips: row.net,
     })), input.exchange_rate)
     const names = new Map(rows.map(row => [row.participant.player_id, normalizeSummaryText(row.participant.name)]))
     const payments = plan.transfers.length === 0
       ? ['No transfers required.']
       : plan.transfers.map(transfer =>
-        `${names.get(transfer.from_player_id)} → ${names.get(transfer.to_player_id)} · ${formatCents(transfer.amount_cents)}`)
-    if (plan.rounding_adjustment_cents > 0) {
-      payments.push(`Includes a ${formatCents(plan.rounding_adjustment_cents)} rounding adjustment.`)
+        `${names.get(transfer.fromPlayerId)} → ${names.get(transfer.toPlayerId)} · ${formatCents(transfer.amountCents)}`)
+    if (plan.roundingAdjustmentCents > 0) {
+      payments.push(`Includes a ${formatCents(plan.roundingAdjustmentCents)} rounding adjustment.`)
     }
     sections.push(`PAYMENTS\n${payments.join('\n')}`)
   }
 
-  sections.push(`Session details: ${input.detail_url}`)
+  sections.push(`Session details: ${options.detail_url}`)
 
   return sections.join('\n\n')
 }

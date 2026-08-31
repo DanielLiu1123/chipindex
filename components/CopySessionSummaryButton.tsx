@@ -1,8 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import type { SessionDetail } from '@/lib/queries'
-import { buildSessionSummary } from '@/lib/session-summary'
+import { useEffect, useRef, useState } from 'react'
+import { buildSessionSummary, type SessionSummaryData } from '@/lib/session-summary'
 
 async function writeClipboard(text: string): Promise<void> {
   if (navigator.clipboard?.writeText) {
@@ -14,38 +13,39 @@ async function writeClipboard(text: string): Promise<void> {
   textarea.style.position = 'fixed'
   textarea.style.opacity = '0'
   document.body.appendChild(textarea)
-  textarea.select()
-  const copied = document.execCommand('copy')
-  textarea.remove()
-  if (!copied) throw new Error('Clipboard unavailable')
+  try {
+    textarea.select()
+    if (!document.execCommand('copy')) throw new Error('Clipboard unavailable')
+  } finally {
+    textarea.remove()
+  }
 }
 
-export default function CopySessionSummaryButton({ groupName, session }: {
-  groupName: string
-  session: SessionDetail
-}) {
+export default function CopySessionSummaryButton({ summary }: { summary: SessionSummaryData }) {
   const [state, setState] = useState<'idle' | 'copied' | 'error'>('idle')
+  const resetTimer = useRef<number | null>(null)
+
+  useEffect(() => () => {
+    if (resetTimer.current !== null) window.clearTimeout(resetTimer.current)
+  }, [])
+
+  function clearResetTimer() {
+    if (resetTimer.current === null) return
+    window.clearTimeout(resetTimer.current)
+    resetTimer.current = null
+  }
 
   async function copySummary() {
+    clearResetTimer()
     try {
-      await writeClipboard(buildSessionSummary({
-        group_name: groupName,
-        date: session.date,
-        description: session.description,
-        exchange_rate: session.exchange_rate,
+      await writeClipboard(buildSessionSummary(summary, {
         detail_url: `${window.location.origin}${window.location.pathname}`,
-        started_at: session.started_at,
-        ended_at: session.ended_at,
-        participants: session.session_entries.map(entry => ({
-          player_id: entry.player_id,
-          name: entry.players?.name ?? entry.player_id,
-          final_chips: entry.final_chips,
-          settled_at: entry.settled_at,
-          buy_ins: entry.buy_ins,
-        })),
       }))
       setState('copied')
-      window.setTimeout(() => setState('idle'), 1800)
+      resetTimer.current = window.setTimeout(() => {
+        setState('idle')
+        resetTimer.current = null
+      }, 1800)
     } catch {
       setState('error')
     }

@@ -386,7 +386,7 @@ describe('getSessionPageData', () => {
 })
 
 describe('getSessionForEdit', () => {
-  it('preserves effective buy-in, early cash-out and session end times', async () => {
+  it('returns editable buy-in and session end times without leaking settlement metadata', async () => {
     mockQueryResponses({
       session: [{ data: {
         id: 's1', date: '2026-08-08', description: null, exchange_rate: 40, buy_in_unit: 2000,
@@ -404,7 +404,6 @@ describe('getSessionForEdit', () => {
       ended_at: '2026-08-08T10:00:00Z',
       participants: [{
         player_id: 'alice',
-        settled_at: '2026-08-08T09:45:00Z',
         buy_ins: [{ created_at: '2026-08-08T09:01:00Z' }],
       }],
     })

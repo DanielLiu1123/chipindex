@@ -18,7 +18,6 @@ interface BuyInRow { amount: string; created_at: string }
 interface ParticipantRow extends PlayerRowBase {
   name: string
   final: string
-  settled_at: string | null
   buyins: BuyInRow[]
 }
 
@@ -40,7 +39,6 @@ function rowsFromSession(session: SessionForEdit): ParticipantRow[] {
     isNew: false,
     newName: '',
     final: participant.final_chips != null ? String(participant.final_chips) : '',
-    settled_at: participant.settled_at,
     buyins: participant.buy_ins.map(buyIn => ({ amount: String(buyIn.amount), created_at: toDateTimeLocal(buyIn.created_at) })),
   }))
 }
@@ -75,7 +73,6 @@ export default function EditSessionForm({ groupId, sessionId, session }: {
   function addRow() {
     setRows(r => [...r, {
       uid: uid(), playerId: '', name: '', isNew: false, newName: '', final: '',
-      settled_at: session.ended_at,
       buyins: [{ amount: String(BUY_IN_UNIT), created_at: defaultEventTime }],
     }])
   }
@@ -99,7 +96,6 @@ export default function EditSessionForm({ groupId, sessionId, session }: {
       const participants = await Promise.all(valid.map(async row => ({
         player_id: await resolvePlayerId(groupId, row),
         final_chips: Number(row.final),
-        settled_at: row.settled_at ?? session.ended_at ?? new Date().toISOString(),
         buy_ins: row.buyins
           .filter(b => Number(b.amount) > 0)
           .map(b => ({ amount: Number(b.amount), created_at: toIsoTimestamp(b.created_at) })),

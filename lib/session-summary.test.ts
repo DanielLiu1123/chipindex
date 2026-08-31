@@ -10,7 +10,6 @@ describe('buildSessionSummary', () => {
       date: '2026-08-31',
       description: 'Weekly session',
       exchange_rate: 40,
-      detail_url: detailUrl,
       started_at: '2026-08-31T12:03:00.000Z',
       ended_at: '2026-08-31T15:12:00.000Z',
       participants: [
@@ -31,6 +30,7 @@ describe('buildSessionSummary', () => {
         },
       ],
     }, {
+      detail_url: detailUrl,
       format_time: value => value.slice(11, 16),
     })
 
@@ -65,7 +65,6 @@ Session details: https://chipindex.example/groups/g1/sessions/s1`)
       date: '2026-08-20',
       description: 'Imported history',
       exchange_rate: 40,
-      detail_url: detailUrl,
       started_at: null,
       ended_at: null,
       participants: [
@@ -82,7 +81,7 @@ Session details: https://chipindex.example/groups/g1/sessions/s1`)
           buy_ins: [{ amount: 2000, created_at: '2026-08-31T15:12:00.000Z' }],
         },
       ],
-    })
+    }, { detail_url: detailUrl })
 
     expect(summary).toContain('3 players\n\nImported session · no live event log.')
     expect(summary).not.toContain('EVENTS')
@@ -98,13 +97,12 @@ Session details: https://chipindex.example/groups/g1/sessions/s1`)
       date: '2026-08-31',
       description: null,
       exchange_rate: 40,
-      detail_url: detailUrl,
       started_at: '2026-08-31T12:00:00.000Z',
       ended_at: '2026-08-31T13:00:00.000Z',
       participants: [{
         player_id: 'alice', name: ' Alice\tSmith ', final_chips: 100, settled_at: '2026-08-31T13:00:00.000Z', buy_ins: [],
       }],
-    }, { format_time: value => value.slice(11, 16) })
+    }, { detail_url: detailUrl, format_time: value => value.slice(11, 16) })
 
     expect(summary).toContain('Friday Game')
     expect(summary).toContain('WARNING\nAlice Smith has no buy-in record.\nSession is unbalanced by +100 chips.')
@@ -114,14 +112,14 @@ Session details: https://chipindex.example/groups/g1/sessions/s1`)
 
   it('discloses payment rounding without changing result rounding', () => {
     const summary = buildSessionSummary({
-      group_name: 'Friday Game', date: '2026-08-31', description: null, exchange_rate: 3, detail_url: detailUrl,
+      group_name: 'Friday Game', date: '2026-08-31', description: null, exchange_rate: 3,
       started_at: '2026-08-31T12:00:00.000Z', ended_at: '2026-08-31T13:00:00.000Z',
       participants: [
         { player_id: 'alice', name: 'Alice', final_chips: 0, settled_at: '2026-08-31T13:00:00.000Z', buy_ins: [{ amount: 1, created_at: '2026-08-31T12:01:00.000Z' }] },
         { player_id: 'bob', name: 'Bob', final_chips: 0, settled_at: '2026-08-31T13:00:00.000Z', buy_ins: [{ amount: 1, created_at: '2026-08-31T12:02:00.000Z' }] },
         { player_id: 'carol', name: 'Carol', final_chips: 4, settled_at: '2026-08-31T13:00:00.000Z', buy_ins: [{ amount: 2, created_at: '2026-08-31T12:03:00.000Z' }] },
       ],
-    }, { format_time: value => value.slice(11, 16) })
+    }, { detail_url: detailUrl, format_time: value => value.slice(11, 16) })
 
     expect(summary).toContain('Alice · buy-in 1 (1x) · final 0 · -1 chips · -¥0.33')
     expect(summary).toContain('Alice → Carol · ¥0.34')

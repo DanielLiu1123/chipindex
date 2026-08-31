@@ -4,22 +4,37 @@ import SessionEntriesTable from '@/components/SessionEntriesTable'
 import LiveSession from '@/components/LiveSession'
 import CopySessionSummaryButton from '@/components/CopySessionSummaryButton'
 import { getGroup, getPlayers, getSessionPageData } from '@/lib/queries'
+import type { SessionSummaryData } from '@/lib/session-summary'
 
 export const dynamic = 'force-dynamic'
 
 export default async function SessionDetailPage({ params }: { params: Promise<{ groupId: string; id: string }> }) {
   const { groupId, id } = await params
-  const [data, group] = await Promise.all([
-    getSessionPageData(groupId, id),
-    getGroup(groupId),
-  ])
-  if (!data || !group) notFound()
+  const data = await getSessionPageData(groupId, id)
+  if (!data) notFound()
   if (data.status === 'OPEN') {
     const players = await getPlayers(groupId)
     return <LiveSession groupId={groupId} session={data.session} allPlayers={players} />
   }
 
   const settled = data.session
+  const group = await getGroup(groupId)
+  if (!group) notFound()
+  const summary: SessionSummaryData = {
+    group_name: group.name,
+    date: settled.date,
+    description: settled.description,
+    exchange_rate: settled.exchange_rate,
+    started_at: settled.started_at,
+    ended_at: settled.ended_at,
+    participants: settled.session_entries.map(entry => ({
+      player_id: entry.player_id,
+      name: entry.players?.name ?? entry.player_id,
+      final_chips: entry.final_chips,
+      settled_at: entry.settled_at,
+      buy_ins: entry.buy_ins,
+    })),
+  }
   const entries = [...settled.session_entries]
     .sort((a, b) => b.chips - a.chips || a.player_id.localeCompare(b.player_id))
   const total = entries.reduce((sum, entry) => sum + entry.chips, 0)
@@ -28,7 +43,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
     <div className="flex items-center justify-between mb-2">
       <h1 className="text-white">{settled.date}</h1>
       <div className="flex items-center gap-2">
-        <CopySessionSummaryButton groupName={group.name} session={settled} />
+        <CopySessionSummaryButton summary={summary} />
         <Link href={`/groups/${groupId}/sessions/${id}/edit`} className="text-xs text-accent tracking-widest border border-accent/50 hover:border-accent px-2.5 py-1 transition-colors">EDIT</Link>
       </div>
     </div>

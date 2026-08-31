@@ -13,7 +13,7 @@ export function ensureData<T>(data: T, error: { message: string } | null): asser
 }
 
 export async function requireSession(groupId: string, id: string) {
-  const { data, error } = await db.from('session').select('status').eq('group_id', groupId).eq('id', id).is('deleted_at', null).maybeSingle()
+  const { data, error } = await db.from('session').select('status, ended_at').eq('group_id', groupId).eq('id', id).is('deleted_at', null).maybeSingle()
   ensure(error)
   if (!data) throw new ApiError(404, 'Session not found')
   return data

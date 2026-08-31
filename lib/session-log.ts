@@ -1,3 +1,5 @@
+import { formatAmount } from './format'
+
 export interface SummaryBuyIn {
   amount: number
   created_at: string
@@ -79,10 +81,10 @@ function sessionStartedText(initialPlayers: Array<{ name: string; amount: number
   const sameAmount = initialPlayers.every(player => player.amount === initialPlayers[0].amount)
   if (sameAmount) {
     const each = initialPlayers.length > 1 ? ' each' : ''
-    return `Session started with ${formatNameList(initialPlayers.map(player => player.name))} · buy-in ${initialPlayers[0].amount.toLocaleString('en-US')}${each}`
+    return `Session started with ${formatNameList(initialPlayers.map(player => player.name))} · buy-in ${formatAmount(initialPlayers[0].amount)}${each}`
   }
   return `Session started with ${formatNameList(initialPlayers.map(player =>
-    `${player.name} (${player.amount.toLocaleString('en-US')})`))}`
+    `${player.name} (${formatAmount(player.amount)})`))}`
 }
 
 export function buildSessionLog(input: SessionLogInput, formatTime: TimeFormatter): string[] {
@@ -116,21 +118,21 @@ export function buildSessionLog(input: SessionLogInput, formatTime: TimeFormatte
         occurred_at: firstBuyIn.created_at,
         rank: 1,
         player_order: playerOrder,
-        text: `${name} joined · buy-in ${firstBuyIn.amount.toLocaleString('en-US')}`,
+        text: `${name} joined · buy-in ${formatAmount(firstBuyIn.amount)}`,
       })
     }
     for (const cluster of clusterBuyIns(buyIns.slice(1))) events.push({
       occurred_at: cluster.occurred_at,
       rank: 2,
       player_order: playerOrder,
-      text: `${name} buy-in · +${cluster.amount.toLocaleString('en-US')}${cluster.count > 1 ? ` (${cluster.count}x)` : ''}`,
+      text: `${name} buy-in · +${formatAmount(cluster.amount)}${cluster.count > 1 ? ` (${cluster.count}x)` : ''}`,
     })
     if (isEarlyCashOut(participant.settled_at, input.ended_at)) {
       events.push({
         occurred_at: participant.settled_at,
         rank: 3,
         player_order: playerOrder,
-        text: `${name} cashed out · ${(participant.final_chips ?? 0).toLocaleString('en-US')}`,
+        text: `${name} cashed out · ${formatAmount(participant.final_chips ?? 0)}`,
       })
     }
   }
