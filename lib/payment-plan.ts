@@ -11,6 +11,8 @@ export interface PaymentTransfer {
 
 export interface PaymentPlan {
   roundingAdjustmentCents: number
+  // Ordered by debtor loss, then input order; each debtor's transfers are
+  // ordered by amount, then recipient input order.
   transfers: PaymentTransfer[]
 }
 
@@ -156,6 +158,8 @@ function sortTransfers(transfers: PaymentTransfer[], balances: OrderedBalance[])
   })
 }
 
+// Input order is the stable tie-break for rounding, equivalent minimum plans,
+// and transfers between equal balances.
 export function buildPaymentPlan(balances: PaymentBalance[], exchangeRate: number): PaymentPlan {
   if (balances.reduce((sum, balance) => sum + balance.netChips, 0) !== 0) {
     throw new Error('Payment balances must sum to zero')

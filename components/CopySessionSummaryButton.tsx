@@ -39,7 +39,7 @@ export default function CopySessionSummaryButton({ summary }: { summary: Session
     clearResetTimer()
     try {
       await writeClipboard(buildSessionSummary(summary, {
-        detail_url: `${window.location.origin}${window.location.pathname}`,
+        detailUrl: `${window.location.origin}${window.location.pathname}`,
       }))
       setState('copied')
       resetTimer.current = window.setTimeout(() => {

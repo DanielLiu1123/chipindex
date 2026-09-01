@@ -23,15 +23,14 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
   const summary: SessionSummaryData = {
     group_name: group.name,
     date: settled.date,
-    description: settled.description,
     exchange_rate: settled.exchange_rate,
-    started_at: settled.started_at,
-    ended_at: settled.ended_at,
+    ...(settled.started_at === null
+      ? { started_at: null, ended_at: null }
+      : { started_at: settled.started_at, ended_at: settled.ended_at }),
     participants: settled.session_entries.map(entry => ({
       player_id: entry.player_id,
       name: entry.players?.name ?? entry.player_id,
       final_chips: entry.final_chips,
-      settled_at: entry.settled_at,
       buy_ins: entry.buy_ins,
     })),
   }
