@@ -1,40 +1,58 @@
 import { describe, expect, it } from 'vitest'
-import { buildSessionSummary } from './session-summary'
+import { buildSessionSummary, type SessionSummaryData } from './session-summary'
 
 const detailUrl = 'https://chipindex.example/groups/g1/sessions/s1'
+type SummaryParticipant = SessionSummaryData['participants'][number]
+
+function player(
+  player_id: string,
+  name: string,
+  final_chips: number | null,
+  buy_ins: SummaryParticipant['buy_ins'],
+): SummaryParticipant {
+  return { player_id, name, final_chips, buy_ins }
+}
+
+function liveSession(
+  participants: SummaryParticipant[],
+  overrides: Partial<{
+    group_name: string
+    date: string
+    exchange_rate: number
+    started_at: string
+    ended_at: string | null
+  }> = {},
+): SessionSummaryData {
+  return {
+    group_name: 'Friday Game',
+    date: '2026-08-31',
+    exchange_rate: 40,
+    started_at: '2026-08-31T12:03:00.000Z',
+    ended_at: '2026-08-31T15:12:00.000Z',
+    participants,
+    ...overrides,
+  }
+}
+
+function render(summary: SessionSummaryData): string {
+  return buildSessionSummary(summary, {
+    detailUrl,
+    formatTime: value => value.slice(11, 16),
+  })
+}
 
 describe('buildSessionSummary', () => {
   it('copies a compact result and grouped payment summary', () => {
-    const summary = buildSessionSummary({
-      group_name: 'Friday Game',
-      date: '2026-08-31',
-      description: 'Weekly session',
-      exchange_rate: 40,
-      started_at: '2026-08-31T12:03:00.000Z',
-      ended_at: '2026-08-31T15:12:00.000Z',
-      participants: [
-        {
-          player_id: 'alice', name: 'Alice', final_chips: 2000, settled_at: '2026-08-31T15:12:00.000Z',
-          buy_ins: [
-            { amount: 2000, created_at: '2026-08-31T12:04:00.000Z' },
-            { amount: 2000, created_at: '2026-08-31T12:42:00.000Z' },
-          ],
-        },
-        {
-          player_id: 'bob', name: 'Bob', final_chips: 3500, settled_at: '2026-08-31T14:05:00.000Z',
-          buy_ins: [{ amount: 2000, created_at: '2026-08-31T12:04:30.000Z' }],
-        },
-        {
-          player_id: 'carol', name: 'Carol', final_chips: 2500, settled_at: '2026-08-31T15:12:00.000Z',
-          buy_ins: [{ amount: 2000, created_at: '2026-08-31T12:05:00.000Z' }],
-        },
-      ],
-    }, {
-      detail_url: detailUrl,
-      format_time: value => value.slice(11, 16),
-    })
+    const summary = liveSession([
+      player('alice', 'Alice', 2000, [
+        { amount: 2000, created_at: '2026-08-31T12:04:00.000Z' },
+        { amount: 2000, created_at: '2026-08-31T12:42:00.000Z' },
+      ]),
+      player('bob', 'Bob', 3500, [{ amount: 2000, created_at: '2026-08-31T12:04:30.000Z' }]),
+      player('carol', 'Carol', 2500, [{ amount: 2000, created_at: '2026-08-31T12:05:00.000Z' }]),
+    ])
 
-    expect(summary).toBe(`Friday Game | 2026-08-31
+    expect(render(summary)).toBe(`Friday Game | 2026-08-31
 12:03–15:12 · 3 players · 40 chips/¥1 · total buy-in 8,000
 
 RESULTS
@@ -46,35 +64,23 @@ PAYMENTS
 • Alice → Bob ¥37.5 + Carol ¥12.5
 
 View session details: https://chipindex.example/groups/g1/sessions/s1`)
-    expect(summary).not.toContain('Weekly session')
-    expect(summary).not.toContain('EVENTS')
   })
 
   it('omits synthetic buy-in, final and time data from imported sessions', () => {
-    const summary = buildSessionSummary({
+    const summary: SessionSummaryData = {
       group_name: 'Friday Game',
       date: '2026-08-20',
-      description: 'Imported history',
       exchange_rate: 40,
       started_at: null,
       ended_at: null,
       participants: [
-        {
-          player_id: 'alice', name: 'Alice', final_chips: 2000, settled_at: '2026-08-31T15:12:00.000Z',
-          buy_ins: [{ amount: 4000, created_at: '2026-08-31T15:12:00.000Z' }],
-        },
-        {
-          player_id: 'bob', name: 'Bob', final_chips: 3500, settled_at: '2026-08-31T15:12:00.000Z',
-          buy_ins: [{ amount: 2000, created_at: '2026-08-31T15:12:00.000Z' }],
-        },
-        {
-          player_id: 'carol', name: 'Carol', final_chips: 2500, settled_at: '2026-08-31T15:12:00.000Z',
-          buy_ins: [{ amount: 2000, created_at: '2026-08-31T15:12:00.000Z' }],
-        },
+        player('alice', 'Alice', 2000, [{ amount: 4000, created_at: '2026-08-31T15:12:00.000Z' }]),
+        player('bob', 'Bob', 3500, [{ amount: 2000, created_at: '2026-08-31T15:12:00.000Z' }]),
+        player('carol', 'Carol', 2500, [{ amount: 2000, created_at: '2026-08-31T15:12:00.000Z' }]),
       ],
-    }, { detail_url: detailUrl })
+    }
 
-    expect(summary).toBe(`Friday Game | 2026-08-20
+    expect(render(summary)).toBe(`Friday Game | 2026-08-20
 3 players · 40 chips/¥1
 
 RESULTS
@@ -89,79 +95,99 @@ View session details: https://chipindex.example/groups/g1/sessions/s1`)
   })
 
   it('warns about missing buy-ins and suppresses payments for an unbalanced session', () => {
-    const summary = buildSessionSummary({
+    const summary = liveSession([
+      player('alice', ' Alice\tSmith ', 100, []),
+    ], {
       group_name: 'Friday\n Game',
-      date: '2026-08-31',
-      description: null,
-      exchange_rate: 40,
       started_at: '2026-08-31T12:00:00.000Z',
       ended_at: '2026-08-31T13:00:00.000Z',
-      participants: [{
-        player_id: 'alice', name: ' Alice\tSmith ', final_chips: 100, settled_at: '2026-08-31T13:00:00.000Z', buy_ins: [],
-      }],
-    }, { detail_url: detailUrl, format_time: value => value.slice(11, 16) })
+    })
 
-    expect(summary).toContain('Friday Game | 2026-08-31')
-    expect(summary).toContain('WARNING\n• Alice Smith has no buy-in record.\n• Session is unbalanced by +100 chips.')
-    expect(summary).not.toContain('PAYMENTS')
-    expect(summary.endsWith(`View session details: ${detailUrl}`)).toBe(true)
+    expect(render(summary)).toBe(`Friday Game | 2026-08-31
+12:00–13:00 · 1 player · 40 chips/¥1 · total buy-in 0
+
+RESULTS
+• Alice Smith: 0 → 100 | +¥2.5
+
+WARNING
+• Alice Smith has no buy-in record.
+• Session is unbalanced by +100 chips.
+
+View session details: https://chipindex.example/groups/g1/sessions/s1`)
   })
 
   it('discloses payment rounding without changing result rounding', () => {
-    const summary = buildSessionSummary({
-      group_name: 'Friday Game', date: '2026-08-31', description: null, exchange_rate: 3,
-      started_at: '2026-08-31T12:00:00.000Z', ended_at: '2026-08-31T13:00:00.000Z',
-      participants: [
-        { player_id: 'alice', name: 'Alice', final_chips: 0, settled_at: '2026-08-31T13:00:00.000Z', buy_ins: [{ amount: 1, created_at: '2026-08-31T12:01:00.000Z' }] },
-        { player_id: 'bob', name: 'Bob', final_chips: 0, settled_at: '2026-08-31T13:00:00.000Z', buy_ins: [{ amount: 1, created_at: '2026-08-31T12:02:00.000Z' }] },
-        { player_id: 'carol', name: 'Carol', final_chips: 4, settled_at: '2026-08-31T13:00:00.000Z', buy_ins: [{ amount: 2, created_at: '2026-08-31T12:03:00.000Z' }] },
-      ],
-    }, { detail_url: detailUrl, format_time: value => value.slice(11, 16) })
+    const summary = liveSession([
+      player('alice', 'Alice', 0, [{ amount: 1, created_at: '2026-08-31T12:01:00.000Z' }]),
+      player('bob', 'Bob', 0, [{ amount: 1, created_at: '2026-08-31T12:02:00.000Z' }]),
+      player('carol', 'Carol', 4, [{ amount: 2, created_at: '2026-08-31T12:03:00.000Z' }]),
+    ], {
+      exchange_rate: 3,
+      started_at: '2026-08-31T12:00:00.000Z',
+      ended_at: '2026-08-31T13:00:00.000Z',
+    })
 
-    expect(summary).toContain('• Alice: 1 → 0 | −¥0.33')
-    expect(summary).toContain('• Alice → Carol ¥0.34')
-    expect(summary).toContain('• Rounding adjustment: ¥0.01')
+    expect(render(summary)).toBe(`Friday Game | 2026-08-31
+12:00–13:00 · 3 players · 3 chips/¥1 · total buy-in 4
+
+RESULTS
+• Carol: 2 → 4 | +¥0.67
+• Alice: 1 → 0 | −¥0.33
+• Bob: 1 → 0 | −¥0.33
+
+PAYMENTS
+• Alice → Carol ¥0.34
+• Bob → Carol ¥0.33
+• Rounding adjustment: ¥0.01
+
+View session details: https://chipindex.example/groups/g1/sessions/s1`)
   })
 
   it('keeps zero-result players and states when no payments are needed', () => {
-    const summary = buildSessionSummary({
-      group_name: 'Heads Up', date: '2026-08-31', description: null, exchange_rate: 40,
-      started_at: '2026-08-31T12:00:00.000Z', ended_at: null,
-      participants: [
-        { player_id: 'alice', name: 'Alice', final_chips: 2000, settled_at: null, buy_ins: [{ amount: 2000, created_at: '2026-08-31T12:00:00.000Z' }] },
-      ],
-    }, { detail_url: detailUrl, format_time: value => value.slice(11, 16) })
+    const summary = liveSession([
+      player('alice', 'Alice', 2000, [{ amount: 2000, created_at: '2026-08-31T12:00:00.000Z' }]),
+    ], {
+      group_name: 'Heads Up',
+      started_at: '2026-08-31T12:00:00.000Z',
+      ended_at: null,
+    })
 
-    expect(summary).toContain('12:00 · 1 player · 40 chips/¥1 · total buy-in 2,000')
-    expect(summary).toContain('• Alice: 2,000 → 2,000 | ¥0')
-    expect(summary).toContain('PAYMENTS\n• No payments required.')
+    expect(render(summary)).toBe(`Heads Up | 2026-08-31
+12:00 · 1 player · 40 chips/¥1 · total buy-in 2,000
+
+RESULTS
+• Alice: 2,000 → 2,000 | ¥0
+
+PAYMENTS
+• No payments required.
+
+View session details: https://chipindex.example/groups/g1/sessions/s1`)
   })
 
-  it('orders multiple payers by loss and each recipient by payment amount', () => {
+  it('uses arrival order even when the participant input is shuffled', () => {
     const players = [
-      ['freeman', 'Freeman', 12_000, 21_480],
-      ['ikun', 'iKun', 2_000, 10_200],
-      ['li-sen', 'Li Sen', 8_000, 15_100],
-      ['yao', 'Yao', 6_000, 6_540],
-      ['frank', 'Frank', 2_000, 0],
-      ['rong-rong', 'Rong Rong', 14_000, 6_680],
-      ['wang-yue', 'Wang Yue', 8_000, 0],
-      ['sanjor-yang', 'SanjorYang', 14_000, 6_000],
-    ] as const
-    const summary = buildSessionSummary({
-      group_name: 'Mahjong', date: '2026-08-31', description: null, exchange_rate: 40,
-      started_at: '2026-08-31T19:42:00.000Z', ended_at: '2026-08-31T23:37:00.000Z',
-      participants: players.map(([player_id, name, buyIn, final_chips], index) => ({
-        player_id,
-        name,
-        final_chips,
-        settled_at: '2026-08-31T23:37:00.000Z',
-        buy_ins: [{ amount: buyIn, created_at: `2026-08-31T19:${42 + index}:00.000Z` }],
-      })),
-    }, { detail_url: detailUrl, format_time: value => value.slice(11, 16) })
+      player('freeman', 'Freeman', 21_480, [{ amount: 12_000, created_at: '2026-08-31T19:42:00.000Z' }]),
+      player('ikun', 'iKun', 10_200, [{ amount: 2_000, created_at: '2026-08-31T19:43:00.000Z' }]),
+      player('li-sen', 'Li Sen', 15_100, [{ amount: 8_000, created_at: '2026-08-31T19:44:00.000Z' }]),
+      player('yao', 'Yao', 6_540, [{ amount: 6_000, created_at: '2026-08-31T19:45:00.000Z' }]),
+      player('frank', 'Frank', 0, [{ amount: 2_000, created_at: '2026-08-31T19:46:00.000Z' }]),
+      player('rong-rong', 'Rong Rong', 6_680, [{ amount: 14_000, created_at: '2026-08-31T19:47:00.000Z' }]),
+      player('wang-yue', 'Wang Yue', 0, [{ amount: 8_000, created_at: '2026-08-31T19:48:00.000Z' }]),
+      player('sanjor-yang', 'SanjorYang', 6_000, [{ amount: 14_000, created_at: '2026-08-31T19:49:00.000Z' }]),
+    ]
+    const summary = liveSession(
+      [players[6], players[3], players[0], players[7], players[2], players[5], players[1], players[4]],
+      {
+        group_name: 'Mahjong',
+        started_at: '2026-08-31T19:42:00.000Z',
+        ended_at: '2026-08-31T23:37:00.000Z',
+      },
+    )
 
-    expect(summary).toContain('19:42–23:37 · 8 players · 40 chips/¥1 · total buy-in 66,000')
-    expect(summary).toContain(`RESULTS
+    expect(render(summary)).toBe(`Mahjong | 2026-08-31
+19:42–23:37 · 8 players · 40 chips/¥1 · total buy-in 66,000
+
+RESULTS
 • Freeman: 12,000 → 21,480 | +¥237
 • iKun: 2,000 → 10,200 | +¥205
 • Li Sen: 8,000 → 15,100 | +¥177.5
@@ -169,11 +195,14 @@ View session details: https://chipindex.example/groups/g1/sessions/s1`)
 • Frank: 2,000 → 0 | −¥50
 • Rong Rong: 14,000 → 6,680 | −¥183
 • Wang Yue: 8,000 → 0 | −¥200
-• SanjorYang: 14,000 → 6,000 | −¥200`)
-    expect(summary).toContain(`PAYMENTS
+• SanjorYang: 14,000 → 6,000 | −¥200
+
+PAYMENTS
 • Wang Yue → Freeman ¥187 + iKun ¥13
 • SanjorYang → iKun ¥192 + Yao ¥8
 • Rong Rong → Li Sen ¥177.5 + Yao ¥5.5
-• Frank → Freeman ¥50`)
+• Frank → Freeman ¥50
+
+View session details: https://chipindex.example/groups/g1/sessions/s1`)
   })
 })

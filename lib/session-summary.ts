@@ -1,37 +1,117 @@
 import { buildPaymentPlan } from './payment-plan'
-import {
-  normalizeSummaryText,
-  participantOrder,
-  type SummaryParticipant,
-  type TimeFormatter,
-} from './session-log'
 import { buyinSum, netChips, toCny } from './settlement'
 import { formatAmount } from './format'
 
-export interface SessionSummaryData {
+interface SummaryBuyIn {
+  amount: number
+  created_at: string
+}
+
+interface SummaryParticipant {
+  player_id: string
+  name: string
+  final_chips: number | null
+  buy_ins: SummaryBuyIn[]
+}
+
+interface SummaryBaseData {
   group_name: string
   date: string
-  description: string | null
   exchange_rate: number
-  started_at: string | null
-  ended_at: string | null
   participants: SummaryParticipant[]
 }
 
-export interface SessionSummaryOptions {
-  detail_url: string
-  format_time?: TimeFormatter
+export type SessionSummaryData = SummaryBaseData & (
+  | { started_at: null; ended_at: null }
+  | { started_at: string; ended_at: string | null }
+)
+
+interface SessionSummaryOptions {
+  detailUrl: string
+  formatTime?: (value: string) => string
 }
 
 interface SummaryRow {
-  participant: SummaryParticipant
+  playerId: string
+  name: string
+  finalChips: number
   totalBuyin: number
-  net: number
+  netChips: number
+  buyInCount: number
+  firstBuyInAt: string | null
   order: number
+}
+
+type UnorderedSummaryRow = Omit<SummaryRow, 'order'>
+
+interface PreparedSummary {
+  groupName: string
+  date: string
+  exchangeRate: number
+  startedAt: string | null
+  endedAt: string | null
+  imported: boolean
+  rows: SummaryRow[]
+  totalBuyin: number
+  totalNet: number
+}
+
+interface PaymentGroup {
+  payer: SummaryRow
+  payments: Array<{ recipient: SummaryRow; amountCents: number }>
 }
 
 function browserTime(value: string): string {
   return new Date(value).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+}
+
+function singleLine(value: string): string {
+  return value.replace(/[\s\u0000-\u001f\u007f]+/g, ' ').trim()
+}
+
+function firstBuyInAt(buyIns: SummaryBuyIn[]): string | null {
+  return buyIns.reduce<string | null>((first, buyIn) =>
+    first === null || buyIn.created_at < first ? buyIn.created_at : first, null)
+}
+
+function compareArrival(left: UnorderedSummaryRow, right: UnorderedSummaryRow): number {
+  if (left.firstBuyInAt && right.firstBuyInAt) {
+    return left.firstBuyInAt.localeCompare(right.firstBuyInAt)
+      || left.playerId.localeCompare(right.playerId)
+  }
+  if (left.firstBuyInAt) return -1
+  if (right.firstBuyInAt) return 1
+  return left.playerId.localeCompare(right.playerId)
+}
+
+function prepareSummary(input: SessionSummaryData): PreparedSummary {
+  const rows = input.participants
+    .map<UnorderedSummaryRow>(participant => {
+      const totalBuyin = buyinSum(participant.buy_ins)
+      return {
+        playerId: participant.player_id,
+        name: singleLine(participant.name),
+        finalChips: participant.final_chips ?? 0,
+        totalBuyin,
+        netChips: netChips(participant.final_chips, totalBuyin),
+        buyInCount: participant.buy_ins.length,
+        firstBuyInAt: firstBuyInAt(participant.buy_ins),
+      }
+    })
+    .sort(compareArrival)
+    .map((row, order) => ({ ...row, order }))
+
+  return {
+    groupName: singleLine(input.group_name),
+    date: singleLine(input.date),
+    exchangeRate: input.exchange_rate,
+    startedAt: input.started_at,
+    endedAt: input.ended_at,
+    imported: input.started_at === null,
+    rows,
+    totalBuyin: rows.reduce((sum, row) => sum + row.totalBuyin, 0),
+    totalNet: rows.reduce((sum, row) => sum + row.netChips, 0),
+  }
 }
 
 function formatSignedChips(value: number): string {
@@ -50,108 +130,95 @@ function formatCents(value: number): string {
   return `¥${formatAmount(value / 100)}`
 }
 
-function formatOverview(
-  input: SessionSummaryData,
-  totalBuyin: number,
-  formatTime: TimeFormatter,
-): string {
-  const playerCount = input.participants.length
-  const parts: string[] = []
-  if (input.started_at) {
-    const start = formatTime(input.started_at)
-    parts.push(input.ended_at ? `${start}–${formatTime(input.ended_at)}` : start)
+function formatHeader(summary: PreparedSummary, formatTime: (value: string) => string): string {
+  const overview: string[] = []
+  if (summary.startedAt) {
+    const start = formatTime(summary.startedAt)
+    overview.push(summary.endedAt ? `${start}–${formatTime(summary.endedAt)}` : start)
   }
-  parts.push(`${playerCount} ${playerCount === 1 ? 'player' : 'players'}`)
-  parts.push(`${formatAmount(input.exchange_rate)} chips/¥1`)
-  if (input.started_at) parts.push(`total buy-in ${formatAmount(totalBuyin)}`)
-  return parts.join(' · ')
+  overview.push(`${summary.rows.length} ${summary.rows.length === 1 ? 'player' : 'players'}`)
+  overview.push(`${formatAmount(summary.exchangeRate)} chips/¥1`)
+  if (!summary.imported) overview.push(`total buy-in ${formatAmount(summary.totalBuyin)}`)
+  return `${summary.groupName} | ${summary.date}\n${overview.join(' · ')}`
 }
 
-function formatPayments(rows: SummaryRow[], exchangeRate: number): string[] {
-  const plan = buildPaymentPlan(rows.map(row => ({
-    playerId: row.participant.player_id,
-    netChips: row.net,
-  })), exchangeRate)
-  if (plan.transfers.length === 0) return ['• No payments required.']
+function formatResults(summary: PreparedSummary): string {
+  const lines = [...summary.rows]
+    .sort((left, right) => right.netChips - left.netChips
+      || left.order - right.order
+      || left.playerId.localeCompare(right.playerId))
+    .map(row => {
+      const result = formatSignedCny(toCny(row.netChips, summary.exchangeRate))
+      if (summary.imported) return `• ${row.name}: ${result}`
+      return `• ${row.name}: ${formatAmount(row.totalBuyin)} → ${formatAmount(row.finalChips)} | ${result}`
+    })
+  return `RESULTS\n${lines.join('\n')}`
+}
 
-  const rowsById = new Map(rows.map(row => [row.participant.player_id, row]))
-  const transfersByPayer = new Map<string, typeof plan.transfers>()
+function requirePaymentRow(rowsByPlayer: ReadonlyMap<string, SummaryRow>, playerId: string): SummaryRow {
+  const row = rowsByPlayer.get(playerId)
+  if (!row) throw new Error(`Payment plan referenced unknown player: ${playerId}`)
+  return row
+}
+
+function buildPaymentGroups(summary: PreparedSummary): { groups: PaymentGroup[]; roundingAdjustmentCents: number } {
+  const plan = buildPaymentPlan(summary.rows.map(row => ({
+    playerId: row.playerId,
+    netChips: row.netChips,
+  })), summary.exchangeRate)
+  const rowsByPlayer = new Map(summary.rows.map(row => [row.playerId, row]))
+  const groupsByPayer = new Map<string, PaymentGroup>()
+
+  // buildPaymentPlan already returns the requested payer/payment ordering, so
+  // insertion order is the canonical display order as well.
   for (const transfer of plan.transfers) {
-    const payerTransfers = transfersByPayer.get(transfer.fromPlayerId) ?? []
-    payerTransfers.push(transfer)
-    transfersByPayer.set(transfer.fromPlayerId, payerTransfers)
-  }
-
-  const paymentLines = [...transfersByPayer]
-    .sort(([leftId], [rightId]) => {
-      const left = rowsById.get(leftId)!
-      const right = rowsById.get(rightId)!
-      return left.net - right.net
-        || left.order - right.order
-        || leftId.localeCompare(rightId)
+    const payer = requirePaymentRow(rowsByPlayer, transfer.fromPlayerId)
+    const group = groupsByPayer.get(payer.playerId) ?? { payer, payments: [] }
+    group.payments.push({
+      recipient: requirePaymentRow(rowsByPlayer, transfer.toPlayerId),
+      amountCents: transfer.amountCents,
     })
-    .map(([payerId, transfers]) => {
-      const payer = normalizeSummaryText(rowsById.get(payerId)!.participant.name)
-      const recipients = [...transfers]
-        .sort((left, right) => right.amountCents - left.amountCents
-          || (rowsById.get(left.toPlayerId)?.order ?? Number.MAX_SAFE_INTEGER)
-          - (rowsById.get(right.toPlayerId)?.order ?? Number.MAX_SAFE_INTEGER)
-          || left.toPlayerId.localeCompare(right.toPlayerId))
-        .map(transfer => {
-          const recipient = normalizeSummaryText(rowsById.get(transfer.toPlayerId)!.participant.name)
-          return `${recipient} ${formatCents(transfer.amountCents)}`
-        })
-      return `• ${payer} → ${recipients.join(' + ')}`
-    })
-
-  if (plan.roundingAdjustmentCents > 0) {
-    paymentLines.push(`• Rounding adjustment: ${formatCents(plan.roundingAdjustmentCents)}`)
+    groupsByPayer.set(payer.playerId, group)
   }
-  return paymentLines
+  return { groups: [...groupsByPayer.values()], roundingAdjustmentCents: plan.roundingAdjustmentCents }
 }
 
-export function buildSessionSummary(
-  input: SessionSummaryData,
-  options: SessionSummaryOptions,
-): string {
-  const imported = input.started_at === null
-  const orderByPlayer = participantOrder(input.participants)
-  const rows: SummaryRow[] = input.participants.map(participant => {
-    const totalBuyin = buyinSum(participant.buy_ins)
-    const net = netChips(participant.final_chips, totalBuyin)
-    return { participant, totalBuyin, net, order: orderByPlayer.get(participant.player_id) ?? Number.MAX_SAFE_INTEGER }
-  })
-  const totalBuyin = rows.reduce((sum, row) => sum + row.totalBuyin, 0)
-  const totalNet = rows.reduce((sum, row) => sum + row.net, 0)
-  const formatTime = options.format_time ?? browserTime
+function formatPayments(summary: PreparedSummary): string {
+  const { groups, roundingAdjustmentCents } = buildPaymentGroups(summary)
+  const lines = groups.length === 0
+    ? ['• No payments required.']
+    : groups.map(group => {
+      const recipients = group.payments
+        .map(payment => `${payment.recipient.name} ${formatCents(payment.amountCents)}`)
+      return `• ${group.payer.name} → ${recipients.join(' + ')}`
+    })
+  if (roundingAdjustmentCents > 0) {
+    lines.push(`• Rounding adjustment: ${formatCents(roundingAdjustmentCents)}`)
+  }
+  return `PAYMENTS\n${lines.join('\n')}`
+}
+
+function formatWarnings(summary: PreparedSummary): string | null {
+  const lines = summary.imported
+    ? []
+    : summary.rows
+        .filter(row => row.buyInCount === 0)
+        .map(row => `• ${row.name} has no buy-in record.`)
+  if (summary.totalNet !== 0) {
+    lines.push(`• Session is unbalanced by ${formatSignedChips(summary.totalNet)}.`)
+  }
+  return lines.length > 0 ? `WARNING\n${lines.join('\n')}` : null
+}
+
+export function buildSessionSummary(input: SessionSummaryData, options: SessionSummaryOptions): string {
+  const summary = prepareSummary(input)
   const sections = [
-    `${normalizeSummaryText(input.group_name)} | ${normalizeSummaryText(input.date)}\n${formatOverview(input, totalBuyin, formatTime)}`,
+    formatHeader(summary, options.formatTime ?? browserTime),
+    formatResults(summary),
   ]
-
-  const sortedRows = [...rows].sort((left, right) => right.net - left.net
-    || left.order - right.order
-    || left.participant.player_id.localeCompare(right.participant.player_id))
-  const resultLines = sortedRows.map(row => {
-    const name = normalizeSummaryText(row.participant.name)
-    const result = formatSignedCny(toCny(row.net, input.exchange_rate))
-    if (imported) return `• ${name}: ${result}`
-    return `• ${name}: ${formatAmount(row.totalBuyin)} → ${formatAmount(row.participant.final_chips ?? 0)} | ${result}`
-  })
-  sections.push(`RESULTS\n${resultLines.join('\n')}`)
-
-  const warnings: string[] = []
-  if (!imported) {
-    for (const row of rows.filter(row => row.participant.buy_ins.length === 0)) {
-      warnings.push(`• ${normalizeSummaryText(row.participant.name)} has no buy-in record.`)
-    }
-  }
-  if (totalNet !== 0) warnings.push(`• Session is unbalanced by ${formatSignedChips(totalNet)}.`)
-  if (warnings.length > 0) sections.push(`WARNING\n${warnings.join('\n')}`)
-
-  if (totalNet === 0) {
-    sections.push(`PAYMENTS\n${formatPayments(rows, input.exchange_rate).join('\n')}`)
-  }
-
-  sections.push(`View session details: ${options.detail_url}`)
+  const warnings = formatWarnings(summary)
+  if (warnings) sections.push(warnings)
+  if (summary.totalNet === 0) sections.push(formatPayments(summary))
+  sections.push(`View session details: ${options.detailUrl}`)
   return sections.join('\n\n')
 }
