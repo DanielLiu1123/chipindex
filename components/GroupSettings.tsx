@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import ConfirmModal from '@/components/ConfirmModal'
-import PlayerMultiSelect from '@/components/PlayerMultiSelect'
+import BuyInModal from '@/components/BuyInModal'
 import { addGroupPlayer, createPlayerInGroup, deleteGroupPlayer, renameGroup } from '@/lib/client'
 import type { Group, GroupPlayer, Player } from '@/lib/domain-types'
 
@@ -37,8 +37,8 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
   const [name, setName] = useState(group.name)
   const [savedName, setSavedName] = useState(group.name)
   const [groupPlayers, setGroupPlayers] = useState(initialGroupPlayers)
-  const [addingNewPlayer, setAddingNewPlayer] = useState(false)
-  const [newPlayerName, setNewPlayerName] = useState('')
+  const [addPlayersOpen, setAddPlayersOpen] = useState(false)
+  const [createdPlayers, setCreatedPlayers] = useState<Player[]>([])
   const [playerToDelete, setPlayerToDelete] = useState<{ player: Player; group_player: GroupPlayer } | null>(null)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
@@ -66,28 +66,36 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
     })
   }
 
-  function addPlayers(ids: string[]) {
-    return run(async () => {
-      const added = await Promise.all(ids.map(async playerId => {
+  async function addPlayers(ids: string[]) {
+    setPending(true)
+    try {
+      for (const playerId of ids) {
+        if (playerIds.has(playerId)) continue
         const player = players.find(item => item.id === playerId)
         if (!player) throw new Error('Player not found')
         const group_player = await addGroupPlayer(group.id, playerId)
-        return { player, group_player }
-      }))
-      setGroupPlayers(current => [...current, ...added].sort(byJoinedAt))
-    })
+        setGroupPlayers(current => [...current.filter(row => row.player.id !== playerId), { player, group_player }].sort(byJoinedAt))
+      }
+    } finally {
+      setPending(false)
+      router.refresh()
+    }
   }
 
-  function createPlayer(event: React.FormEvent) {
-    event.preventDefault()
-    const playerName = newPlayerName.trim()
-    if (!playerName) return
-    return run(async () => {
-      const row = await createPlayerInGroup(group.id, playerName)
+  async function createPlayer(playerName: string) {
+    const existing = [...createdPlayers, ...players].find(player => player.name.trim().toLowerCase() === playerName.trim().toLowerCase())
+    if (existing) {
+      if (playerIds.has(existing.id) && !createdPlayers.some(player => player.id === existing.id)) throw new Error('This player is already in the group.')
+      return { player_id: existing.id, name: existing.name, settled_at: null }
+    }
+    setPending(true)
+    try {
+      const row = await createPlayerInGroup(group.id, playerName.trim())
       setGroupPlayers(current => [...current, row].sort(byJoinedAt))
-      setNewPlayerName('')
-      setAddingNewPlayer(false)
-    })
+      setCreatedPlayers(current => [row.player, ...current])
+      router.refresh()
+      return { player_id: row.player.id, name: row.player.name, settled_at: null }
+    } finally { setPending(false) }
   }
 
   function deletePlayer(row: { player: Player; group_player: GroupPlayer }) {
@@ -105,74 +113,67 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
   }
 
   return <>
-    <h1 className="text-xs text-muted tracking-widest mb-6">MANAGE GROUP</h1>
-    <section className="max-w-lg mb-10">
-      <label className="text-xs text-muted tracking-widest block mb-2">NAME</label>
-      <div className="flex gap-2">
-        <input value={name} onChange={event => setName(event.target.value)} className="flex-1 bg-surface border border-border text-white px-3 py-2 outline-none focus:border-white" />
-        <button onClick={rename} disabled={pending || !name.trim() || name.trim() === savedName}
-          className="border border-border text-xs tracking-widest px-4 disabled:opacity-40 hover:border-white">SAVE</button>
-      </div>
-    </section>
+    <div className="max-w-3xl">
+      <section aria-label="Group name" className="mb-8 border border-border bg-surface/60 p-4 sm:p-5">
+        <form onSubmit={event => { event.preventDefault(); if (!pending && name.trim() && name.trim() !== savedName) void rename() }}
+          className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
+          <label htmlFor="group-name" className="shrink-0 text-[10px] tracking-widest text-white/50">GROUP NAME</label>
+          <div className="flex min-w-0 flex-1 gap-2">
+            <input id="group-name" value={name} disabled={pending} onChange={event => setName(event.target.value)}
+              className="min-w-0 flex-1 border border-border bg-bg px-3 py-2 text-sm text-white outline-none transition-colors focus:border-white/60 disabled:opacity-50" />
+            <button type="submit" disabled={pending || !name.trim() || name.trim() === savedName}
+              className="shrink-0 border border-white/20 bg-white/5 px-4 py-2 text-[10px] tracking-widest text-white transition-colors hover:enabled:border-white/50 hover:enabled:bg-white/10 disabled:opacity-30">SAVE</button>
+          </div>
+        </form>
+      </section>
 
-    <section className="max-w-lg">
-      <h2 className="text-xs text-muted tracking-widest mb-3">PLAYERS</h2>
-      <div className="overflow-x-auto mb-6 border border-border">
-        <table className="w-full min-w-[28rem] text-sm">
-          <thead>
-            <tr className="border-b border-border text-[10px] text-muted tracking-widest">
-              <th className="px-3 py-2 text-left font-normal">PLAYER</th>
-              <th className="px-3 py-2 text-left font-normal">JOINED AT</th>
-              <th className="px-3 py-2 text-right font-normal">ACTION</th>
-            </tr>
-          </thead>
-          <tbody>
-            {groupPlayers.map(row => <tr key={row.group_player.id} className="border-b border-border last:border-b-0">
-              <td className="px-3 py-2.5 text-white">
-                <Link href={`/groups/${group.id}/players/${row.player.id}`}
-                  className="hover:text-accent transition-colors">
-                  {row.player.name}
-                </Link>
-              </td>
-              <td className="px-3 py-2.5 whitespace-nowrap text-xs text-muted tabular-nums">{formatJoinedAt(row.group_player.created_at)}</td>
-              <td className="px-3 py-2.5 text-right">
-                <button onClick={() => setPlayerToDelete(row)} disabled={pending}
-                  className="text-[10px] tracking-widest text-danger disabled:opacity-40">
-                  DELETE
-                </button>
-              </td>
-            </tr>)}
-          </tbody>
-        </table>
-      </div>
-
-      <label className="text-xs text-muted tracking-widest block mb-3">ADD PLAYER</label>
-      <div className="flex flex-col gap-1.5">
-        {addingNewPlayer && <form onSubmit={createPlayer}
-          className="flex gap-2 items-center border border-accent/50 bg-surface/30 px-3 py-1.5">
-          <input autoFocus type="text" value={newPlayerName} onChange={event => setNewPlayerName(event.target.value)}
-            placeholder="new player name"
-            className="flex-1 min-w-0 bg-transparent border-b border-accent text-white text-sm px-1 py-1.5 outline-none focus:border-white transition-colors placeholder:text-muted" />
-          <button type="submit" disabled={pending || !newPlayerName.trim()}
-            className="h-8 shrink-0 border border-border px-3 text-[10px] tracking-widest text-accent hover:border-accent disabled:opacity-40">
-            ADD
+      <section aria-labelledby="group-players-heading">
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <h2 id="group-players-heading" className="text-xs tracking-widest text-white">PLAYERS</h2>
+            <span className="border border-border bg-surface px-2 py-0.5 text-[10px] tabular-nums text-white/50">{groupPlayers.length}</span>
+          </div>
+          <button type="button" disabled={pending} onClick={() => setAddPlayersOpen(true)}
+            className="shrink-0 border border-sky-300/25 bg-sky-300/[0.06] px-4 py-2.5 text-center text-xs font-medium tracking-widest text-sky-300 transition-colors hover:enabled:border-sky-300/45 hover:enabled:bg-sky-300/10 disabled:opacity-40">
+            + PLAYER
           </button>
-          <button type="button" onClick={() => { setAddingNewPlayer(false); setNewPlayerName('') }} disabled={pending}
-            aria-label="cancel new player"
-            className="w-8 h-8 shrink-0 flex items-center justify-center border border-transparent text-muted hover:text-danger hover:border-danger/40 hover:bg-danger/10 text-lg leading-none transition-colors disabled:opacity-40">×</button>
-        </form>}
-        <PlayerMultiSelect
-          players={players}
-          excludedIds={[...playerIds]}
-          onAdd={addPlayers}
-          onNew={() => setAddingNewPlayer(true)}
-        />
-      </div>
-      {error && <p className="text-xs text-danger mt-4">{error}</p>}
-    </section>
+        </div>
+
+        <div className="border border-border">
+          <div aria-hidden="true" className="hidden grid-cols-[minmax(0,1fr)_11rem_5rem] gap-4 border-b border-border bg-surface/60 px-4 py-2.5 text-[10px] tracking-widest text-white/40 sm:grid">
+            <span>PLAYER</span><span>JOINED AT</span><span />
+          </div>
+          <ul className="divide-y divide-border">
+            {groupPlayers.map(row => <li key={row.group_player.id}
+              className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 px-4 py-2.5 transition-colors hover:bg-white/[0.025] sm:grid-cols-[minmax(0,1fr)_11rem_5rem] sm:py-2">
+              <Link href={`/groups/${group.id}/players/${row.player.id}`} title={row.player.name}
+                className="min-w-0 truncate text-sm text-white transition-colors hover:text-accent focus-visible:outline-accent">
+                {row.player.name}
+              </Link>
+              <time dateTime={row.group_player.created_at} aria-label={`Joined ${formatJoinedAt(row.group_player.created_at)}`}
+                className="col-start-1 row-start-2 mt-1 text-[10px] tabular-nums text-white/40 sm:col-start-auto sm:row-start-auto sm:mt-0 sm:text-xs">
+                {formatJoinedAt(row.group_player.created_at)}
+              </time>
+              <button type="button" onClick={() => setPlayerToDelete(row)} disabled={pending} aria-label={`Remove ${row.player.name} from group`}
+                className="col-start-2 row-span-2 row-start-1 min-h-9 bg-[#211517] px-2 text-[10px] tracking-widest text-[#C58B91] transition-colors hover:enabled:bg-[#301C20] focus-visible:bg-[#301C20] focus-visible:outline-[#C58B91] disabled:opacity-40 sm:col-start-3 sm:row-span-1">
+                REMOVE
+              </button>
+            </li>)}
+          </ul>
+          {groupPlayers.length === 0 && <p className="px-4 py-8 text-center text-xs text-white/40">No players yet.</p>}
+        </div>
+      </section>
+      {error && <p role="alert" className="mt-4 text-xs text-danger">{error}</p>}
+    </div>
+    <BuyInModal open={addPlayersOpen} groupId={group.id} mode="group"
+      participants={[...createdPlayers, ...players.filter(player => !playerIds.has(player.id) && !createdPlayers.some(created => created.id === player.id))]
+        .map(player => ({ player_id: player.id, name: player.name, settled_at: null }))}
+      onCreatePlayer={createPlayer} onAddPlayers={addPlayers}
+      onClose={() => { setAddPlayersOpen(false); setCreatedPlayers([]) }} />
     <ConfirmModal
       open={playerToDelete !== null}
-      title={`Delete ${playerToDelete?.player.name ?? 'player'} from group?`}
+      title={`Remove ${playerToDelete?.player.name ?? 'player'} from group?`}
+      confirmLabel="REMOVE"
       description="This player will be removed from this group."
       onConfirm={confirmDeletePlayer}
       onCancel={() => setPlayerToDelete(null)}

@@ -51,7 +51,7 @@ export default async function SessionsPage({
       <table className="w-full text-sm">
         <thead><tr className="border-b border-border text-muted text-xs tracking-widest">
           <th className="text-left py-3 font-normal">DATE</th><th className="text-right py-3 font-normal">PLAYERS</th>
-          <th className="text-right py-3 font-normal">WINNER</th><th className="text-right py-3 font-normal">RATE</th>
+          <th className="text-right py-3 font-normal">POG</th><th className="text-right py-3 font-normal">RATE</th>
           <th className="text-right py-3 font-normal"></th>
         </tr></thead>
         <tbody>

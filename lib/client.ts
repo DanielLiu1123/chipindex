@@ -3,6 +3,7 @@
 // claim an arbitrary response shape.
 
 import type {
+  BatchBuyInCommand,
   BuyInCommand,
   CashOutParticipantCommand,
   GroupPlayerCommand,
@@ -87,6 +88,12 @@ export const deleteSession = (groupId: string, sessionId: string) =>
 
 export const addBuyIn = (groupId: string, sessionId: string, command: BuyInCommand) =>
   request('POST', `/api/groups/${groupId}/sessions/${sessionId}/buyin`, command)
+
+export const addBatchBuyIn = (groupId: string, sessionId: string, command: BatchBuyInCommand) =>
+  request<{ count: number }>('POST', `/api/groups/${groupId}/sessions/${sessionId}/buyin/batch`, command)
+
+export const addBatchSessionParticipants = (groupId: string, sessionId: string, command: BatchBuyInCommand) =>
+  request<{ count: number }>('POST', `/api/groups/${groupId}/sessions/${sessionId}/participant/batch`, command)
 
 export const revokeBuyIn = (groupId: string, sessionId: string, buyInId: string) =>
   request<void>('DELETE', `/api/groups/${groupId}/sessions/${sessionId}/buyin/${buyInId}`)

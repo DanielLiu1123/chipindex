@@ -54,6 +54,11 @@ export interface BuyInCommand {
   amount: number
 }
 
+export interface BatchBuyInCommand {
+  entries: Array<{ id: string; player_id: string }>
+  amount: number
+}
+
 export interface CashOutParticipantCommand {
   player_id: string
   final_chips: number
