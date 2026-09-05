@@ -11,10 +11,10 @@ import LiveSettlementPanel from '@/components/LiveSettlementPanel'
 import type { Player } from '@/lib/domain-types'
 import type { LiveSessionData, LiveParticipant } from '@/lib/queries'
 import { activeFinalEntries, summarizeLiveSession } from '@/lib/live-session'
+import { usePlayerDirectory } from '@/lib/use-player-directory'
 import {
   ApiClientError,
   cashOutSessionParticipant,
-  createPlayerInGroup,
   removeSessionParticipant,
   revokeBuyIn,
   settleSession,
@@ -27,7 +27,6 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [buyInOpen, setBuyInOpen] = useState(false)
   const [addPlayersOpen, setAddPlayersOpen] = useState(false)
-  const [createdPlayers, setCreatedPlayers] = useState<Player[]>([])
   const [settling, setSettling] = useState(false)
   const [finals, setFinals] = useState<Record<string, string>>({})
   const [settleError, setSettleError] = useState<{ diff: number } | null>(null)
@@ -38,12 +37,9 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
 
   const unit = session.buy_in_unit
   const { pot, cashedOutTotal } = summarizeLiveSession(session.participants, finals)
-  const usedIds = session.participants.map(p => p.player_id)
-  const groupPlayers = [
-    ...createdPlayers.filter(player => !allPlayers.some(p => p.id === player.id)).slice().reverse(),
-    ...allPlayers,
-  ]
-  const availablePlayers = groupPlayers.filter(p => !usedIds.includes(p.id))
+  const directory = usePlayerDirectory({ groupId, players: allPlayers,
+    excludedIds: session.participants.map(player => player.player_id),
+    excludedMessage: 'This player is already in the session.', onCreated: () => router.refresh() })
 
   // Runs a mutation against the API, refreshing the page data on success and
   // surfacing the error message on failure.
@@ -91,15 +87,6 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
   const undoCashOut = (playerId: string) =>
     act(() => undoSessionParticipantCashOut(groupId, session.id, playerId))
 
-  async function createSelectablePlayer(name: string) {
-    const existing = groupPlayers.find(player => player.name.trim().toLowerCase() === name.trim().toLowerCase())
-    if (existing && usedIds.includes(existing.id)) throw new Error('This player is already in the session.')
-    const player = existing ?? (await createPlayerInGroup(groupId, name)).player
-    setCreatedPlayers(players => [...players.filter(p => p.id !== player.id), player])
-    router.refresh()
-    return { player_id: player.id, name: player.name, settled_at: null }
-  }
-
   function toggleExpand(player_id: string) {
     setExpanded(s => {
       const next = new Set(s)
@@ -135,9 +122,9 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
         participants={session.participants} unit={unit}
         onClose={() => setBuyInOpen(false)} onSaved={() => router.refresh()} />
       <BuyInModal open={addPlayersOpen} groupId={groupId} sessionId={session.id} mode="join"
-        participants={availablePlayers.map(player => ({ player_id: player.id, name: player.name, settled_at: null }))}
+        participants={directory.participants}
         unit={unit} onClose={() => setAddPlayersOpen(false)} onSaved={() => router.refresh()}
-        onCreatePlayer={createSelectablePlayer} />
+        onCreatePlayer={directory.create} />
       <ConfirmModal
         open={confirmRemove !== null}
         title={confirmRemove ? `Remove ${confirmRemove.name}?` : ''}

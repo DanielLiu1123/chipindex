@@ -26,7 +26,7 @@ export default function LiveParticipantList({
   onRemove,
 }: Props) {
   if (participants.length === 0) {
-    return <p className="text-muted text-xs tracking-widest py-6 text-center">NO PLAYERS YET — ADD SOMEONE BELOW</p>
+    return <p className="text-muted text-xs tracking-widest py-6 text-center">NO PLAYERS YET — USE + PLAYER</p>
   }
 
   return participants.map(participant => {

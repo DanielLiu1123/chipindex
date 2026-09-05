@@ -3,7 +3,7 @@ import { ApiError } from './http'
 import { buyinSum } from './settlement'
 import { requireConservation, requireNonNegativeInteger, requirePositiveInteger } from './session-policy'
 import { ensure, now, requireActiveMembers, requireOpenSession, requireUniquePlayerIds } from './mutation-guards'
-import type { BatchBuyInCommand, FinalEntry } from './contracts'
+import type { FinalEntry } from './contracts'
 
 interface ParticipantSettlementRow {
   id: string
@@ -106,62 +106,6 @@ export async function revokeBuyin(groupId: string, sessionId: string, buyinId: s
   ensure(error)
 }
 
-// One INSERT makes the batch atomic. Stable client-generated primary keys let a
-// retry recover a committed response without recording the same buy-ins twice.
-export async function addBatchBuyin(groupId: string, sessionId: string, command: BatchBuyInCommand) {
-  return recordBatchBuyin(groupId, sessionId, command, false)
-}
-
-export async function addBatchParticipants(groupId: string, sessionId: string, command: BatchBuyInCommand) {
-  return recordBatchBuyin(groupId, sessionId, command, true)
-}
-
-async function recordBatchBuyin(groupId: string, sessionId: string, command: BatchBuyInCommand, joining: boolean) {
-  await requireOpenSession(groupId, sessionId)
-  const { entries, amount } = command
-  const ids = entries.map(entry => entry.id)
-  const rows = entries.map(entry => ({ ...entry, session_id: sessionId, amount }))
-  async function alreadyRecorded(): Promise<boolean> {
-    const { data, error } = await db.from('buy_in')
-      .select('id, session_id, player_id, amount, deleted_at').in('id', ids)
-    ensure(error)
-    if (!data?.length) return false
-    if (data.length !== rows.length || rows.some(row => !data.some(existing =>
-      existing.id === row.id && existing.session_id === sessionId
-      && existing.player_id === row.player_id && existing.amount === amount && existing.deleted_at === null))) {
-      throw new ApiError(409, 'Buy-in request conflicts with existing records. Refresh and check the buy-in history.')
-    }
-    return true
-  }
-  if (await alreadyRecorded()) return { count: entries.length }
-  const { data: participants, error } = await db.from('session_participant')
-    .select('player_id, settled_at').eq('session_id', sessionId).is('deleted_at', null)
-    .in('player_id', entries.map(entry => entry.player_id))
-  ensure(error)
-  for (const entry of entries) {
-    const participant = participants?.find(row => row.player_id === entry.player_id)
-    if (!participant && !joining) throw new ApiError(422, 'Buy-ins are limited to participants in this session')
-    if (participant && participant.settled_at !== null) throw new ApiError(409, 'Cashed-out participant cannot buy in')
-  }
-  if (joining) {
-    await requireActiveMembers(groupId, entries.map(entry => entry.player_id))
-    const missing = entries.filter(entry => !participants?.some(p => p.player_id === entry.player_id))
-    if (missing.length) {
-      // A retry can find participants already added by an earlier attempt.
-      // Only revive/create missing participants; never overwrite active cash-outs.
-      const { error: participantError } = await db.from('session_participant').upsert(
-        missing.map(entry => ({ session_id: sessionId, player_id: entry.player_id,
-          deleted_at: null, final_chips: null, settled_at: null, updated_at: now() })),
-        { onConflict: 'session_id,player_id' },
-      )
-      ensure(participantError)
-    }
-  }
-  const { error: insertError } = await db.from('buy_in').insert(rows)
-  if (insertError?.code === '23505' && await alreadyRecorded()) return { count: entries.length }
-  ensure(insertError)
-  return { count: entries.length }
-}
 
 export async function settleSession(groupId: string, sessionId: string, finals: FinalEntry[], force: boolean): Promise<{ id: string; diff: number }> {
   await requireOpenSession(groupId, sessionId)

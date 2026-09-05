@@ -137,9 +137,9 @@ export const getPlayers = cache(async (groupId: string): Promise<Player[]> => {
   return (await getGroupPlayers(groupId)).map(row => row.player)
 })
 
-// Only the live-session picker uses activity ordering; other player lists keep
-// their existing order. Imported sessions fall back to their recorded date.
-export async function getPlayersForLiveSession(groupId: string): Promise<Player[]> {
+// Session pickers share group-local activity ordering. Imported sessions fall
+// back to their recorded date; other player lists keep their existing order.
+export async function getPlayersByRecentParticipation(groupId: string): Promise<Player[]> {
   const [members, history] = await Promise.all([
     getGroupPlayers(groupId),
     fetchAllResultRows<{ player_id: string; session: { date: string; started_at: string | null } }>((from, to) => db

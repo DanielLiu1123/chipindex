@@ -22,7 +22,7 @@ vi.mock('./db', () => ({
 import {
   getAllPlayers,
   getGroupPlayers,
-  getPlayersForLiveSession,
+  getPlayersByRecentParticipation,
   getLeaderboardData,
   getPlayerDetail,
   getSessionForEdit,
@@ -89,7 +89,7 @@ describe('live-session player activity ordering', () => {
         ] },
       ],
     })
-    expect((await getPlayersForLiveSession('g1')).map(player => player.id))
+    expect((await getPlayersByRecentParticipation('g1')).map(player => player.id))
       .toEqual(['new-recent', 'new-old', 'active', 'imported', 'old'])
     const historyQueries = dbMocks.chains.filter(chain => chain.table === 'session_participant')
     expect(historyQueries).toHaveLength(2)

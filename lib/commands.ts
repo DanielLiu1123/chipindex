@@ -1,4 +1,5 @@
 import { ApiError } from './http'
+import { MAX_BATCH_PLAYERS, MAX_BUY_IN_AMOUNT } from './buy-in-policy'
 import type {
   BatchBuyInCommand,
   BuyInCommand,
@@ -184,11 +185,11 @@ export function parseBatchBuyInCommand(value: unknown): BatchBuyInCommand {
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) invalid('id must be a UUID v4')
     return { id: id.toLowerCase(), player_id: string(entry.player_id, `entries[${index}].player_id`) }
   })
-  if (entries.length === 0 || entries.length > 100) invalid('Select between 1 and 100 participants')
+  if (entries.length === 0 || entries.length > MAX_BATCH_PLAYERS) invalid(`Select between 1 and ${MAX_BATCH_PLAYERS} participants`)
   if (new Set(entries.map(entry => entry.id)).size !== entries.length) invalid('Duplicate buy-in id')
   if (new Set(entries.map(entry => entry.player_id)).size !== entries.length) invalid('Duplicate player_id')
   const amount = integer(body.amount, 'amount', 1)
-  if (!Number.isSafeInteger(amount * entries.length) || amount > 2147483647) invalid('amount is too large')
+  if (!Number.isSafeInteger(amount * entries.length) || amount > MAX_BUY_IN_AMOUNT) invalid('amount is too large')
   return { entries, amount }
 }
 

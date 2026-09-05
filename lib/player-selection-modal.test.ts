@@ -1,24 +1,17 @@
-import { readFileSync } from 'node:fs'
-import { transformSync } from 'esbuild'
 import { Children, isValidElement, type ReactElement, type ReactNode } from 'react'
-import * as jsx from 'react/jsx-runtime'
+import { createHookHarness, loadUiModule } from './test-ui'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiClientError } from './client'
 import type { LiveParticipant } from './queries'
+import type { ComponentProps } from 'react'
+import type PlayerSelectionModal from '../components/PlayerSelectionModal'
 
 const save = vi.fn()
 const join = vi.fn()
-const states: unknown[] = []
-let cursor = 0
-function useState<T>(initial: T): [T, (next: T | ((prev: T) => T)) => void] {
-  const index = cursor++
-  if (index >= states.length) states[index] = initial
-  return [states[index] as T, next => { states[index] = typeof next === 'function' ? (next as (prev: T) => T)(states[index] as T) : next }]
-}
-function useRef<T>(initial: T) { return useState({ current: initial })[0] }
+const hooks = createHookHarness()
 type Props = {
   open: boolean; groupId: string; sessionId: string; participants: LiveParticipant[]; unit: number
-  mode?: 'buy-in' | 'join' | 'draft' | 'group'; onAddPlayers?: (ids: string[]) => Promise<void>; onAddDraft?: (ids: string[], amount: number) => void; onCreatePlayer?: (name: string) => Promise<Pick<LiveParticipant, 'player_id' | 'name' | 'settled_at'>>
+  mode: 'buy-in' | 'join' | 'draft' | 'group'; onAddPlayers: (ids: string[]) => Promise<void>; onAddDraft: (ids: string[], amount: number) => void; onCreatePlayer?: (name: string) => Promise<Pick<LiveParticipant, 'player_id' | 'name' | 'settled_at'>>
   onClose: () => void; onSaved: () => void
 }
 type HostProps = {
@@ -44,33 +37,36 @@ function text(node: ReactNode): string {
   return result
 }
 function mount(mode: 'buy-in' | 'join' | 'draft' | 'group' = 'buy-in') {
-  const source = readFileSync(new URL('../components/BuyInModal.tsx', import.meta.url), 'utf8')
-  const output = transformSync(source, { format: 'cjs', jsx: 'automatic', loader: 'tsx' }).code
-  const module = { exports: {} as Record<string, unknown> }
-  const mocks: Record<string, unknown> = { react: { useState, useRef, useEffect: () => undefined }, 'react/jsx-runtime': jsx, '@/lib/client': { addBatchBuyIn: save, addBatchSessionParticipants: join, ApiClientError } }
-  Function('require', 'module', 'exports', output)((name: string) => mocks[name], module, module.exports)
-  const Component = module.exports.default as (props: Props) => ReactNode
+  const mocks = { react: hooks.react, '@/lib/client': { addBatchBuyIn: save, addBatchSessionParticipants: join, ApiClientError } }
+  const Component = loadUiModule<{ default: typeof PlayerSelectionModal }>(new URL('../components/PlayerSelectionModal.tsx', import.meta.url), mocks).default
   const participants = ['Alice', 'Bob', 'Carol'].map((name, i): LiveParticipant => ({
     name, player_id: name, total_buyin: 2000, buy_ins: [], final_chips: i === 2 ? 2000 : null, settled_at: i === 2 ? '2026-09-06T00:00:00Z' : null,
   }))
-  const props: Props = { open: true, groupId: 'g1', sessionId: 's1', participants, unit: 2000, mode, onClose: vi.fn(), onSaved: vi.fn() }
-  const render = () => { cursor = 0; return Component(props) }
+  const props: Props = { open: true, groupId: 'g1', sessionId: 's1', participants, unit: 2000, mode, onClose: vi.fn(), onSaved: vi.fn(), onAddPlayers: vi.fn(), onAddDraft: vi.fn() }
+  const render = () => hooks.render(() => {
+    const action: ComponentProps<typeof PlayerSelectionModal>['action'] = props.mode === 'group'
+      ? { kind: 'players', submit: ids => props.onAddPlayers(ids) }
+      : props.mode === 'draft' ? { kind: 'draft', unit: props.unit, submit: (ids, amount) => props.onAddDraft(ids, amount) }
+      : { kind: 'buy-in', unit: props.unit, record: command => (props.mode === 'join' ? join : save)(props.groupId, props.sessionId, command), onSaved: props.onSaved }
+    return Component({ open: props.open, participants: props.participants, picker: props.mode === 'buy-in' ? 'session' : 'available',
+      action, onClose: props.onClose, onCreatePlayer: props.onCreatePlayer })
+  })
   function choose(name: string) {
     const label = nodes(render()).find(n => n.type === 'label' && text(n).startsWith(name))!
     const checkbox = nodes(label).find(n => n.props.type === 'checkbox')!
     expect(checkbox.props.disabled).toBe(false)
     checkbox.props.onChange!({ target: { value: '' } })
   }
-  const change = (id: string, value: string) => nodes(render()).find(n => n.props.id === id)!.props.onChange!({ target: { value } })
+  const change = (id: string, value: string) => nodes(render()).find(n => n.props.id?.endsWith(id.endsWith('amount') ? '-amount' : id.endsWith('search') ? '-search' : '-name'))!.props.onChange!({ target: { value } })
   const submit = () => nodes(render()).find(n => n.type === 'form')!.props.onSubmit!({ preventDefault() {} })
   return { render, props, choose, change, submit }
 }
-beforeEach(() => { states.length = 0; cursor = 0; save.mockReset(); join.mockReset() })
+beforeEach(() => { hooks.reset(); save.mockReset(); join.mockReset() })
 
-describe('BuyInModal interactions', () => {
+describe('PlayerSelectionModal interactions', () => {
   it('adds group members without chip inputs, buy-in requests, or a receipt', async () => {
     const app = mount('group'); app.props.onAddPlayers = vi.fn().mockResolvedValue(undefined)
-    expect(nodes(app.render()).find(n => n.props.id === 'join-player-search')).toBeDefined()
+    expect(nodes(app.render()).find(n => n.props.id?.endsWith('-search'))).toBeDefined()
     expect(nodes(app.render()).filter(n => n.props.type === 'number')).toHaveLength(0)
     expect(text(app.render())).not.toContain('CHIPS PER PLAYER')
     app.choose('Alice'); app.choose('Bob'); await app.submit()
@@ -92,7 +88,7 @@ describe('BuyInModal interactions', () => {
   })
   it('stages draft players with a custom amount without saving buy-ins or showing a receipt', async () => {
     const app = mount('draft'); app.props.onAddDraft = vi.fn()
-    expect(nodes(app.render()).find(n => n.props.id === 'join-player-search')).toBeDefined()
+    expect(nodes(app.render()).find(n => n.props.id?.endsWith('-search'))).toBeDefined()
     app.choose('Alice'); app.choose('Bob'); app.change('join-buy-in-amount', '3500')
     await app.submit()
     expect(app.props.onAddDraft).toHaveBeenCalledExactlyOnceWith(['Alice', 'Bob'], 3500)
@@ -104,9 +100,9 @@ describe('BuyInModal interactions', () => {
   })
   it('always shows search for adding players, even with fewer than 10 candidates', () => {
     const app = mount('join')
-    expect(nodes(app.render()).find(n => n.props.id === 'join-player-search')).toBeDefined()
+    expect(nodes(app.render()).find(n => n.props.id?.endsWith('-search'))).toBeDefined()
     app.props.mode = 'buy-in'
-    expect(nodes(app.render()).find(n => n.props.id === 'join-player-search')).toBeUndefined()
+    expect(nodes(app.render()).find(n => n.props.id?.endsWith('-search'))).toBeUndefined()
   })
   it('searches beyond the expanded page and preserves selections and expansion after clearing', () => {
     const app = mount('join')
@@ -129,7 +125,7 @@ describe('BuyInModal interactions', () => {
     app.change('join-player-search', ' Dave ')
     expect(text(app.render())).toContain('No matching players.')
     nodes(app.render()).find(n => n.type === 'button' && text(n) === '+ NEW PLAYER')!.props.onClick!()
-    expect(nodes(app.render()).find(n => n.props.id === 'join-new-player-name')!.props.value).toBe('Dave')
+    expect(nodes(app.render()).find(n => n.props.id?.endsWith('-name'))!.props.value).toBe('Dave')
     expect(app.props.onCreatePlayer).not.toHaveBeenCalled()
   })
   it('reveals 10 more join candidates at a time, preserves choices, and resets on close', () => {
@@ -183,7 +179,7 @@ describe('BuyInModal interactions', () => {
     nodes(app.render()).find(n => n.type === 'button' && text(n) === 'CANCEL')!.props.onClick!()
     expect(app.props.onCreatePlayer).not.toHaveBeenCalled()
     expect(nodes(app.render()).filter(n => n.props.type === 'checkbox' && n.props.checked)).toHaveLength(1)
-    expect(nodes(app.render()).find(n => n.props.id === 'join-new-player-name')).toBeUndefined()
+    expect(nodes(app.render()).find(n => n.props.id?.endsWith('-name'))).toBeUndefined()
   })
   it('keeps inline creation errors in the dialog without joining players', async () => {
     const app = mount('join'); app.props.onCreatePlayer = vi.fn().mockRejectedValue(new Error('Could not create player'))
@@ -265,5 +261,50 @@ describe('BuyInModal interactions', () => {
     expect(text(app.render())).toContain('Participant no longer in session')
     app.choose('Bob')
     expect(nodes(app.render()).filter(n => n.props.type === 'checkbox' && n.props.checked)).toHaveLength(2)
+  })
+  it('retains receipt names and request IDs when candidates disappear during a retry', async () => {
+    join.mockRejectedValueOnce(new TypeError('Lost response')).mockResolvedValueOnce({ count: 1 })
+    const app = mount('join'); app.choose('Alice'); await app.submit()
+    const original = join.mock.calls[0][2]
+    app.props.participants = []
+    await app.submit()
+    expect(join.mock.calls[1][2]).toEqual(original)
+    expect(text(app.render())).toContain('Alice+2,000')
+  })
+  it.each([401, 403, 408, 429])('keeps stable IDs through an HTTP %s retry failure', async status => {
+    save.mockRejectedValueOnce(new TypeError('Lost response'))
+      .mockRejectedValueOnce(new ApiClientError(status, { error: 'Retry later' })).mockResolvedValueOnce({ count: 1 })
+    const app = mount(); app.choose('Alice'); await app.submit(); await app.submit(); await app.submit()
+    expect(save.mock.calls[1][2]).toEqual(save.mock.calls[0][2])
+    expect(save.mock.calls[2][2]).toEqual(save.mock.calls[0][2])
+  })
+  it('blocks closing and duplicate submission while group members are being saved', async () => {
+    let finish!: () => void
+    const app = mount('group')
+    app.props.onAddPlayers = vi.fn(() => new Promise<void>(resolve => { finish = resolve }))
+    app.choose('Alice'); const pending = app.submit(); await app.submit()
+    nodes(app.render()).find(n => n.type === 'dialog')!.props.onCancel!({ preventDefault() {} })
+    expect(app.props.onClose).not.toHaveBeenCalled()
+    expect(app.props.onAddPlayers).toHaveBeenCalledTimes(1)
+    finish(); await pending
+    expect(app.props.onClose).toHaveBeenCalledOnce()
+  })
+  it('adapts the session buy-in and join endpoints to the shared picker', async () => {
+    const Picker = () => null
+    const Adapter = loadUiModule<{ default: (props: Record<string, unknown>) => ReactElement<ComponentProps<typeof PlayerSelectionModal>> }>(
+      new URL('../components/BuyInModal.tsx', import.meta.url), {
+        '@/components/PlayerSelectionModal': Picker,
+        '@/lib/client': { addBatchBuyIn: save, addBatchSessionParticipants: join },
+      }).default
+    const command = { entries: [{ id: 'record', player_id: 'Alice' }], amount: 2000 }
+    for (const mode of ['buy-in', 'join']) {
+      const element = Adapter({ groupId: 'g1', sessionId: 's1', unit: 2000, mode, open: true, participants: [], onClose: vi.fn(), onSaved: vi.fn() })
+      expect(element.type).toBe(Picker)
+      expect(element.props.picker).toBe(mode === 'join' ? 'available' : 'session')
+      const action = element.props.action
+      if (action.kind !== 'buy-in') throw new Error('Expected buy-in adapter')
+      await action.record(command)
+      expect(mode === 'join' ? join : save).toHaveBeenCalledExactlyOnceWith('g1', 's1', command)
+    }
   })
 })

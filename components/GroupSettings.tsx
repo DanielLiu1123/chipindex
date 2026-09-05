@@ -4,8 +4,9 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import ConfirmModal from '@/components/ConfirmModal'
-import BuyInModal from '@/components/BuyInModal'
-import { addGroupPlayer, createPlayerInGroup, deleteGroupPlayer, renameGroup } from '@/lib/client'
+import PlayerSelectionModal from '@/components/PlayerSelectionModal'
+import { addGroupPlayer, deleteGroupPlayer, renameGroup } from '@/lib/client'
+import { usePlayerDirectory } from '@/lib/use-player-directory'
 import type { Group, GroupPlayer, Player } from '@/lib/domain-types'
 
 function byJoinedAt(
@@ -38,11 +39,16 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
   const [savedName, setSavedName] = useState(group.name)
   const [groupPlayers, setGroupPlayers] = useState(initialGroupPlayers)
   const [addPlayersOpen, setAddPlayersOpen] = useState(false)
-  const [createdPlayers, setCreatedPlayers] = useState<Player[]>([])
   const [playerToDelete, setPlayerToDelete] = useState<{ player: Player; group_player: GroupPlayer } | null>(null)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
   const playerIds = useMemo(() => new Set(groupPlayers.map(row => row.player.id)), [groupPlayers])
+  const directory = usePlayerDirectory({ groupId: group.id, players, excludedIds: [...playerIds],
+    excludedMessage: 'This player is already in the group.', retainCreatedSelections: true,
+    onCreated: row => {
+      setGroupPlayers(current => [...current.filter(item => item.player.id !== row.player.id), row].sort(byJoinedAt))
+      router.refresh()
+    } })
 
   async function run(action: () => Promise<void>) {
     setPending(true)
@@ -71,7 +77,7 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
     try {
       for (const playerId of ids) {
         if (playerIds.has(playerId)) continue
-        const player = players.find(item => item.id === playerId)
+        const player = directory.players.find(item => item.id === playerId)
         if (!player) throw new Error('Player not found')
         const group_player = await addGroupPlayer(group.id, playerId)
         setGroupPlayers(current => [...current.filter(row => row.player.id !== playerId), { player, group_player }].sort(byJoinedAt))
@@ -80,22 +86,6 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
       setPending(false)
       router.refresh()
     }
-  }
-
-  async function createPlayer(playerName: string) {
-    const existing = [...createdPlayers, ...players].find(player => player.name.trim().toLowerCase() === playerName.trim().toLowerCase())
-    if (existing) {
-      if (playerIds.has(existing.id) && !createdPlayers.some(player => player.id === existing.id)) throw new Error('This player is already in the group.')
-      return { player_id: existing.id, name: existing.name, settled_at: null }
-    }
-    setPending(true)
-    try {
-      const row = await createPlayerInGroup(group.id, playerName.trim())
-      setGroupPlayers(current => [...current, row].sort(byJoinedAt))
-      setCreatedPlayers(current => [row.player, ...current])
-      router.refresh()
-      return { player_id: row.player.id, name: row.player.name, settled_at: null }
-    } finally { setPending(false) }
   }
 
   function deletePlayer(row: { player: Player; group_player: GroupPlayer }) {
@@ -165,11 +155,9 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
       </section>
       {error && <p role="alert" className="mt-4 text-xs text-danger">{error}</p>}
     </div>
-    <BuyInModal open={addPlayersOpen} groupId={group.id} mode="group"
-      participants={[...createdPlayers, ...players.filter(player => !playerIds.has(player.id) && !createdPlayers.some(created => created.id === player.id))]
-        .map(player => ({ player_id: player.id, name: player.name, settled_at: null }))}
-      onCreatePlayer={createPlayer} onAddPlayers={addPlayers}
-      onClose={() => { setAddPlayersOpen(false); setCreatedPlayers([]) }} />
+    <PlayerSelectionModal open={addPlayersOpen} participants={directory.participants}
+      onCreatePlayer={directory.create} action={{ kind: 'players', submit: addPlayers }}
+      onClose={() => { setAddPlayersOpen(false); directory.resetSelection() }} />
     <ConfirmModal
       open={playerToDelete !== null}
       title={`Remove ${playerToDelete?.player.name ?? 'player'} from group?`}

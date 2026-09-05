@@ -1,5 +1,5 @@
 import { withAuth } from '@/lib/http'
-import { addBatchBuyin } from '@/lib/live-session-mutations'
+import { addBatchBuyin } from '@/lib/batch-buy-in-mutations'
 import { parseBatchBuyInCommand, readCommand } from '@/lib/commands'
 
 export const POST = withAuth(async (req, { params }: { params: Promise<{ groupId: string; id: string }> }) => {
