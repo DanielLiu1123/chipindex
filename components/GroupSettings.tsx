@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import ConfirmModal from '@/components/ConfirmModal'
 import PlayerSelectionModal from '@/components/PlayerSelectionModal'
+import PlayerActionButton from '@/components/PlayerActionButton'
 import { addGroupPlayer, deleteGroupPlayer, renameGroup } from '@/lib/client'
 import { usePlayerDirectory } from '@/lib/use-player-directory'
 import type { Group, GroupPlayer, Player } from '@/lib/domain-types'
@@ -123,10 +124,7 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
             <h2 id="group-players-heading" className="text-xs tracking-widest text-white">PLAYERS</h2>
             <span className="border border-border bg-surface px-2 py-0.5 text-[10px] tabular-nums text-white/50">{groupPlayers.length}</span>
           </div>
-          <button type="button" disabled={pending} onClick={() => setAddPlayersOpen(true)}
-            className="shrink-0 border border-sky-300/25 bg-sky-300/[0.06] px-4 py-2.5 text-center text-xs font-medium tracking-widest text-sky-300 transition-colors hover:enabled:border-sky-300/45 hover:enabled:bg-sky-300/10 disabled:opacity-40">
-            + PLAYER
-          </button>
+          <PlayerActionButton action="add-player" compact disabled={pending} onClick={() => setAddPlayersOpen(true)} />
         </div>
 
         <div className="border border-border">

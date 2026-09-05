@@ -4,6 +4,7 @@ import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import PlayerSelectionModal from '@/components/PlayerSelectionModal'
+import PlayerActionButton from '@/components/PlayerActionButton'
 import SessionMetaFields from '@/components/SessionMetaFields'
 import { startSession } from '@/lib/client'
 import { usePlayerDirectory } from '@/lib/use-player-directory'
@@ -94,10 +95,7 @@ export default function NewSessionForm({ groupId, initialPlayers }: { groupId: s
                   className="w-8 h-8 shrink-0 flex items-center justify-center border border-transparent text-muted hover:text-danger hover:border-danger/40 hover:bg-danger/10 text-lg leading-none transition-colors">×</button>
               </div>
             })}
-            <button type="button" disabled={starting} onClick={() => setAddPlayersOpen(true)}
-              className="border border-sky-300/25 bg-sky-300/[0.06] px-3 py-3 text-center text-xs font-medium tracking-widest text-sky-300 transition-colors hover:enabled:border-sky-300/45 hover:enabled:bg-sky-300/10 disabled:opacity-40">
-              + PLAYER
-            </button>
+            <PlayerActionButton action="add-player" disabled={starting} onClick={() => setAddPlayersOpen(true)} />
           </div>
         </div>
         {error && <p className="text-danger text-xs">{error}</p>}

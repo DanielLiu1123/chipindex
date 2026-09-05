@@ -1,21 +1,23 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import type { SessionForEdit } from '@/lib/queries'
-import PlayerRowPicker from '@/components/PlayerRowPicker'
+import PlayerSelectionModal from '@/components/PlayerSelectionModal'
+import PlayerActionButton from '@/components/PlayerActionButton'
 import SessionMetaFields from '@/components/SessionMetaFields'
 import ConfirmModal from '@/components/ConfirmModal'
 import ChipValue from '@/components/ChipValue'
-import { usePlayerRows, resolvePlayerId, type PlayerRowBase } from '@/hooks/usePlayerRows'
+import { usePlayerDirectory } from '@/lib/use-player-directory'
+import type { Player } from '@/lib/domain-types'
 import { ApiClientError, updateSession } from '@/lib/client'
 import { buyinSum, netChips } from '@/lib/settlement'
 import { BUY_IN_UNIT } from '@/lib/synth'
-import { uid } from '@/lib/uid'
 
 interface BuyInRow { amount: string; created_at: string }
-interface ParticipantRow extends PlayerRowBase {
+interface ParticipantRow {
+  playerId: string
   name: string
   final: string
   buyins: BuyInRow[]
@@ -33,27 +35,29 @@ function toIsoTimestamp(value: string): string {
 
 function rowsFromSession(session: SessionForEdit): ParticipantRow[] {
   return session.participants.map(participant => ({
-    uid: uid(),
     playerId: participant.player_id,
     name: participant.name,
-    isNew: false,
-    newName: '',
     final: participant.final_chips != null ? String(participant.final_chips) : '',
     buyins: participant.buy_ins.map(buyIn => ({ amount: String(buyIn.amount), created_at: toDateTimeLocal(buyIn.created_at) })),
   }))
 }
 
-export default function EditSessionForm({ groupId, sessionId, session }: {
+export default function EditSessionForm({ groupId, sessionId, session, initialPlayers }: {
   groupId: string
   sessionId: string
   session: SessionForEdit
+  initialPlayers: Player[]
 }) {
   const router = useRouter()
   const [date, setDate] = useState(session.date ?? '')
   const [exchangeRate, setExchangeRate] = useState(session.exchange_rate ? String(session.exchange_rate) : '')
   const [description, setDescription] = useState(session.description ?? '')
-  const initialRows = useMemo(() => rowsFromSession(session), [session])
-  const { rows, setRows, updateRow, usedIds, players, playersLoading, playersError } = usePlayerRows<ParticipantRow>(groupId, initialRows)
+  const [rows, setRows] = useState(() => rowsFromSession(session))
+  const updateRow = (id: string, patch: Partial<ParticipantRow>) => setRows(current => current.map(row => row.playerId === id ? { ...row, ...patch } : row))
+  const [addPlayersOpen, setAddPlayersOpen] = useState(false)
+  const directory = usePlayerDirectory({ groupId, players: initialPlayers,
+    excludedIds: rows.map(row => row.playerId), excludedMessage: 'This player is already selected.' })
+  const saveBusy = useRef(false)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -61,20 +65,22 @@ export default function EditSessionForm({ groupId, sessionId, session }: {
   const [confirmRemove, setConfirmRemove] = useState<ParticipantRow | null>(null)
   const defaultEventTime = toDateTimeLocal(session.ended_at ?? new Date().toISOString())
 
-  function toggle(uid: string) {
+  function toggle(playerId: string) {
     setExpanded(s => {
       const next = new Set(s)
-      if (next.has(uid)) next.delete(uid)
-      else next.add(uid)
+      if (next.has(playerId)) next.delete(playerId)
+      else next.add(playerId)
       return next
     })
   }
 
-  function addRow() {
-    setRows(r => [...r, {
-      uid: uid(), playerId: '', name: '', isNew: false, newName: '', final: '',
-      buyins: [{ amount: String(BUY_IN_UNIT), created_at: defaultEventTime }],
-    }])
+  function addPlayers(ids: string[], amount: number) {
+    setRows(current => [...current, ...[...new Set(ids)]
+      .filter(id => !current.some(row => row.playerId === id))
+      .map(playerId => ({ playerId,
+        name: directory.players.find(player => player.id === playerId)?.name ?? playerId, final: '',
+        buyins: [{ amount: String(amount), created_at: defaultEventTime }],
+      }))])
   }
 
   function buyinTotal(row: ParticipantRow) {
@@ -87,19 +93,23 @@ export default function EditSessionForm({ groupId, sessionId, session }: {
   const unit = BUY_IN_UNIT
 
   async function save(force: boolean) {
+    if (saveBusy.current) return
     setError('')
     setSaveError(null)
-    const valid = rows.filter(r => (r.playerId || r.newName.trim()) && r.final !== '')
-    if (valid.length === 0) { setError('Add at least one player.'); return }
+    if (rows.length === 0) { setError('Add at least one player.'); return }
+    if (rows.some(row => !row.final.trim() || !Number.isSafeInteger(Number(row.final)) || Number(row.final) < 0)) {
+      setError('Enter final chips for every player.'); return
+    }
+    saveBusy.current = true
     setSubmitting(true)
     try {
-      const participants = await Promise.all(valid.map(async row => ({
-        player_id: await resolvePlayerId(groupId, row),
+      const participants = rows.map(row => ({
+        player_id: row.playerId,
         final_chips: Number(row.final),
         buy_ins: row.buyins
           .filter(b => Number(b.amount) > 0)
           .map(b => ({ amount: Number(b.amount), created_at: toIsoTimestamp(b.created_at) })),
-      })))
+      }))
 
       await updateSession(groupId, sessionId, {
         date,
@@ -117,27 +127,21 @@ export default function EditSessionForm({ groupId, sessionId, session }: {
         setError(err instanceof Error ? err.message : 'Save failed')
       }
       setSubmitting(false)
+      saveBusy.current = false
     }
   }
 
-  function requestRemove(row: ParticipantRow) {
-    if (!row.playerId && !row.newName.trim()) {
-      setRows(r => r.filter(x => x.uid !== row.uid))
-      return
-    }
-    setConfirmRemove(row)
-  }
   function doRemove() {
     if (!confirmRemove) return
-    setRows(r => r.filter(x => x.uid !== confirmRemove.uid))
+    setRows(r => r.filter(x => x.playerId !== confirmRemove.playerId))
     setConfirmRemove(null)
   }
 
-  if (playersLoading) return <p className="text-muted text-xs tracking-widest">LOADING...</p>
-  if (playersError) return <p className="text-danger text-xs tracking-widest">{playersError}</p>
-
   return (
     <>
+      <PlayerSelectionModal open={addPlayersOpen} participants={directory.participants}
+        onCreatePlayer={directory.create} onClose={() => setAddPlayersOpen(false)}
+        action={{ kind: 'draft', unit: BUY_IN_UNIT, submit: addPlayers }} />
       <ConfirmModal
         open={confirmRemove !== null}
         title={confirmRemove ? `Remove ${confirmRemove.name || 'this player'}?` : ''}
@@ -165,67 +169,46 @@ export default function EditSessionForm({ groupId, sessionId, session }: {
             {rows.map(row => {
               const total = buyinTotal(row)
               const net = netChips(Number(row.final) || 0, total)
-              const chosen = !!row.playerId || (row.isNew && !!row.newName.trim())
               return (
-                <div key={row.uid} className="border border-border">
-                  {!chosen && !row.isNew ? (
-                    <div className="flex gap-2 items-center p-2">
-                      <PlayerRowPicker row={row} players={players} usedIds={usedIds}
-                        onPatch={patch => updateRow(row.uid, {
-                          ...patch,
-                          ...(patch.playerId ? { name: players.find(p => p.id === patch.playerId)?.name ?? '' } : {}),
-                        })} />
-                      <button type="button" onClick={() => requestRemove(row)} className="text-muted hover:text-danger text-xs px-2 py-2.5 transition-colors">✕</button>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="flex items-center gap-2 px-3 py-2.5">
-                        {row.isNew ? (
-                          <input type="text" value={row.newName} autoFocus onChange={e => updateRow(row.uid, { newName: e.target.value })}
-                            placeholder="new player name"
-                            className="flex-1 bg-transparent border-b border-accent text-white text-sm py-1 outline-none placeholder:text-muted" />
-                        ) : (
-                          <button type="button" onClick={() => toggle(row.uid)} className="flex-1 text-left flex items-baseline gap-2 min-w-0">
-                            <span className="text-white truncate">{row.name}</span>
-                            <span className="text-xs text-muted">buy-in {total.toLocaleString()} · {row.buyins.length}×</span>
-                          </button>
-                        )}
-                        <input type="number" value={row.final} onChange={e => updateRow(row.uid, { final: e.target.value })}
-                          placeholder="final" min="0"
-                          className="w-24 bg-surface border border-border text-white text-sm px-3 py-2 outline-none focus:border-white transition-colors placeholder:text-muted text-right" />
-                        <span className="w-20 text-right text-sm"><ChipValue chips={net} /></span>
-                        <button type="button" onClick={() => requestRemove(row)} className="text-muted hover:text-danger text-sm px-1 transition-colors" aria-label="remove player">✕</button>
-                      </div>
+                <div key={row.playerId} className="border border-border">
+                  <div className="flex items-center gap-2 px-3 py-2.5">
+                    <button type="button" onClick={() => toggle(row.playerId)} className="flex-1 text-left flex items-baseline gap-2 min-w-0">
+                      <span className="text-white truncate">{row.name}</span>
+                      <span className="text-xs text-muted">buy-in {total.toLocaleString()} · {row.buyins.length}×</span>
+                    </button>
+                    <input type="number" value={row.final} disabled={submitting} aria-label={`final chips for ${row.name}`} onChange={e => updateRow(row.playerId, { final: e.target.value })}
+                      placeholder="final" min="0"
+                      className="w-24 bg-surface border border-border text-white text-sm px-3 py-2 outline-none focus:border-white transition-colors placeholder:text-muted text-right" />
+                    <span className="w-20 text-right text-sm"><ChipValue chips={net} /></span>
+                    <button type="button" disabled={submitting} onClick={() => setConfirmRemove(row)} className="text-muted hover:text-danger text-sm px-1 transition-colors" aria-label={`remove ${row.name}`}>✕</button>
+                  </div>
 
-                      {(expanded.has(row.uid) || row.isNew) && (
-                        <div className="border-t border-border px-3 py-2 bg-surface/50">
-                          <p className="text-xs text-muted tracking-widest mb-2">BUY-INS</p>
-                          <div className="flex flex-col gap-1">
-                            {row.buyins.map((b, i) => (
-                              <div key={i} className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                                <input type="datetime-local" step="1" value={b.created_at}
-                                  aria-label={`buy-in time for ${row.name || row.newName || 'player'}`}
-                                  onChange={e => updateRow(row.uid, { buyins: row.buyins.map((x, j) => j === i ? { ...x, created_at: e.target.value } : x) })}
-                                  className="w-full bg-surface border border-border text-white text-xs px-3 py-2 outline-none focus:border-white transition-colors sm:w-52" />
-                                <input type="number" value={b.amount} min="1"
-                                  onChange={e => updateRow(row.uid, { buyins: row.buyins.map((x, j) => j === i ? { ...x, amount: e.target.value } : x) })}
-                                  className="flex-1 bg-surface border border-border text-white text-xs px-3 py-2 outline-none focus:border-white transition-colors text-right" />
-                                <button type="button" onClick={() => updateRow(row.uid, { buyins: row.buyins.filter((_, j) => j !== i) })}
-                                  className="text-muted hover:text-danger text-xs px-1 transition-colors">✕</button>
-                              </div>
-                            ))}
-                            <button type="button" onClick={() => updateRow(row.uid, { buyins: [...row.buyins, { amount: String(unit), created_at: defaultEventTime }] })}
-                              className="text-xs text-muted hover:text-white tracking-widest text-left py-1.5 transition-colors">+ ADD BUY-IN</button>
+                  {expanded.has(row.playerId) && (
+                    <div className="border-t border-border px-3 py-2 bg-surface/50">
+                      <p className="text-xs text-muted tracking-widest mb-2">BUY-INS</p>
+                      <div className="flex flex-col gap-1">
+                        {row.buyins.map((b, i) => (
+                          <div key={i} className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                            <input type="datetime-local" step="1" value={b.created_at}
+                              aria-label={`buy-in time for ${row.name}`}
+                              onChange={e => updateRow(row.playerId, { buyins: row.buyins.map((x, j) => j === i ? { ...x, created_at: e.target.value } : x) })}
+                              className="w-full bg-surface border border-border text-white text-xs px-3 py-2 outline-none focus:border-white transition-colors sm:w-52" />
+                            <input type="number" value={b.amount} min="1"
+                              onChange={e => updateRow(row.playerId, { buyins: row.buyins.map((x, j) => j === i ? { ...x, amount: e.target.value } : x) })}
+                              className="flex-1 bg-surface border border-border text-white text-xs px-3 py-2 outline-none focus:border-white transition-colors text-right" />
+                            <button type="button" onClick={() => updateRow(row.playerId, { buyins: row.buyins.filter((_, j) => j !== i) })}
+                              className="text-muted hover:text-danger text-xs px-1 transition-colors">✕</button>
                           </div>
-                        </div>
-                      )}
-                    </>
+                        ))}
+                        <button type="button" onClick={() => updateRow(row.playerId, { buyins: [...row.buyins, { amount: String(unit), created_at: defaultEventTime }] })}
+                          className="text-xs text-muted hover:text-white tracking-widest text-left py-1.5 transition-colors">+ ADD BUY-IN</button>
+                      </div>
+                    </div>
                   )}
                 </div>
               )
             })}
-            <button type="button" onClick={addRow}
-              className="text-xs text-muted hover:text-white tracking-widest text-left py-2 transition-colors">+ ADD PLAYER</button>
+            <PlayerActionButton action="add-player" disabled={submitting} onClick={() => setAddPlayersOpen(true)} />
           </div>
         </div>
 

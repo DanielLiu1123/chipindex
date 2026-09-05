@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import ConfirmModal from '@/components/ConfirmModal'
 import CashOutModal from '@/components/CashOutModal'
 import BuyInModal from '@/components/BuyInModal'
+import PlayerActionButton from '@/components/PlayerActionButton'
 import LiveParticipantList from '@/components/LiveParticipantList'
 import LiveSettlementPanel from '@/components/LiveSettlementPanel'
 import type { Player } from '@/lib/domain-types'
@@ -167,15 +168,9 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
 
       {!settling && (
         <div className="mb-5 grid grid-cols-2 gap-2">
-          <button type="button" onClick={() => setAddPlayersOpen(true)} disabled={pending}
-            className="border border-sky-300/25 bg-sky-300/[0.06] px-3 py-3 text-center text-xs font-medium tracking-widest text-sky-300 transition-colors hover:enabled:border-sky-300/45 hover:enabled:bg-sky-300/10 disabled:opacity-40">
-            + PLAYER
-          </button>
-          <button type="button" onClick={() => setBuyInOpen(true)}
-            disabled={pending || !session.participants.some(p => p.settled_at === null)}
-            className="border border-emerald-300/25 bg-emerald-300/[0.06] px-3 py-3 text-center text-xs font-medium tracking-widest text-emerald-300 transition-colors hover:enabled:border-emerald-300/45 hover:enabled:bg-emerald-300/10 disabled:opacity-40">
-            + BUY IN
-          </button>
+          <PlayerActionButton action="add-player" onClick={() => setAddPlayersOpen(true)} disabled={pending} />
+          <PlayerActionButton action="buy-in" onClick={() => setBuyInOpen(true)}
+            disabled={pending || !session.participants.some(p => p.settled_at === null)} />
         </div>
       )}
 

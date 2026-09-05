@@ -245,7 +245,7 @@ describe('PlayerSelectionModal interactions', () => {
     expect(app.props.onClose).toHaveBeenCalledOnce()
     expect(nodes(app.render()).filter(n => n.props.type === 'checkbox' && n.props.checked)).toHaveLength(0)
   })
-  it('retries the exact IDs after an uncertain response, including closing and reopening', async () => {
+  it('preserves the exact retry IDs when close is requested after an uncertain response', async () => {
     save.mockRejectedValueOnce(new TypeError('Network error')).mockResolvedValueOnce({ count: 1 })
     const app = mount(); app.choose('Alice'); await app.submit()
     const first = save.mock.calls[0][2]

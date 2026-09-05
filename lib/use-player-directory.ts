@@ -15,7 +15,7 @@ interface Options {
 }
 
 // Keeps newly created players available before refreshed server props arrive,
-// and applies the same name matching/exclusion rules in all three pickers.
+// and applies the same name matching/exclusion rules in every player picker.
 export function usePlayerDirectory(options: Options) {
   const [created, setCreated] = useState<Player[]>([])
   const [retainedIds, setRetainedIds] = useState<string[]>([])
@@ -39,7 +39,7 @@ export function usePlayerDirectory(options: Options) {
       player = row.player
       const added = player
       setCreated(current => [added, ...current.filter(item => item.id !== added.id)])
-      setRetainedIds(current => [...current, added.id])
+      if (options.retainCreatedSelections) setRetainedIds(current => [...current, added.id])
       options.onCreated?.(row)
     }
     return { player_id: player.id, name: player.name, settled_at: null }

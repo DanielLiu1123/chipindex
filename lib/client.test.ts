@@ -1,9 +1,24 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { cashOutSessionParticipant, createPlayerInGroup, startSession, undoSessionParticipantCashOut } from './client'
+import { addBatchBuyIn, addBatchSessionParticipants, cashOutSessionParticipant, createPlayerInGroup, startSession, undoSessionParticipantCashOut } from './client'
 
 afterEach(() => {
   vi.unstubAllGlobals()
+})
+
+describe('batch player commands', () => {
+  it.each([
+    [addBatchBuyIn, 'buyin'],
+    [addBatchSessionParticipants, 'participant'],
+  ] as const)('preserves stable record IDs and amounts at the %s adapter', async (record, path) => {
+    const command = { entries: [{ id: '10000000-0000-4000-8000-000000000001', player_id: 'p1' }], amount: 3500 }
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 201, json: async () => ({ count: 1 }) })
+    vi.stubGlobal('fetch', fetchMock)
+    await expect(record('g1', 's1', command)).resolves.toEqual({ count: 1 })
+    expect(fetchMock).toHaveBeenCalledExactlyOnceWith(`/api/groups/g1/sessions/s1/${path}/batch`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(command),
+    })
+  })
 })
 
 describe('startSession', () => {

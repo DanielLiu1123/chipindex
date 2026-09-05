@@ -4,7 +4,6 @@
 
 import type {
   BatchBuyInCommand,
-  BuyInCommand,
   CashOutParticipantCommand,
   GroupPlayerCommand,
   ImportSessionCommand,
@@ -85,9 +84,6 @@ export const updateSession = (groupId: string, sessionId: string, command: Updat
 
 export const deleteSession = (groupId: string, sessionId: string) =>
   request<void>('DELETE', `/api/groups/${groupId}/sessions/${sessionId}`)
-
-export const addBuyIn = (groupId: string, sessionId: string, command: BuyInCommand) =>
-  request('POST', `/api/groups/${groupId}/sessions/${sessionId}/buyin`, command)
 
 export const addBatchBuyIn = (groupId: string, sessionId: string, command: BatchBuyInCommand) =>
   request<{ count: number }>('POST', `/api/groups/${groupId}/sessions/${sessionId}/buyin/batch`, command)
