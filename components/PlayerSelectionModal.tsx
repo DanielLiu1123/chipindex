@@ -16,7 +16,6 @@ interface Props {
 
 export default function PlayerSelectionModal({ open, participants, picker = 'available', action, onCreatePlayer, onClose }: Props) {
   const dialog = useRef<HTMLDialogElement>(null)
-  const form = useRef<HTMLFormElement>(null)
   const busy = useRef(false)
   const id = useId()
   const [selected, setSelected] = useState<string[]>([])
@@ -28,14 +27,9 @@ export default function PlayerSelectionModal({ open, participants, picker = 'ava
   const [query, setQuery] = useState('')
 
   useEffect(() => {
-    const element = dialog.current
-    if (!element) return
-    // Use a focusable container as the native dialog's initial focus target.
-    // React does not forward autoFocus on forms during client-side mounts.
-    form.current?.toggleAttribute('autofocus', picker === 'available')
-    if (open && !element.open) element.showModal()
-    else if (!open && element.open) element.close()
-  }, [open, picker])
+    if (open && !dialog.current?.open) dialog.current?.showModal()
+    else if (!open && dialog.current?.open) dialog.current.close()
+  }, [open])
 
   const chosen = participants.filter(p => selected.includes(p.player_id) && p.settled_at === null)
   const submission = usePlayerAction(action, chosen)
@@ -101,7 +95,8 @@ export default function PlayerSelectionModal({ open, participants, picker = 'ava
           <button type="button" onClick={close} className="mt-5 w-full bg-white py-3 text-xs tracking-widest text-bg hover:bg-accent">DONE</button>
         </div>
       ) : (
-        <form ref={form} tabIndex={addingPlayers ? -1 : undefined} onSubmit={submit}>
+        // Receive initial dialog focus without adding a Tab stop before search.
+        <form tabIndex={addingPlayers ? -1 : undefined} onSubmit={submit}>
           {addingPlayers && <input id={`${id}-search`} type="search" aria-label="Search players" placeholder="Search players..."
             value={query} onChange={event => setQuery(event.target.value)}
             onKeyDown={event => { if (event.key === 'Enter') event.preventDefault() }}
