@@ -213,10 +213,11 @@ describe('PlayerSelectionModal interactions', () => {
     await app.submit()
     expect(join.mock.calls[0][2].amount).toBe(6000)
   })
-  it('allows multiple active session participants', () => {
+  it('hides cashed-out players and allows multiple active session participants', () => {
     const app = mount()
-    const carol = nodes(app.render()).find(n => n.type === 'label' && text(n).startsWith('Carol'))!
-    expect(nodes(carol).find(n => n.props.type === 'checkbox')!.props.disabled).toBe(true)
+    expect(text(app.render())).not.toContain('Carol')
+    expect(text(app.render())).not.toContain('CASHED OUT')
+    expect(nodes(app.render()).filter(n => n.props.type === 'checkbox')).toHaveLength(2)
     expect(text(app.render())).not.toContain('NEW PLAYER')
     app.choose('Alice'); app.choose('Bob')
     expect(nodes(app.render()).filter(n => n.props.type === 'checkbox' && n.props.checked)).toHaveLength(2)

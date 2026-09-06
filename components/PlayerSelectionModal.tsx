@@ -38,7 +38,7 @@ export default function PlayerSelectionModal({ open, participants, picker = 'ava
   const addingPlayers = picker === 'available'
   const amountId = `${id}-amount`
   const search = query.trim().toLowerCase()
-  const visiblePlayers = !addingPlayers ? participants : search
+  const visiblePlayers = !addingPlayers ? participants.filter(player => player.settled_at === null) : search
     ? participants.filter(player => player.name.toLowerCase().includes(search))
     : participants.slice(0, visibleCount)
 
@@ -111,7 +111,7 @@ export default function PlayerSelectionModal({ open, participants, picker = 'ava
             {addingPlayers && !search && visibleCount < participants.length && <button type="button" aria-label="Show 10 more players"
               onClick={() => setVisibleCount(count => count + PLAYER_PAGE_SIZE)}
               className="min-h-10 border border-border px-3 py-2 text-sm text-muted hover:border-white/40 hover:text-white">…</button>}
-            {visiblePlayers.length === 0 && <p className="p-4 text-xs text-muted">{addingPlayers ? search ? 'No matching players.' : 'No available players.' : 'No session players.'}</p>}
+            {visiblePlayers.length === 0 && <p className="p-4 text-xs text-muted">{addingPlayers ? search ? 'No matching players.' : 'No available players.' : 'No active session players.'}</p>}
           </div>
           {addingPlayers && onCreatePlayer && (
             addingNew ? <div className="mt-3 border border-border p-3">
