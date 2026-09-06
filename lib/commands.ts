@@ -1,5 +1,7 @@
 import { ApiError } from './http'
+import { MAX_BATCH_PLAYERS, MAX_BUY_IN_AMOUNT } from './buy-in-policy'
 import type {
+  BatchBuyInCommand,
   BuyInCommand,
   CashOutParticipantCommand,
   CreateSessionCommand,
@@ -173,6 +175,22 @@ export function parseBuyInCommand(value: unknown): BuyInCommand {
     player_id: string(body.player_id, 'player_id'),
     amount: integer(body.amount, 'amount', 1),
   }
+}
+
+export function parseBatchBuyInCommand(value: unknown): BatchBuyInCommand {
+  const body = object(value)
+  const entries = array(body.entries, 'entries').map((value, index) => {
+    const entry = object(value, `entries[${index}]`)
+    const id = string(entry.id, `entries[${index}].id`)
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) invalid('id must be a UUID v4')
+    return { id: id.toLowerCase(), player_id: string(entry.player_id, `entries[${index}].player_id`) }
+  })
+  if (entries.length === 0 || entries.length > MAX_BATCH_PLAYERS) invalid(`Select between 1 and ${MAX_BATCH_PLAYERS} participants`)
+  if (new Set(entries.map(entry => entry.id)).size !== entries.length) invalid('Duplicate buy-in id')
+  if (new Set(entries.map(entry => entry.player_id)).size !== entries.length) invalid('Duplicate player_id')
+  const amount = integer(body.amount, 'amount', 1)
+  if (!Number.isSafeInteger(amount * entries.length) || amount > MAX_BUY_IN_AMOUNT) invalid('amount is too large')
+  return { entries, amount }
 }
 
 export function parseCashOutParticipantCommand(value: unknown): CashOutParticipantCommand {

@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import SessionEntriesTable from '@/components/SessionEntriesTable'
 import LiveSession from '@/components/LiveSession'
 import CopySessionSummaryButton from '@/components/CopySessionSummaryButton'
-import { getGroup, getPlayers, getSessionPageData } from '@/lib/queries'
+import { getGroup, getPlayersByRecentParticipation, getSessionPageData } from '@/lib/queries'
 import type { SessionSummaryData } from '@/lib/session-summary'
 
 export const dynamic = 'force-dynamic'
@@ -13,7 +13,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
   const data = await getSessionPageData(groupId, id)
   if (!data) notFound()
   if (data.status === 'OPEN') {
-    const players = await getPlayers(groupId)
+    const players = await getPlayersByRecentParticipation(groupId)
     return <LiveSession groupId={groupId} session={data.session} allPlayers={players} />
   }
 

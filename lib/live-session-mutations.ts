@@ -106,6 +106,7 @@ export async function revokeBuyin(groupId: string, sessionId: string, buyinId: s
   ensure(error)
 }
 
+
 export async function settleSession(groupId: string, sessionId: string, finals: FinalEntry[], force: boolean): Promise<{ id: string; diff: number }> {
   await requireOpenSession(groupId, sessionId)
   const { data, error: participantError } = await db.from('session_participant').select('player_id, final_chips, settled_at').is('deleted_at', null).eq('session_id', sessionId)

@@ -137,6 +137,36 @@ export const getPlayers = cache(async (groupId: string): Promise<Player[]> => {
   return (await getGroupPlayers(groupId)).map(row => row.player)
 })
 
+// Session pickers share group-local activity ordering. Imported sessions fall
+// back to their recorded date; other player lists keep their existing order.
+export async function getPlayersByRecentParticipation(groupId: string): Promise<Player[]> {
+  const [members, history] = await Promise.all([
+    getGroupPlayers(groupId),
+    fetchAllResultRows<{ player_id: string; session: { date: string; started_at: string | null } }>((from, to) => db
+      .from('session_participant')
+      .select('player_id, session!inner(date, started_at)')
+      .eq('session.group_id', groupId)
+      .is('session.deleted_at', null)
+      .is('deleted_at', null)
+      .order('id', { ascending: true })
+      .range(from, to)),
+  ])
+  const latest = new Map<string, number>()
+  for (const row of history) {
+    const timestamp = Date.parse(row.session.started_at ?? `${row.session.date}T00:00:00+08:00`)
+    latest.set(row.player_id, Math.max(latest.get(row.player_id) ?? -Infinity, timestamp))
+  }
+  return [...members].sort((a, b) => {
+    const aTime = latest.get(a.player.id)
+    const bTime = latest.get(b.player.id)
+    if (aTime === undefined && bTime !== undefined) return -1
+    if (bTime === undefined && aTime !== undefined) return 1
+    return (bTime !== undefined && aTime !== undefined ? bTime - aTime : 0)
+      || b.group_player.created_at.localeCompare(a.group_player.created_at)
+      || a.player.id.localeCompare(b.player.id)
+  }).map(row => row.player)
+}
+
 export async function getAllPlayers(): Promise<Player[]> {
   const { data, error } = await db
     .from('player')

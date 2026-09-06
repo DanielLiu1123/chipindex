@@ -5,13 +5,9 @@ import { isCashedOut } from '@/lib/live-session'
 interface Props {
   participants: LiveParticipant[]
   expanded: ReadonlySet<string>
-  customAmounts: Readonly<Record<string, string>>
-  buyInUnit: number
   pending: boolean
   interactive: boolean
   onToggle: (playerId: string) => void
-  onCustomAmountChange: (playerId: string, value: string) => void
-  onAddBuyIn: (playerId: string, amount: number) => void
   onRevokeBuyIn: (buyInId: string) => void
   onCashOut: (participant: LiveParticipant) => void
   onUndoCashOut: (playerId: string) => void
@@ -21,46 +17,50 @@ interface Props {
 export default function LiveParticipantList({
   participants,
   expanded,
-  customAmounts,
-  buyInUnit,
   pending,
   interactive,
   onToggle,
-  onCustomAmountChange,
-  onAddBuyIn,
   onRevokeBuyIn,
   onCashOut,
   onUndoCashOut,
   onRemove,
 }: Props) {
-  function addCustom(playerId: string) {
-    const amount = Number(customAmounts[playerId])
-    if (Number.isInteger(amount) && amount > 0) onAddBuyIn(playerId, amount)
-  }
-
   if (participants.length === 0) {
-    return <p className="text-muted text-xs tracking-widest py-6 text-center">NO PLAYERS YET — ADD SOMEONE BELOW</p>
+    return <p className="text-muted text-xs tracking-widest py-6 text-center">NO PLAYERS YET — USE + PLAYER</p>
   }
 
   return participants.map(participant => {
     const cashedOut = isCashedOut(participant)
     const finalChips = participant.final_chips ?? 0
     const netChips = finalChips - participant.total_buyin
+    const isExpanded = interactive && expanded.has(participant.player_id)
+    const detailsToggle = (
+      <button type="button" onClick={() => onToggle(participant.player_id)} disabled={!interactive}
+        aria-label={`${participant.name} buy-in history`} aria-expanded={isExpanded}
+        title={participant.name}
+        className="group flex min-w-0 flex-1 self-stretch items-center gap-2 text-left">
+        {interactive && <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"
+          className={`h-3 w-3 shrink-0 text-muted transition-transform group-hover:text-white motion-reduce:transition-none ${isExpanded ? 'rotate-90' : ''}`}>
+          <path d="m6 3 5 5-5 5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>}
+        <span className="min-w-0 flex-1 truncate text-sm leading-snug text-white sm:text-base">{participant.name}</span>
+        {cashedOut ? (
+          <span className="shrink-0 whitespace-nowrap text-[10px] tracking-widest text-muted sm:text-xs">
+            NET <ChipValue chips={netChips} className="tracking-normal tabular-nums" />
+          </span>
+        ) : (
+          <span className="shrink-0 whitespace-nowrap text-[11px] text-muted tabular-nums group-hover:text-white sm:text-xs">
+            {participant.buy_ins.length}× <span className="text-white">{participant.total_buyin.toLocaleString()}</span>
+          </span>
+        )}
+      </button>
+    )
 
     return (
       <div key={participant.player_id} className="border border-border">
         {cashedOut ? (
-          <div className="flex flex-nowrap items-center gap-1.5 px-3 py-2.5 sm:gap-2">
-            <button
-              onClick={() => onToggle(participant.player_id)}
-              title={participant.name}
-              className="min-w-0 flex-1 truncate text-left text-sm leading-snug text-white sm:text-base"
-            >
-              {participant.name}
-            </button>
-            <span className="shrink-0 whitespace-nowrap text-[10px] tracking-widest text-muted sm:text-xs">
-              NET <ChipValue chips={netChips} className="tracking-normal tabular-nums" />
-            </span>
+          <div className="flex flex-nowrap items-center gap-1.5 px-3 py-1.5 sm:gap-2">
+            {detailsToggle}
             {interactive && (
               <div className="contents">
                 <button onClick={() => onUndoCashOut(participant.player_id)} disabled={pending}
@@ -76,23 +76,10 @@ export default function LiveParticipantList({
             )}
           </div>
         ) : (
-          <div className="flex flex-nowrap items-center gap-1.5 px-3 py-2.5 sm:gap-2">
-            <button
-              onClick={() => onToggle(participant.player_id)}
-              title={participant.name}
-              className="min-w-0 flex-1 truncate text-left text-sm leading-snug text-white sm:text-base"
-            >
-              {participant.name}
-            </button>
-            <span className="shrink-0 whitespace-nowrap text-[11px] text-muted tabular-nums sm:text-xs">
-              {participant.buy_ins.length}× <span className="text-white">{participant.total_buyin.toLocaleString()}</span>
-            </span>
+          <div className="flex flex-nowrap items-center gap-1.5 px-3 py-1.5 sm:gap-2">
+            {detailsToggle}
             {interactive && (
               <div className="contents">
-                <button onClick={() => onAddBuyIn(participant.player_id, buyInUnit)} disabled={pending}
-                  className="shrink-0 border border-accent/40 px-1.5 py-1.5 text-[10px] tracking-wide text-accent transition-colors hover:border-accent disabled:opacity-40 sm:px-2 sm:py-1 sm:text-xs sm:tracking-widest">
-                  +{buyInUnit.toLocaleString()}
-                </button>
                 <button onClick={() => onCashOut(participant)} disabled={pending}
                   className="w-[4.75rem] shrink-0 border border-amber-400/40 px-1.5 py-1.5 text-[10px] tracking-wide text-amber-400 transition-colors hover:border-amber-400 disabled:opacity-40 sm:w-24 sm:px-2 sm:py-1 sm:text-xs sm:tracking-widest">
                   CASH OUT
@@ -130,17 +117,6 @@ export default function LiveParticipantList({
                     )}
                   </div>
                 ))}
-              </div>
-            )}
-            {!cashedOut && (
-              <div className="flex items-center gap-2">
-                <input type="number" inputMode="numeric" value={customAmounts[participant.player_id] ?? ''} min="1"
-                  onChange={event => onCustomAmountChange(participant.player_id, event.target.value)}
-                  onKeyDown={event => { if (event.key === 'Enter') addCustom(participant.player_id) }}
-                  placeholder="custom amount"
-                  className="flex-1 bg-surface border border-border text-white text-xs px-3 py-2 outline-none focus:border-white transition-colors placeholder:text-muted" />
-                <button onClick={() => addCustom(participant.player_id)} disabled={pending}
-                  className="text-xs text-accent tracking-widest px-2 py-2 hover:underline disabled:opacity-40">ADD</button>
               </div>
             )}
           </div>

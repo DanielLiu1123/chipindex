@@ -4,7 +4,6 @@ import { isCashedOut, summarizeLiveSession } from '@/lib/live-session'
 interface Props {
   participants: LiveParticipant[]
   finals: Readonly<Record<string, string>>
-  buyInUnit: number
   pending: boolean
   settleError: { diff: number } | null
   onFinalChange: (playerId: string, value: string) => void
@@ -12,13 +11,11 @@ interface Props {
   onCancel: () => void
 }
 
-export default function LiveSettlementPanel({ participants, finals, buyInUnit, pending, settleError, onFinalChange, onSubmit, onCancel }: Props) {
+export default function LiveSettlementPanel({ participants, finals, pending, settleError, onFinalChange, onSubmit, onCancel }: Props) {
   const { pot, totalFinal, settleDiff, allFinalsFilled } = summarizeLiveSession(participants, finals)
 
   return (
     <div className="border border-border p-4">
-      <p className="text-xs text-muted tracking-widest mb-1">FINAL CHIPS</p>
-      <p className="text-xs text-muted mb-4">Enter final chips for active players.</p>
       <div className="flex flex-col gap-2 mb-4">
         {participants.map(participant => (
           <div key={participant.player_id} className="flex items-center gap-3">
@@ -44,7 +41,6 @@ export default function LiveSettlementPanel({ participants, finals, buyInUnit, p
           {totalFinal.toLocaleString()} / {pot.toLocaleString()}
           {settleDiff !== 0 && (
             <span className="ml-2">diff {settleDiff > 0 ? '+' : ''}{settleDiff.toLocaleString()}
-              {settleDiff % buyInUnit === 0 && ` (= ${settleDiff / buyInUnit}×${buyInUnit})`}
             </span>
           )}
         </span>

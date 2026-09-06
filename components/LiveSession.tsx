@@ -3,19 +3,19 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import PlayerSelect from '@/components/PlayerSelect'
 import ConfirmModal from '@/components/ConfirmModal'
 import CashOutModal from '@/components/CashOutModal'
+import BuyInModal from '@/components/BuyInModal'
+import PlayerActionButton from '@/components/PlayerActionButton'
 import LiveParticipantList from '@/components/LiveParticipantList'
 import LiveSettlementPanel from '@/components/LiveSettlementPanel'
 import type { Player } from '@/lib/domain-types'
 import type { LiveSessionData, LiveParticipant } from '@/lib/queries'
 import { activeFinalEntries, summarizeLiveSession } from '@/lib/live-session'
+import { usePlayerDirectory } from '@/lib/use-player-directory'
 import {
-  addBuyIn as createBuyIn,
   ApiClientError,
   cashOutSessionParticipant,
-  createPlayerInGroup,
   removeSessionParticipant,
   revokeBuyIn,
   settleSession,
@@ -26,10 +26,8 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
   const router = useRouter()
   const [pending, setPending] = useState(false)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
-  const [custom, setCustom] = useState<Record<string, string>>({})
-  const [addId, setAddId] = useState('')
-  const [newName, setNewName] = useState('')
-  const [addingNew, setAddingNew] = useState(false)
+  const [buyInOpen, setBuyInOpen] = useState(false)
+  const [addPlayersOpen, setAddPlayersOpen] = useState(false)
   const [settling, setSettling] = useState(false)
   const [finals, setFinals] = useState<Record<string, string>>({})
   const [settleError, setSettleError] = useState<{ diff: number } | null>(null)
@@ -40,8 +38,9 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
 
   const unit = session.buy_in_unit
   const { pot, cashedOutTotal } = summarizeLiveSession(session.participants, finals)
-  const usedIds = session.participants.map(p => p.player_id)
-  const availablePlayers = allPlayers.filter(p => !usedIds.includes(p.id))
+  const directory = usePlayerDirectory({ groupId, players: allPlayers,
+    excludedIds: session.participants.map(player => player.player_id),
+    excludedMessage: 'This player is already in the session.', onCreated: () => router.refresh() })
 
   // Runs a mutation against the API, refreshing the page data on success and
   // surfacing the error message on failure.
@@ -57,9 +56,6 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
       setPending(false)
     }
   }
-
-  const addBuyIn = (player_id: string, amount: number) =>
-    act(() => createBuyIn(groupId, session.id, { player_id, amount }))
 
   const undoBuyIn = (buyinId: string) =>
     act(() => revokeBuyIn(groupId, session.id, buyinId))
@@ -92,23 +88,6 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
   const undoCashOut = (playerId: string) =>
     act(() => undoSessionParticipantCashOut(groupId, session.id, playerId))
 
-  async function addExisting(player_id: string) {
-    // Joining grants an initial buy-in (= buy_in_unit); the participant is lazily created by the buy-in endpoint
-    await act(() => createBuyIn(groupId, session.id, { player_id, amount: unit }))
-    setAddId('')
-  }
-
-  async function addNewPlayer() {
-    const name = newName.trim()
-    if (!name) return
-    await act(async () => {
-      const { player } = await createPlayerInGroup(groupId, name)
-      await createBuyIn(groupId, session.id, { player_id: player.id, amount: unit })
-      setNewName('')
-      setAddingNew(false)
-    })
-  }
-
   function toggleExpand(player_id: string) {
     setExpanded(s => {
       const next = new Set(s)
@@ -140,6 +119,13 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
 
   return (
     <>
+      <BuyInModal open={buyInOpen} groupId={groupId} sessionId={session.id}
+        participants={session.participants} unit={unit}
+        onClose={() => setBuyInOpen(false)} onSaved={() => router.refresh()} />
+      <BuyInModal open={addPlayersOpen} groupId={groupId} sessionId={session.id} mode="join"
+        participants={directory.participants}
+        unit={unit} onClose={() => setAddPlayersOpen(false)} onSaved={() => router.refresh()}
+        onCreatePlayer={directory.create} />
       <ConfirmModal
         open={confirmRemove !== null}
         title={confirmRemove ? `Remove ${confirmRemove.name}?` : ''}
@@ -166,7 +152,7 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
         {session.description && <span className="text-sm text-muted">· {session.description}</span>}
       </div>
       <div className="mb-6 flex items-baseline gap-2">
-        <span className="text-xs text-muted tracking-widest">POT (TOTAL BUY-IN)</span>
+        <span className="text-xs text-muted tracking-widest">TOTAL BUY-IN</span>
         <span className="text-accent text-lg">{pot.toLocaleString()}</span>
         <span className="text-xs text-muted">chips</span>
       </div>
@@ -180,52 +166,28 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
 
       {error && <p className="text-danger text-xs mb-4">{error}</p>}
 
+      {!settling && (
+        <div className="mb-5 grid grid-cols-2 gap-2">
+          <PlayerActionButton action="add-player" onClick={() => setAddPlayersOpen(true)} disabled={pending} />
+          <PlayerActionButton action="buy-in" onClick={() => setBuyInOpen(true)}
+            disabled={pending || !session.participants.some(p => p.settled_at === null)} />
+        </div>
+      )}
+
       {/* participants + buy-ins */}
       {!settling && (
         <div className="flex flex-col gap-1 mb-6">
           <LiveParticipantList
             participants={session.participants}
             expanded={expanded}
-            customAmounts={custom}
-            buyInUnit={unit}
             pending={pending}
             interactive
             onToggle={toggleExpand}
-            onCustomAmountChange={(playerId, value) => setCustom(current => ({ ...current, [playerId]: value }))}
-            onAddBuyIn={(playerId, amount) => {
-              setCustom(current => ({ ...current, [playerId]: '' }))
-              void addBuyIn(playerId, amount)
-            }}
             onRevokeBuyIn={buyInId => { void undoBuyIn(buyInId) }}
             onCashOut={participant => { setCashOutError(''); setCashOut(participant) }}
             onUndoCashOut={playerId => { void undoCashOut(playerId) }}
             onRemove={setConfirmRemove}
           />
-        </div>
-      )}
-
-      {/* add player */}
-      {!settling && (
-        <div className="mb-8">
-          {addingNew ? (
-            <div className="flex gap-2 items-center">
-              <input type="text" value={newName} autoFocus
-                onChange={e => setNewName(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') addNewPlayer() }}
-                placeholder="new player name"
-                className="flex-1 bg-surface border border-accent text-white text-sm px-4 py-2.5 outline-none focus:border-white transition-colors placeholder:text-muted" />
-              <button onClick={addNewPlayer} disabled={pending}
-                className="text-xs text-accent tracking-widest px-3 py-2.5 hover:underline disabled:opacity-40">ADD</button>
-              <button onClick={() => { setAddingNew(false); setNewName('') }}
-                className="text-xs text-muted tracking-widest px-2 py-2.5 hover:text-white transition-colors">✕</button>
-            </div>
-          ) : (
-            <PlayerSelect
-              value={addId}
-              players={availablePlayers}
-              onChange={val => val === '__new__' ? setAddingNew(true) : addExisting(val)}
-            />
-          )}
         </div>
       )}
 
@@ -239,7 +201,6 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
         <LiveSettlementPanel
           participants={session.participants}
           finals={finals}
-          buyInUnit={unit}
           pending={pending}
           settleError={settleError}
           onFinalChange={(playerId, value) => setFinals(current => ({ ...current, [playerId]: value }))}

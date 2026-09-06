@@ -22,6 +22,7 @@ vi.mock('./db', () => ({
 import {
   getAllPlayers,
   getGroupPlayers,
+  getPlayersByRecentParticipation,
   getLeaderboardData,
   getPlayerDetail,
   getSessionForEdit,
@@ -71,6 +72,34 @@ function mockQueryResponses(responses: Record<string, QueryResponder[]>) {
 beforeEach(() => {
   dbMocks.from.mockReset()
   dbMocks.chains.length = 0
+})
+
+describe('live-session player activity ordering', () => {
+  it('puts new group members first and uses the latest participation across all history pages', async () => {
+    const ids = ['old', 'active', 'new-old', 'imported', 'new-recent']
+    mockQueryResponses({
+      group_player: [{ data: ids.map((player_id, index) => ({ player_id, created_at: `2026-08-0${index + 1}T00:00:00Z` })) }],
+      player: [{ data: ids.map(id => ({ id, name: id })) }],
+      session_participant: [
+        { data: Array.from({ length: 1000 }, () => ({ player_id: 'active', session: { date: '2026-08-01', started_at: null } })) },
+        { data: [
+          { player_id: 'old', session: { date: '2026-09-01', started_at: null } },
+          { player_id: 'active', session: { date: '2026-09-05', started_at: '2026-09-05T12:00:00Z' } },
+          { player_id: 'imported', session: { date: '2026-09-04', started_at: null } },
+        ] },
+      ],
+    })
+    expect((await getPlayersByRecentParticipation('g1')).map(player => player.id))
+      .toEqual(['new-recent', 'new-old', 'active', 'imported', 'old'])
+    const historyQueries = dbMocks.chains.filter(chain => chain.table === 'session_participant')
+    expect(historyQueries).toHaveLength(2)
+    historyQueries.forEach(query => {
+      expect(query.eq).toHaveBeenCalledWith('session.group_id', 'g1')
+      expect(query.is).toHaveBeenCalledWith('session.deleted_at', null)
+      expect(query.is).toHaveBeenCalledWith('deleted_at', null)
+    })
+    expect(historyQueries[1].range).toHaveBeenCalledWith(1000, 1999)
+  })
 })
 
 describe('query failures', () => {
