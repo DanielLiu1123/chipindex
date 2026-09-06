@@ -77,7 +77,7 @@ export default function PlayerSelectionModal({ open, participants, picker = 'ava
   }
 
   return (
-    <dialog ref={dialog} aria-label={receipt ? 'Buy-ins recorded' : addingPlayers ? 'Add players' : 'Buy in'}
+    <dialog ref={dialog} autoFocus={addingPlayers} aria-label={receipt ? 'Buy-ins recorded' : addingPlayers ? 'Add players' : 'Buy in'}
       onCancel={event => { event.preventDefault(); close() }}
       onClick={event => {
         if (event.target !== event.currentTarget) return
