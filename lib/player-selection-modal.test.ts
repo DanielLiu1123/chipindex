@@ -197,14 +197,15 @@ describe('PlayerSelectionModal interactions', () => {
       { id: expect.any(String), player_id: 'Alice' }, { id: expect.any(String), player_id: 'Bob' },
     ] }))
     expect(save).not.toHaveBeenCalled()
-    expect(text(app.render())).toContain('Alice+2,000')
+    expect(app.props.onSaved).toHaveBeenCalledOnce()
+    expect(app.props.onClose).toHaveBeenCalledOnce()
   })
   it('applies custom initial buy-ins to each selected new participant', async () => {
     join.mockResolvedValue({ count: 2 })
     const app = mount('join'); app.choose('Alice'); app.choose('Bob')
     app.change('join-buy-in-amount', '3500'); await app.submit()
     expect(join.mock.calls[0][2].amount).toBe(3500)
-    expect(text(app.render())).toContain('Bob+3,500')
+    expect(app.props.onClose).toHaveBeenCalledOnce()
   })
   it('uses the third default multiple for an initial buy-in', async () => {
     join.mockResolvedValue({ count: 1 })
@@ -230,19 +231,18 @@ describe('PlayerSelectionModal interactions', () => {
     expect(disabled()).toBe(false)
     for (const value of ['', '0', '-1', '1.5', '2147483648']) { app.change('buy-in-amount', value); expect(disabled()).toBe(true) }
   })
-  it('saves once despite repeated submit and shows a per-player receipt until DONE', async () => {
+  it('saves once despite repeated submit and closes immediately on success', async () => {
     let finish!: (value: unknown) => void
     save.mockImplementation(() => new Promise(resolve => { finish = resolve }))
     const app = mount(); app.choose('Alice'); app.choose('Bob'); app.change('buy-in-amount', '4000')
     const saving = app.submit(); await app.submit()
     expect(save).toHaveBeenCalledTimes(1)
     expect(save.mock.calls[0][2]).toMatchObject({ amount: 4000, entries: [{ player_id: 'Alice' }, { player_id: 'Bob' }] })
-    finish({ count: 2 }); await saving
-    expect(text(app.render())).toContain('Saved. Distribute chips as listed below.')
-    expect(text(app.render())).toContain('Alice+4,000')
-    expect(text(app.render())).toContain('Bob+4,000')
     expect(app.props.onClose).not.toHaveBeenCalled()
-    nodes(app.render()).find(n => n.type === 'button' && text(n) === 'DONE')!.props.onClick!()
+    finish({ count: 2 }); await saving
+    expect(text(app.render())).not.toContain('Saved.')
+    expect(text(app.render())).not.toContain('DONE')
+    expect(app.props.onSaved).toHaveBeenCalledOnce()
     expect(app.props.onClose).toHaveBeenCalledOnce()
     expect(nodes(app.render()).filter(n => n.props.type === 'checkbox' && n.props.checked)).toHaveLength(0)
   })
@@ -254,7 +254,34 @@ describe('PlayerSelectionModal interactions', () => {
     nodes(app.render()).find(n => n.type === 'dialog')!.props.onCancel!({ preventDefault() {} })
     await app.submit()
     expect(save.mock.calls[1][2]).toEqual(first)
-    expect(text(app.render())).toContain('Saved. Distribute chips as listed below.')
+    expect(app.props.onSaved).toHaveBeenCalledOnce()
+    expect(nodes(app.render()).filter(n => n.props.type === 'checkbox' && n.props.checked)).toHaveLength(0)
+    expect(text(nodes(app.render()).find(n => n.props.type === 'submit'))).toBe('BUY IN')
+  })
+  it.each(['buy-in', 'join', 'draft'] as const)('resets %s after success so the next submission starts fresh', async mode => {
+    const app = mount(mode)
+    const record = mode === 'join' ? join : save
+    record.mockResolvedValue({ count: 1 })
+    if (mode !== 'draft') record.mockRejectedValueOnce(new TypeError('Lost response'))
+    app.choose('Alice'); app.change('buy-in-amount', '3500')
+    await app.submit()
+    if (mode !== 'draft') {
+      expect(app.props.onClose).not.toHaveBeenCalled()
+      await app.submit()
+      expect(record.mock.calls[1][2]).toEqual(record.mock.calls[0][2])
+    }
+    expect(app.props.onClose).toHaveBeenCalledOnce()
+    expect(nodes(app.render()).find(n => n.props.id?.endsWith('-amount'))!.props.value).toBe('2000')
+    expect(nodes(app.render()).filter(n => n.props.type === 'checkbox' && n.props.checked)).toHaveLength(0)
+    app.choose('Bob'); await app.submit()
+    expect(app.props.onClose).toHaveBeenCalledTimes(2)
+    if (mode === 'draft') {
+      expect(app.props.onAddDraft).toHaveBeenLastCalledWith(['Bob'], 2000)
+    } else {
+      const next = record.mock.calls[2][2]
+      expect(next).toMatchObject({ amount: 2000, entries: [{ player_id: 'Bob' }] })
+      expect(next.entries[0].id).not.toBe(record.mock.calls[0][2].entries[0].id)
+    }
   })
   it('keeps selection editable after a definitive validation rejection', async () => {
     save.mockRejectedValueOnce(new ApiClientError(422, { error: 'Participant no longer in session' }))
@@ -263,14 +290,15 @@ describe('PlayerSelectionModal interactions', () => {
     app.choose('Bob')
     expect(nodes(app.render()).filter(n => n.props.type === 'checkbox' && n.props.checked)).toHaveLength(2)
   })
-  it('retains receipt names and request IDs when candidates disappear during a retry', async () => {
+  it('retains request IDs and closes successfully when candidates disappear during a retry', async () => {
     join.mockRejectedValueOnce(new TypeError('Lost response')).mockResolvedValueOnce({ count: 1 })
     const app = mount('join'); app.choose('Alice'); await app.submit()
     const original = join.mock.calls[0][2]
     app.props.participants = []
     await app.submit()
     expect(join.mock.calls[1][2]).toEqual(original)
-    expect(text(app.render())).toContain('Alice+2,000')
+    expect(app.props.onSaved).toHaveBeenCalledOnce()
+    expect(app.props.onClose).toHaveBeenCalledOnce()
   })
   it.each([401, 403, 408, 429])('keeps stable IDs through an HTTP %s retry failure', async status => {
     save.mockRejectedValueOnce(new TypeError('Lost response'))
