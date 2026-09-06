@@ -96,7 +96,7 @@ export default function PlayerSelectionModal({ open, participants, picker = 'ava
         </div>
       ) : (
         // Receive initial dialog focus without adding a Tab stop before search.
-        <form tabIndex={addingPlayers ? -1 : undefined} onSubmit={submit}>
+        <form tabIndex={addingPlayers ? -1 : undefined} onSubmit={submit} className="outline-none">
           {addingPlayers && <input id={`${id}-search`} type="search" aria-label="Search players" placeholder="Search players..."
             value={query} onChange={event => setQuery(event.target.value)}
             onKeyDown={event => { if (event.key === 'Enter') event.preventDefault() }}
