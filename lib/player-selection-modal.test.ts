@@ -258,6 +258,31 @@ describe('PlayerSelectionModal interactions', () => {
     expect(nodes(app.render()).filter(n => n.props.type === 'checkbox' && n.props.checked)).toHaveLength(0)
     expect(text(nodes(app.render()).find(n => n.props.type === 'submit'))).toBe('BUY IN')
   })
+  it.each(['buy-in', 'join', 'draft'] as const)('resets %s after success so the next submission starts fresh', async mode => {
+    const app = mount(mode)
+    const record = mode === 'join' ? join : save
+    record.mockResolvedValue({ count: 1 })
+    if (mode !== 'draft') record.mockRejectedValueOnce(new TypeError('Lost response'))
+    app.choose('Alice'); app.change('buy-in-amount', '3500')
+    await app.submit()
+    if (mode !== 'draft') {
+      expect(app.props.onClose).not.toHaveBeenCalled()
+      await app.submit()
+      expect(record.mock.calls[1][2]).toEqual(record.mock.calls[0][2])
+    }
+    expect(app.props.onClose).toHaveBeenCalledOnce()
+    expect(nodes(app.render()).find(n => n.props.id?.endsWith('-amount'))!.props.value).toBe('2000')
+    expect(nodes(app.render()).filter(n => n.props.type === 'checkbox' && n.props.checked)).toHaveLength(0)
+    app.choose('Bob'); await app.submit()
+    expect(app.props.onClose).toHaveBeenCalledTimes(2)
+    if (mode === 'draft') {
+      expect(app.props.onAddDraft).toHaveBeenLastCalledWith(['Bob'], 2000)
+    } else {
+      const next = record.mock.calls[2][2]
+      expect(next).toMatchObject({ amount: 2000, entries: [{ player_id: 'Bob' }] })
+      expect(next.entries[0].id).not.toBe(record.mock.calls[0][2].entries[0].id)
+    }
+  })
   it('keeps selection editable after a definitive validation rejection', async () => {
     save.mockRejectedValueOnce(new ApiClientError(422, { error: 'Participant no longer in session' }))
     const app = mount(); app.choose('Alice'); await app.submit()

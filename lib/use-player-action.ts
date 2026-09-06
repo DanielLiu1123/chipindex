@@ -18,49 +18,46 @@ export function usePlayerAction(action: PlayerAction, chosen: SelectablePlayer[]
   const [value, setValue] = useState(initialValue)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
-  const attempt = useRef<BatchBuyInCommand | null>(null)
+  const [attempt, setAttempt] = useState<BatchBuyInCommand | null>(null)
   const busy = useRef(false)
   const amount = parseBuyInAmount(value)
   const valid = chosen.length > 0 && chosen.length <= MAX_BATCH_PLAYERS
     && (action.kind === 'players' || amount !== null)
 
   function reset() {
-    if (attempt.current) return false
+    if (attempt) return false
     setValue(initialValue); setError('')
     return true
   }
 
   async function submit(): Promise<boolean> {
-    if (busy.current || (!attempt.current && !valid)) return false
+    if (busy.current || (!attempt && !valid)) return false
     busy.current = true; setPending(true); setError('')
     try {
       const ids = chosen.map(player => player.player_id)
       if (action.kind === 'players') {
         await action.submit(ids)
-        return true
-      }
-      if (action.kind === 'draft') {
+      } else if (action.kind === 'draft') {
         if (amount === null) return false
         action.submit(ids, amount)
-        return true
-      }
-      let request = attempt.current
-      if (!request) {
-        if (amount === null) return false
-        request = {
-          amount, entries: ids.map(player_id => ({ id: crypto.randomUUID(), player_id })),
+      } else {
+        let request = attempt
+        if (!request) {
+          if (amount === null) return false
+          request = { amount, entries: ids.map(player_id => ({ id: crypto.randomUUID(), player_id })) }
         }
+        setAttempt(request)
+        await action.record(request)
+        action.onSaved()
       }
-      attempt.current = request
-      await action.record(request)
-      attempt.current = null
-      action.onSaved()
+      setAttempt(null)
+      setValue(initialValue)
       return true
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Could not save. Please retry.')
       // Auth, timeout and throttling errors can occur on a retry after the first
       // request committed. Only definitive command rejections release the IDs.
-      if (reason instanceof ApiClientError && [400, 404, 409, 422].includes(reason.status)) attempt.current = null
+      if (reason instanceof ApiClientError && [400, 404, 409, 422].includes(reason.status)) setAttempt(null)
       return false
     } finally {
       busy.current = false; setPending(false)
@@ -68,6 +65,6 @@ export function usePlayerAction(action: PlayerAction, chosen: SelectablePlayer[]
   }
 
   return { value, setValue, amount, valid, pending, error,
-    retrying: attempt.current !== null, locked: pending || attempt.current !== null,
+    retrying: attempt !== null, locked: pending || attempt !== null,
     isBusy: () => busy.current, reset, submit }
 }

@@ -42,13 +42,15 @@ export default function PlayerSelectionModal({ open, participants, picker = 'ava
     ? participants.filter(player => player.name.toLowerCase().includes(search))
     : participants.slice(0, visibleCount)
 
+  function resetSelection() {
+    setSelected([])
+    setAddingNew(false); setNewName(''); setNewError('')
+    setVisibleCount(PLAYER_PAGE_SIZE); setQuery('')
+  }
+
   function close() {
     if (busy.current || submission.isBusy()) return
-    if (submission.reset()) {
-      setSelected([])
-      setAddingNew(false); setNewName(''); setNewError('')
-      setVisibleCount(PLAYER_PAGE_SIZE); setQuery('')
-    }
+    if (submission.reset()) resetSelection()
     onClose()
   }
 
@@ -73,7 +75,10 @@ export default function PlayerSelectionModal({ open, participants, picker = 'ava
   async function submit(event: FormEvent) {
     event.preventDefault()
     if (busy.current || (addingNew && newName.trim())) return
-    if (await submission.submit()) close()
+    if (await submission.submit()) {
+      resetSelection()
+      onClose()
+    }
   }
 
   return (
