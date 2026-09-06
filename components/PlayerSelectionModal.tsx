@@ -105,7 +105,7 @@ export default function PlayerSelectionModal({ open, participants, picker = 'ava
             {visiblePlayers.map(p => <label key={p.player_id} className={`inline-flex min-h-10 max-w-full items-center gap-2 border px-2.5 py-2 text-xs transition-colors ${p.settled_at !== null ? 'border-border text-muted' : selected.includes(p.player_id) ? 'cursor-pointer border-accent/60 bg-accent/10 text-accent' : 'cursor-pointer border-border hover:border-white/40 hover:bg-white/5'}`}>
               <input type="checkbox" checked={selected.includes(p.player_id)} disabled={locked || p.settled_at !== null}
                 onChange={() => setSelected(ids => ids.includes(p.player_id) ? ids.filter(id => id !== p.player_id) : [...ids, p.player_id])}
-                className="h-3.5 w-3.5 shrink-0 accent-accent" />
+                className="h-3.5 w-3.5 shrink-0 accent-accent [color-scheme:dark]" />
               <span className="min-w-0 break-words">{p.name}</span>
               {p.settled_at !== null && <span className="text-xs text-muted">CASHED OUT</span>}
             </label>)}
