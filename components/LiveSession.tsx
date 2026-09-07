@@ -1,18 +1,19 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import ConfirmModal from '@/components/ConfirmModal'
 import CashOutModal from '@/components/CashOutModal'
 import BuyInModal from '@/components/BuyInModal'
+import BuyInNotice from '@/components/BuyInNotice'
 import PlayerActionButton from '@/components/PlayerActionButton'
 import LiveParticipantList from '@/components/LiveParticipantList'
 import LiveSettlementPanel from '@/components/LiveSettlementPanel'
 import type { BatchBuyInCommand } from '@/lib/contracts'
 import type { Player } from '@/lib/domain-types'
 import type { LiveSessionData, LiveParticipant } from '@/lib/queries'
-import { activeFinalEntries, completedBuyInTotals, summarizeLiveSession } from '@/lib/live-session'
+import { activeFinalEntries, summarizeLiveSession } from '@/lib/live-session'
 import { usePlayerDirectory } from '@/lib/use-player-directory'
 import {
   ApiClientError,
@@ -37,15 +38,7 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
   const [cashOutError, setCashOutError] = useState('')
   const [error, setError] = useState('')
   const [buyInNotice, setBuyInNotice] = useState<BatchBuyInCommand | null>(null)
-  const buyInTotals = buyInNotice ? completedBuyInTotals(session.participants, buyInNotice) : null
-  const noticeReady = buyInTotals !== null
-
-  useEffect(() => {
-    if (!noticeReady || !buyInNotice) return
-    const duration = buyInNotice.entries.length * 2000
-    const timer = setTimeout(() => setBuyInNotice(null), duration)
-    return () => clearTimeout(timer)
-  }, [buyInNotice, noticeReady])
+  const dismissBuyInNotice = useCallback(() => setBuyInNotice(null), [])
 
   const unit = session.buy_in_unit
   const { pot, cashedOutTotal } = summarizeLiveSession(session.participants, finals)
@@ -130,15 +123,7 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
 
   return (
     <>
-      <div role="status" aria-live="polite" aria-atomic="true" className="pointer-events-none fixed right-4 top-4 z-50 w-[calc(100%-2rem)] max-w-sm">
-        {buyInTotals && <div className="border border-accent/30 bg-surface p-4 shadow-lg">
-          <p className="mb-3 text-xs tracking-widest text-muted">TOTAL BUY-IN · CHIPS</p>
-          {buyInTotals.map(player => <div key={player.player_id} className="flex items-baseline justify-between gap-4 py-1 text-sm">
-            <span className="min-w-0 break-words text-white">{player.name}</span>
-            <span className="shrink-0 tabular-nums text-accent">{player.total_buyin.toLocaleString()}</span>
-          </div>)}
-        </div>}
-      </div>
+      <BuyInNotice command={buyInNotice} participants={session.participants} onDismiss={dismissBuyInNotice} />
       <BuyInModal open={buyInOpen} groupId={groupId} sessionId={session.id}
         participants={session.participants} unit={unit}
         onClose={() => setBuyInOpen(false)} onSaved={command => { setBuyInNotice(command); router.refresh() }} />
