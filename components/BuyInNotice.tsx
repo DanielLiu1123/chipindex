@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useEffectEvent } from 'react'
 import type { BatchBuyInCommand } from '@/lib/contracts'
 import type { LiveParticipant } from '@/lib/queries'
 import { completedBuyInTotals } from '@/lib/buy-in-notice'
@@ -14,12 +14,13 @@ interface Props {
 export default function BuyInNotice({ command, participants, onDismiss }: Props) {
   const totals = command ? completedBuyInTotals(participants, command) : null
   const playerCount = totals?.length ?? 0
+  const dismiss = useEffectEvent(onDismiss)
 
   useEffect(() => {
     if (playerCount === 0) return
-    const timer = setTimeout(onDismiss, 3000 + (playerCount - 1) * 2000)
+    const timer = setTimeout(() => dismiss(), 3000 + (playerCount - 1) * 2000)
     return () => clearTimeout(timer)
-  }, [command, playerCount, onDismiss])
+  }, [command, playerCount])
 
   return (
     <div role="status" aria-atomic="true" className="pointer-events-none fixed right-4 top-4 z-50 w-[calc(100%-2rem)] max-w-sm">

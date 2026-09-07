@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import ConfirmModal from '@/components/ConfirmModal'
@@ -38,7 +38,6 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
   const [cashOutError, setCashOutError] = useState('')
   const [error, setError] = useState('')
   const [buyInNotice, setBuyInNotice] = useState<BatchBuyInCommand | null>(null)
-  const dismissBuyInNotice = useCallback(() => setBuyInNotice(null), [])
 
   const unit = session.buy_in_unit
   const { pot, cashedOutTotal } = summarizeLiveSession(session.participants, finals)
@@ -123,7 +122,7 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
 
   return (
     <>
-      <BuyInNotice command={buyInNotice} participants={session.participants} onDismiss={dismissBuyInNotice} />
+      <BuyInNotice command={buyInNotice} participants={session.participants} onDismiss={() => setBuyInNotice(null)} />
       <BuyInModal open={buyInOpen} groupId={groupId} sessionId={session.id}
         participants={session.participants} unit={unit}
         onClose={() => setBuyInOpen(false)} onSaved={command => { setBuyInNotice(command); router.refresh() }} />
