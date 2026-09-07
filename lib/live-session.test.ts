@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { activeFinalEntries, isCashedOut, summarizeLiveSession } from './live-session'
+import { activeFinalEntries, completedBuyInTotals, isCashedOut, summarizeLiveSession } from './live-session'
 import type { LiveParticipant } from './queries'
 
 function participant(overrides: Partial<LiveParticipant> = {}): LiveParticipant {
@@ -47,5 +47,24 @@ describe('live session model', () => {
     const participants = [participant({ player_id: 'a' }), participant({ player_id: 'b' })]
     expect(summarizeLiveSession(participants, { a: '0' }).allFinalsFilled).toBe(false)
     expect(summarizeLiveSession(participants, { a: '0', b: '2000' }).allFinalsFilled).toBe(true)
+  })
+})
+
+
+describe('completed buy-in totals', () => {
+  const command = { amount: 2000, entries: [{ id: 'a-new', player_id: 'a' }, { id: 'b-new', player_id: 'b' }] }
+  const players = [
+    participant({ player_id: 'a', name: 'Alice', total_buyin: 6000, buy_ins: [{ id: 'a-new', player_id: 'a', amount: 2000, created_at: '' }] }),
+    participant({ player_id: 'b', name: 'Bob', total_buyin: 4000, buy_ins: [{ id: 'b-new', player_id: 'b', amount: 2000, created_at: '' }] }),
+    participant({ player_id: 'c', name: 'Carol' }),
+  ]
+  it('shows only affected players and uses cumulative totals without double-counting a retry', () => {
+    const expected = [{ player_id: 'a', name: 'Alice', total_buyin: 6000 }, { player_id: 'b', name: 'Bob', total_buyin: 4000 }]
+    expect(completedBuyInTotals(players, command)).toEqual(expected)
+    expect(completedBuyInTotals(players, command)).toEqual(expected)
+  })
+  it('waits until every saved entry is present in refreshed data', () => {
+    expect(completedBuyInTotals([players[0]], command)).toBeNull()
+    expect(completedBuyInTotals([players[0], { ...players[1], buy_ins: [] }], command)).toBeNull()
   })
 })
