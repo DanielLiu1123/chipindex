@@ -5,7 +5,7 @@ import type {
   LeaderboardSessionRow,
   PlayerDetail,
   PlayerHistoryEntry,
-} from './queries'
+} from './domain-types'
 import type { GroupPlayer, Player } from '@/lib/domain-types'
 
 const players: Player[] = [

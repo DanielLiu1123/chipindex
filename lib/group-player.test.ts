@@ -85,8 +85,8 @@ describe('group_player lifecycle', () => {
     })
 
     await expect(createPlayer('Alice', 'g1')).rejects.toMatchObject({
-      status: 500,
-      message: 'membership insert failed',
+      message: 'Database operation failed',
+      cause: { message: 'membership insert failed' },
     })
     const cleanup = dbMocks.chains.filter(query => query.table === 'player')[1]
     const payload = cleanup.update.mock.calls[0][0]
@@ -131,7 +131,7 @@ describe('group_player lifecycle', () => {
     })
 
     await expect(createGroupPlayer('g1', 'missing')).rejects.toMatchObject({
-      status: 404,
+      code: 'not_found',
       message: 'Player not found',
     })
     expect(dbMocks.chains.some(query => query.table === 'group_player')).toBe(false)

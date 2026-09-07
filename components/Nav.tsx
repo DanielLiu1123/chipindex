@@ -1,5 +1,6 @@
 'use client'
 
+import { errorMessage } from '@/lib/error-message'
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -12,6 +13,9 @@ import type { Group } from '@/lib/domain-types'
 export default function Nav() {
   const pathname = usePathname()
   const router = useRouter()
+  const [error, setError] = useState('')
+  const [loggingOut, setLoggingOut] = useState(false)
+  const logoutBusy = useRef(false)
   const [groups, setGroups] = useState<Group[]>([])
   const [groupSelectOpen, setGroupSelectOpen] = useState(false)
   const groupSelectRef = useRef<HTMLDivElement>(null)
@@ -19,10 +23,11 @@ export default function Nav() {
   const current = groups.find(group => group.id === groupId)
 
   useEffect(() => {
-    const load = () => listGroups().then(setGroups).catch(() => {})
+    let active = true
+    const load = () => listGroups().then(groups => { if (active) { setGroups(groups); setError('') } }).catch(reason => { if (active) setError(errorMessage(reason)) })
     void load()
     window.addEventListener('chipindex:groups-changed', load)
-    return () => window.removeEventListener('chipindex:groups-changed', load)
+    return () => { active = false; window.removeEventListener('chipindex:groups-changed', load) }
   }, [pathname])
 
   useEffect(() => {
@@ -48,8 +53,13 @@ export default function Nav() {
   }, [])
 
   async function handleLogout() {
-    await logout().catch(() => {})
-    router.push('/login')
+    if (logoutBusy.current) return
+    logoutBusy.current = true; setLoggingOut(true); setError('')
+    try {
+      await logout()
+      router.push('/login'); router.refresh()
+    } catch (reason) { setError(errorMessage(reason)) }
+    finally { logoutBusy.current = false; setLoggingOut(false) }
   }
 
   function changeGroup(value: string) {
@@ -115,8 +125,8 @@ export default function Nav() {
                 className={`text-xs tracking-widest transition-colors ${manageActive ? 'text-white' : 'text-muted hover:text-white'}`}>MANAGE</Link>
             </>
           )}
-          <button onClick={handleLogout} className="text-xs tracking-widest text-muted hover:text-danger transition-colors">EXIT</button>
-        </nav>
+          <button disabled={loggingOut} onClick={handleLogout} className="text-xs tracking-widest text-muted hover:text-danger transition-colors">EXIT</button>
+        {error && <p role="alert" className="text-xs text-danger">{error}</p>}</nav>
       </div>
     </header>
   )

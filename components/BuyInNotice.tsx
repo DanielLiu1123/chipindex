@@ -2,7 +2,7 @@
 
 import { useEffect, useEffectEvent } from 'react'
 import type { BatchBuyInCommand } from '@/lib/contracts'
-import type { LiveParticipant } from '@/lib/queries'
+import type { LiveParticipant } from '@/lib/domain-types'
 import { completedBuyInTotals } from '@/lib/buy-in-notice'
 
 interface Props {

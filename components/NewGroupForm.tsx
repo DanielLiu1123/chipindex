@@ -1,5 +1,6 @@
 'use client'
 
+import { errorMessage } from '@/lib/error-message'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createGroup } from '@/lib/client'
@@ -18,7 +19,7 @@ export default function NewGroupForm() {
       const group = await createGroup(name)
       router.push(`/groups/${group.id}/settings`)
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Failed to create group')
+      setError(errorMessage(reason))
       setSaving(false)
     }
   }

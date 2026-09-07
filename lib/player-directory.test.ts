@@ -6,7 +6,7 @@ import type { Player } from './domain-types'
 const hooks = createHookHarness()
 const create = vi.fn()
 const useDirectory = loadUiModule<{ usePlayerDirectory: typeof usePlayerDirectory }>(new URL('./use-player-directory.ts', import.meta.url), {
-  react: hooks.react, '@/lib/client': { createPlayerInGroup: create },
+  '@/lib/use-browser-ready': { useBrowserReady: () => true }, react: hooks.react, '@/lib/client': { createPlayerInGroup: create },
 }).usePlayerDirectory
 const alice: Player = { id: 'a', name: 'Alice', created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z', deleted_at: null }
 beforeEach(() => { hooks.reset(); create.mockReset() })

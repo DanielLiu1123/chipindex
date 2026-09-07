@@ -1,5 +1,6 @@
+import { pogPlayerIds } from './session-rules'
 import type { Player } from '@/lib/domain-types'
-import type { LeaderboardSessionRow, PlayerDetail, PlayerHistoryEntry } from '@/lib/queries'
+import type { LeaderboardSessionRow, PlayerDetail, PlayerHistoryEntry } from '@/lib/domain-types'
 import { netChips, toCny } from '@/lib/settlement'
 
 // All derived statistics live here: POG / wins / cumulative totals.
@@ -33,17 +34,10 @@ export function filterLowActivityPlayers(stats: PlayerStats[]): LeaderboardActiv
   }
 }
 
-// Highest chips in a session (the basis for player-of-the-game). Returns null
-// for an empty session, so nobody is counted as POG.
-function topChips(entries: { chips: number }[]): number | null {
-  if (entries.length === 0) return null
-  return entries.reduce((m, e) => (e.chips > m ? e.chips : m), entries[0].chips)
-}
-
 // Home leaderboard: sorted by CNY → chips → player id
 export function computeLeaderboardStats(players: Player[], sessions: LeaderboardSessionRow[]): PlayerStats[] {
-  const sessionTop = new Map<string, number | null>()
-  for (const s of sessions) sessionTop.set(s.id, topChips(s.session_entries))
+  const sessionTop = new Map<string, string[]>()
+  for (const s of sessions) sessionTop.set(s.id, pogPlayerIds(s.session_entries))
 
   return players
     .map(player => {
@@ -60,7 +54,7 @@ export function computeLeaderboardStats(players: Player[], sessions: Leaderboard
         total_chips += entry.chips
         if (entry.chips > 0) wins++
         total_yuan += entry.chips / s.exchange_rate
-        if (entry.chips === sessionTop.get(s.id)) pog_count++
+        if (sessionTop.get(s.id)?.includes(player.id)) pog_count++
       }
 
       return {
@@ -142,14 +136,6 @@ function createCandle(open: number, net: number, buyIn: number): CandlePoint {
   }
 }
 
-function topSettledChips(entries: { final_chips: number | null; total_buyin: number }[]): number | null {
-  if (entries.length === 0) return null
-  return entries.reduce((top, entry) => {
-    const chips = netChips(entry.final_chips, entry.total_buyin)
-    return chips > top ? chips : top
-  }, netChips(entries[0].final_chips, entries[0].total_buyin))
-}
-
 export function computePlayerHistory(detail: PlayerDetail): PlayerHistory {
   const sorted = [...detail.entries].sort(compareHistoryEntries)
 
@@ -166,7 +152,7 @@ export function computePlayerHistory(detail: PlayerDetail): PlayerHistory {
     cumulative = chipsCandle.close
     cumulativeCny = cnyCandle.close
     if (effectiveNet > 0) wins++
-    if (effectiveNet === topSettledChips(e.sessions.session_entries)) pogCount++
+    if (pogPlayerIds(e.sessions.session_entries.map(entry => ({ player_id: entry.player_id, chips: netChips(entry.final_chips, entry.total_buyin) }))).includes(detail.id)) pogCount++
 
     return {
       date: e.sessions.date,

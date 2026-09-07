@@ -61,7 +61,7 @@ describe('session settlement with cashed-out participants', () => {
     })
 
     await expect(settleSession('g1', 's1', [{ player_id: 'p1', final_chips: 5000 }], false))
-      .rejects.toMatchObject({ status: 409, message: 'Frozen final_chips do not match for participant p1' })
+      .rejects.toMatchObject({ code: 'conflict', message: 'Frozen final_chips do not match for participant p1' })
   })
 })
 
@@ -88,7 +88,7 @@ describe('participant cash out', () => {
     })
 
     await expect(cashOutParticipant('g1', 's1', 'p1', 5600)).rejects.toMatchObject({
-      status: 409,
+      code: 'conflict',
       message: 'Participant has already cashed out',
     })
   })
@@ -121,7 +121,7 @@ describe('participant cash out', () => {
         session_participant: [{ data: { id: 'part-1', settled_at: '2026-08-19T12:00:00Z' }, error: null }],
         buy_in: [{ data: { player_id: 'p1' }, error: null }],
       })
-      await expect(action()).rejects.toMatchObject({ status: 409 })
+      await expect(action()).rejects.toMatchObject({ code: 'conflict' })
     }
   })
 

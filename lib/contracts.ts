@@ -41,7 +41,7 @@ export type CreateSessionCommand = ImportSessionCommand | StartSessionCommand
 export interface EditedParticipant {
   player_id: string
   final_chips: number
-  buy_ins: Array<{ amount: number; created_at?: string }>
+  buy_ins: Array<{ id?: string; amount: number; created_at?: string }>
 }
 
 export interface UpdateSessionCommand extends SessionMetaCommand {

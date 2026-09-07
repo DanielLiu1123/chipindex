@@ -6,7 +6,7 @@ import ChipValue from '@/components/ChipValue'
 import LeaderboardChart from '@/components/LeaderboardChart'
 import { filterLowActivityPlayers } from '@/lib/stats'
 import type { PlayerStats } from '@/lib/stats'
-import type { LeaderboardSessionRow } from '@/lib/queries'
+import type { LeaderboardSessionRow } from '@/lib/domain-types'
 
 function buildChartData(sessions: LeaderboardSessionRow[], stats: PlayerStats[], mode: 'chips' | 'cny'): { date: string; [player: string]: string | number }[] {
   const sorted = [...sessions].sort((a, b) => a.date.localeCompare(b.date))
@@ -30,6 +30,18 @@ function buildChartData(sessions: LeaderboardSessionRow[], stats: PlayerStats[],
 }
 
 type SortKey = 'total_yuan' | 'total_chips' | 'sessions_played' | 'win_rate' | 'pog_count'
+
+function SortHeader({ label, sortKey: key, currentKey, sortDir, onSort }: { label: string; sortKey: SortKey; currentKey: SortKey; sortDir: 'asc' | 'desc'; onSort: (key: SortKey) => void }) {
+  const active = currentKey === key
+  return (
+    <th className="text-right py-3 font-normal">
+      <button onClick={() => onSort(key)}
+        className={`tracking-widest transition-colors ${active ? 'text-white' : 'text-muted hover:text-white'}`}>
+        {label}{active ? (sortDir === 'desc' ? ' ↓' : ' ↑') : ''}
+      </button>
+    </th>
+  )
+}
 
 export default function LeaderboardView({ groupId, stats, sessions }: { groupId: string; stats: PlayerStats[]; sessions: LeaderboardSessionRow[] }) {
   const [view, setView] = useState<'table' | 'chart'>('table')
@@ -62,18 +74,6 @@ export default function LeaderboardView({ groupId, stats, sessions }: { groupId:
       return a.player.id.localeCompare(b.player.id)
     })
   }, [displayedStats, sortKey, sortDir])
-
-  function SortHeader({ label, sortKey: key }: { label: string; sortKey: SortKey }) {
-    const active = sortKey === key
-    return (
-      <th className="text-right py-3 font-normal">
-        <button onClick={() => toggleSort(key)}
-          className={`tracking-widest transition-colors ${active ? 'text-white' : 'text-muted hover:text-white'}`}>
-          {label}{active ? (sortDir === 'desc' ? ' ↓' : ' ↑') : ''}
-        </button>
-      </th>
-    )
-  }
 
   return (
     <>
@@ -126,11 +126,11 @@ export default function LeaderboardView({ groupId, stats, sessions }: { groupId:
             <tr className="border-b border-border text-muted text-xs tracking-widest">
               <th className="text-left py-3 font-normal w-8">#</th>
               <th className="text-left py-3 font-normal">PLAYER</th>
-              <SortHeader label="CNY" sortKey="total_yuan" />
-              <SortHeader label="CHIPS" sortKey="total_chips" />
-              <SortHeader label="SESSIONS" sortKey="sessions_played" />
-              <SortHeader label="WIN%" sortKey="win_rate" />
-              <SortHeader label="POG" sortKey="pog_count" />
+              <SortHeader currentKey={sortKey} sortDir={sortDir} onSort={toggleSort} label="CNY" sortKey="total_yuan" />
+              <SortHeader currentKey={sortKey} sortDir={sortDir} onSort={toggleSort} label="CHIPS" sortKey="total_chips" />
+              <SortHeader currentKey={sortKey} sortDir={sortDir} onSort={toggleSort} label="SESSIONS" sortKey="sessions_played" />
+              <SortHeader currentKey={sortKey} sortDir={sortDir} onSort={toggleSort} label="WIN%" sortKey="win_rate" />
+              <SortHeader currentKey={sortKey} sortDir={sortDir} onSort={toggleSort} label="POG" sortKey="pog_count" />
             </tr>
           </thead>
           <tbody>

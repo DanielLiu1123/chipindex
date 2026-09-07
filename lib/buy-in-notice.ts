@@ -1,4 +1,4 @@
-import type { LiveParticipant } from './queries'
+import type { LiveParticipant } from './domain-types'
 import type { BatchBuyInCommand } from './contracts'
 
 // Wait for the saved request to appear in refreshed data; never add its amount

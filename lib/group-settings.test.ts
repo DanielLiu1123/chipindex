@@ -27,7 +27,7 @@ const player = (id: string): Player => ({ id, name: id, created_at: date, update
 const membership = (id: string) => ({ id: `gp-${id}`, player_id: id, group_id: 'g1', created_at: date, updated_at: date, deleted_at: null })
 function mount() {
   const Component = loadUiModule<{ default: (props: unknown) => ReactNode }>(new URL('../components/GroupSettings.tsx', import.meta.url), {
-    react: hooks.react, 'next/link': () => null, 'next/navigation': { useRouter: () => ({ refresh }) },
+    '@/lib/use-browser-ready': { useBrowserReady: () => true }, react: hooks.react, 'next/link': () => null, 'next/navigation': { useRouter: () => ({ refresh }) },
     '@/components/ConfirmModal': () => null, '@/components/PlayerSelectionModal': Modal,
     '@/lib/client': { addGroupPlayer: add, createPlayerInGroup: create },
   }).default

@@ -1,4 +1,4 @@
-import type { LiveParticipant } from '@/lib/queries'
+import type { LiveParticipant } from '@/lib/domain-types'
 import { isCashedOut, summarizeLiveSession } from '@/lib/live-session'
 
 interface Props {

@@ -18,6 +18,7 @@ function loadNav(pathname: string): NavComponent {
   }).code
   const module = { exports: {} as Record<string, unknown> }
   const mocks: Record<string, unknown> = {
+    '@/lib/error-message': { errorMessage: (error: Error) => error.message },
     react: React,
     'react/jsx-runtime': ReactJsxRuntime,
     'next/link': {

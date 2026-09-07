@@ -1,11 +1,14 @@
 'use client'
 
+import { errorMessage } from '@/lib/error-message'
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { renamePlayer } from '@/lib/client'
 
 export default function PlayerNameEditor({ groupId, id, initialName }: { groupId: string; id: string; initialName: string }) {
   const router = useRouter()
+  const [error, setError] = useState('')
+  const busy = useRef(false)
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(initialName)
   const [savedName, setSavedName] = useState(initialName)
@@ -18,6 +21,7 @@ export default function PlayerNameEditor({ groupId, id, initialName }: { groupId
   }, [editing])
 
   async function save() {
+    if (busy.current) return
     if (cancelRef.current) {
       cancelRef.current = false
       return
@@ -28,16 +32,16 @@ export default function PlayerNameEditor({ groupId, id, initialName }: { groupId
       setEditing(false)
       return
     }
-    setSaving(true)
+    busy.current = true; setError(''); setSaving(true)
     try {
       await renamePlayer(groupId, id, trimmed)
       setSavedName(trimmed)
       setEditing(false)
       router.refresh()
-    } catch {
-      // Keep editing so the rename can be retried.
+    } catch (reason) {
+      setError(errorMessage(reason))
     } finally {
-      setSaving(false)
+      busy.current = false; setSaving(false)
     }
   }
 
@@ -52,7 +56,7 @@ export default function PlayerNameEditor({ groupId, id, initialName }: { groupId
 
   if (editing) {
     return (
-      <input
+      <div><input
         ref={inputRef}
         value={name}
         onChange={e => setName(e.target.value)}
@@ -60,7 +64,7 @@ export default function PlayerNameEditor({ groupId, id, initialName }: { groupId
         onKeyDown={handleKeyDown}
         disabled={saving}
         className="text-white text-lg bg-transparent border-b border-white outline-none w-48 disabled:opacity-50"
-      />
+      />{error && <p role="alert" className="text-xs text-danger">{error}</p>}</div>
     )
   }
 

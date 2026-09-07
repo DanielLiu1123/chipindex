@@ -1,6 +1,8 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { errorMessage } from '@/lib/error-message'
+import { DEFAULT_EXCHANGE_RATE, BUY_IN_UNIT } from '@/lib/session-rules'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import PlayerSelectionModal from '@/components/PlayerSelectionModal'
@@ -10,14 +12,15 @@ import { startSession } from '@/lib/client'
 import { usePlayerDirectory } from '@/lib/use-player-directory'
 import { MAX_BUY_IN_AMOUNT, parseBuyInAmount } from '@/lib/buy-in-policy'
 import type { Player } from '@/lib/domain-types'
-import { BUY_IN_UNIT } from '@/lib/synth'
+import { localDate } from '@/lib/browser-time'
 
 interface PlayerRow { playerId: string; buyin: string }
 
 export default function NewSessionForm({ groupId, initialPlayers }: { groupId: string; initialPlayers: Player[] }) {
   const router = useRouter()
-  const [date, setDate] = useState(() => new Date().toISOString().split('T')[0])
-  const [exchangeRate, setExchangeRate] = useState('40')
+  const [date, setDate] = useState('')
+  useEffect(() => { setDate(localDate()) }, [])
+  const [exchangeRate, setExchangeRate] = useState(String(DEFAULT_EXCHANGE_RATE))
   const [description, setDescription] = useState('')
   const [rows, setRows] = useState<PlayerRow[]>([])
   const [addPlayersOpen, setAddPlayersOpen] = useState(false)
@@ -46,13 +49,13 @@ export default function NewSessionForm({ groupId, initialPlayers }: { groupId: s
       const session = await startSession(groupId, {
         status: 'OPEN',
         date,
-        exchange_rate: exchangeRate ? Number(exchangeRate) : 40,
+        exchange_rate: exchangeRate ? Number(exchangeRate) : DEFAULT_EXCHANGE_RATE,
         description: description || null,
         players: playersPayload,
       })
       router.push(`/groups/${groupId}/sessions/${session.id}`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to start session')
+      setError(errorMessage(err))
       setStarting(false)
       startBusy.current = false
     }
@@ -70,7 +73,7 @@ export default function NewSessionForm({ groupId, initialPlayers }: { groupId: s
       </div>
       <h1 className="text-xs text-muted tracking-widest mb-6">NEW SESSION</h1>
       <form onSubmit={handleStart} className="flex flex-col gap-6 max-w-lg">
-        <SessionMetaFields
+        <SessionMetaFields disabled={starting}
           date={date} setDate={setDate}
           exchangeRate={exchangeRate} setExchangeRate={setExchangeRate}
           description={description} setDescription={setDescription}

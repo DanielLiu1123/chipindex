@@ -1,10 +1,10 @@
 import { notFound } from 'next/navigation'
 import NewSessionForm from '@/components/NewSessionForm'
-import { getGroup, getPlayersByRecentParticipation } from '@/lib/queries'
+import { getGroup, getPlayersWithActivity } from '@/lib/queries'
 
 export default async function NewSessionPage({ params }: { params: Promise<{ groupId: string }> }) {
   const { groupId } = await params
   if (!await getGroup(groupId)) notFound()
-  const players = await getPlayersByRecentParticipation(groupId)
+  const players = await getPlayersWithActivity(groupId)
   return <NewSessionForm groupId={groupId} initialPlayers={players} />
 }

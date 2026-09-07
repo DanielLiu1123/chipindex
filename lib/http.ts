@@ -1,42 +1,32 @@
+import { GENERIC_ERROR_MESSAGE } from './error-message'
 import { isAuthenticated } from './auth'
+import { DomainError, type DomainErrorCode } from './domain-error'
 
-// Shared shell for API route handlers: authentication and the error response
-// shape live here, so individual routes contain only domain logic.
-
-// Thrown anywhere below a route handler to produce a JSON error response.
-// `payload` carries extra fields merged into the body (e.g. conservation diff).
-export class ApiError extends Error {
-  constructor(
-    public status: number,
-    message: string,
-    public payload?: Record<string, unknown>,
-  ) {
-    super(message)
-  }
+const statusByCode: Record<DomainErrorCode, number> = {
+  invalid_input: 400, not_found: 404, conflict: 409, rule_violation: 422, unbalanced: 422,
 }
-
 type RouteHandler<C> = (req: Request, ctx: C) => Promise<Response>
 
 export function withAuth<C>(handler: RouteHandler<C>): RouteHandler<C> {
-  const authenticatedHandler = withErrorHandling(handler)
-  return async (req, ctx) => {
+  return withErrorHandling(async (req, ctx) => {
     if (!await isAuthenticated()) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 })
+      return Response.json({ code: 'unauthorized', error: 'Please sign in again.' }, { status: 401 })
     }
-    return authenticatedHandler(req, ctx)
-  }
+    return handler(req, ctx)
+  })
 }
 
 export function withErrorHandling<C>(handler: RouteHandler<C>): RouteHandler<C> {
   return async (req, ctx) => {
     try {
       return await handler(req, ctx)
-    } catch (e) {
-      if (e instanceof ApiError) {
-        return Response.json({ error: e.message, ...e.payload }, { status: e.status })
+    } catch (error) {
+      if (error instanceof DomainError) {
+        return Response.json({ ...error.details, code: error.code, error: error.message }, { status: statusByCode[error.code] })
       }
-      const message = e instanceof Error ? e.message : 'Internal error'
-      return Response.json({ error: message }, { status: 500 })
+      const requestId = crypto.randomUUID()
+      console.error('Request failed', { requestId, method: req.method, path: new URL(req.url).pathname, error })
+      return Response.json({ code: 'internal_error', error: GENERIC_ERROR_MESSAGE, request_id: requestId }, { status: 500 })
     }
   }
 }

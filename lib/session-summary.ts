@@ -1,3 +1,4 @@
+import { localTime } from './browser-time'
 import { buildPaymentPlan } from './payment-plan'
 import { buyinSum, netChips, toCny } from './settlement'
 import { formatAmount } from './format'
@@ -59,10 +60,6 @@ interface PreparedSummary {
 interface PaymentGroup {
   payer: SummaryRow
   payments: Array<{ recipient: SummaryRow; amountCents: number }>
-}
-
-function browserTime(value: string): string {
-  return new Date(value).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 }
 
 function singleLine(value: string): string {
@@ -213,7 +210,7 @@ function formatWarnings(summary: PreparedSummary): string | null {
 export function buildSessionSummary(input: SessionSummaryData, options: SessionSummaryOptions): string {
   const summary = prepareSummary(input)
   const sections = [
-    formatHeader(summary, options.formatTime ?? browserTime),
+    formatHeader(summary, options.formatTime ?? localTime),
     formatResults(summary),
   ]
   const warnings = formatWarnings(summary)

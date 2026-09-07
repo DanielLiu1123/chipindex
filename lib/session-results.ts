@@ -12,13 +12,7 @@ export interface BuyInResultRow {
   amount: number
 }
 
-export interface ResultEntry {
-  player_id: string
-  chips: number
-  final_chips: number | null
-  total_buyin: number
-  buy_in_count: number
-}
+import type { ResultEntry } from './domain-types'
 
 interface BuyInAggregate {
   total: number

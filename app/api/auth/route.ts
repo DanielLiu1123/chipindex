@@ -6,7 +6,7 @@ import { withErrorHandling } from '@/lib/http'
 export const POST = withErrorHandling(async req => {
   const { password } = await readCommand(req, parsePasswordCommand)
   if (password !== process.env.SHARED_PASSWORD) {
-    return NextResponse.json({ error: 'Wrong password' }, { status: 401 })
+    return NextResponse.json({ code: 'invalid_credentials', error: 'Wrong password.' }, { status: 401 })
   }
   const res = NextResponse.json({ ok: true })
   res.cookies.set(AUTH_COOKIE, await generateToken(), {
@@ -19,8 +19,8 @@ export const POST = withErrorHandling(async req => {
   return res
 })
 
-export async function DELETE() {
+export const DELETE = withErrorHandling(async () => {
   const res = NextResponse.json({ ok: true })
   res.cookies.delete(AUTH_COOKIE)
   return res
-}
+})

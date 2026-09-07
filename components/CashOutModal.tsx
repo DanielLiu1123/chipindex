@@ -1,9 +1,9 @@
 'use client'
 
 import { FormEvent, useEffect, useState } from 'react'
-import { createPortal } from 'react-dom'
+import Dialog from './Dialog'
 import ChipValue from '@/components/ChipValue'
-import type { LiveParticipant } from '@/lib/queries'
+import type { LiveParticipant } from '@/lib/domain-types'
 import { netChips } from '@/lib/settlement'
 
 interface CashOutModalProps {
@@ -19,16 +19,7 @@ export default function CashOutModal({ participant, pending, error, onConfirm, o
 
   useEffect(() => {
     if (participant) setValue('')
-  }, [participant])
-
-  useEffect(() => {
-    if (!participant) return
-    function onKey(event: KeyboardEvent) {
-      if (event.key === 'Escape' && !pending) onCancel()
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [participant, pending, onCancel])
+  }, [participant?.player_id])
 
   if (!participant) return null
 
@@ -40,9 +31,9 @@ export default function CashOutModal({ participant, pending, error, onConfirm, o
     if (valid && !pending) onConfirm(finalChips)
   }
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => !pending && onCancel()}>
-      <form className="mx-4 w-full max-w-xs border border-border bg-surface p-4" onSubmit={submit} onClick={event => event.stopPropagation()}>
+  return (
+    <Dialog open label={`Cash out ${participant.name}`} pending={pending} onClose={onCancel} className="max-w-xs p-4">
+      <form className="w-full" onSubmit={submit} onClick={event => event.stopPropagation()}>
         <p className="mb-4 text-sm font-medium text-white">{participant.name}</p>
 
         <div className="mb-3 flex items-center justify-between text-xs">
@@ -72,7 +63,7 @@ export default function CashOutModal({ participant, pending, error, onConfirm, o
           {valid ? <ChipValue chips={netChips(finalChips, participant.total_buyin)} /> : <span className="text-muted">—</span>}
         </div>
 
-        {error && <p className="text-danger text-xs mt-3">{error}</p>}
+        {error && <p role="alert" className="text-danger text-xs mt-3">{error}</p>}
 
         <div className="mt-4 flex justify-end gap-2">
           <button type="button" onClick={onCancel} disabled={pending}
@@ -85,7 +76,6 @@ export default function CashOutModal({ participant, pending, error, onConfirm, o
           </button>
         </div>
       </form>
-    </div>,
-    document.body,
+    </Dialog>
   )
 }

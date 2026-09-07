@@ -1,4 +1,4 @@
-import { ApiError } from './http'
+import { DomainError } from './domain-error'
 import { MAX_BATCH_PLAYERS, MAX_BUY_IN_AMOUNT } from './buy-in-policy'
 import type {
   BatchBuyInCommand,
@@ -18,7 +18,7 @@ import type {
 type JsonObject = Record<string, unknown>
 
 function invalid(message: string): never {
-  throw new ApiError(400, message)
+  throw new DomainError('invalid_input', message)
 }
 
 function object(value: unknown, field = 'body'): JsonObject {
@@ -153,6 +153,7 @@ function parseEditedParticipant(value: unknown, index: number): EditedParticipan
       const buyIn = object(value, `participants[${index}].buy_ins[${buyInIndex}]`)
       const createdAt = optionalTimestamp(buyIn.created_at, `participants[${index}].buy_ins[${buyInIndex}].created_at`)
       return {
+        ...(buyIn.id === undefined ? {} : { id: string(buyIn.id, `participants[${index}].buy_ins[${buyInIndex}].id`) }),
         amount: integer(buyIn.amount, `participants[${index}].buy_ins[${buyInIndex}].amount`, 1),
         ...(createdAt === undefined ? {} : { created_at: createdAt }),
       }

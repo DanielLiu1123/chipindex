@@ -1,3 +1,4 @@
+import { GENERIC_ERROR_MESSAGE } from './error-message'
 // Client-side adapter for the route interface. URL, method, command and
 // response types stay private to these named operations so callers cannot
 // claim an arbitrary response shape.
@@ -20,22 +21,34 @@ export class ApiClientError extends Error {
   payload: Record<string, unknown>
 
   constructor(status: number, payload: Record<string, unknown>) {
-    super(typeof payload.error === 'string' ? payload.error : 'Request failed')
+    super(status === 0 ? (typeof payload.error === 'string' ? payload.error : 'Unable to connect. Please try again.')
+      : status >= 500 ? GENERIC_ERROR_MESSAGE
+      : status === 401 ? (payload.code === 'invalid_credentials' ? 'Wrong password.' : 'Please sign in again.')
+      : typeof payload.error === 'string' ? payload.error : GENERIC_ERROR_MESSAGE)
     this.status = status
     this.payload = payload
   }
 }
 
 async function request<T = unknown>(method: string, path: string, body?: unknown): Promise<T> {
-  const res = await fetch(path, {
-    method,
-    ...(body !== undefined
-      ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
-      : {}),
-  })
+  let res: Response
+  try {
+    res = await fetch(path, {
+      method,
+      ...(body !== undefined
+        ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+        : {}),
+    })
+  } catch {
+    throw new ApiClientError(0, { error: 'Unable to connect. Please try again.' })
+  }
   if (res.status === 204) return undefined as T
-  const payload = await res.json().catch(() => ({}))
-  if (!res.ok) throw new ApiClientError(res.status, payload)
+  let payload: unknown
+  try { payload = await res.json() } catch {
+    throw new ApiClientError(res.ok ? 502 : res.status, {})
+  }
+  if (!payload || typeof payload !== 'object') throw new ApiClientError(502, {})
+  if (!res.ok) throw new ApiClientError(res.status, payload as Record<string, unknown>)
   return payload as T
 }
 

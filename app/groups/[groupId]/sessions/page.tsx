@@ -67,8 +67,8 @@ export default async function SessionsPage({
                 {session.description && <div className="text-xs text-muted mt-0.5">{session.description}</div>}
               </Link></td>
               <td className="py-4 text-right text-muted"><Link href={href} className="block">{session.player_count}</Link></td>
-              <td className="py-4 text-right">{!isOpen && session.winner
-                ? <Link href={`/groups/${groupId}/players/${session.winner.player_id}`} className="text-muted hover:text-accent transition-colors">{session.winner.name}</Link>
+              <td className="py-4 text-right">{!isOpen && session.winners.length > 0
+                ? <div className="flex flex-wrap justify-end gap-x-2 gap-y-1">{session.winners.map(winner => <Link key={winner.player_id} href={`/groups/${groupId}/players/${winner.player_id}`} className="text-muted hover:text-accent transition-colors">{winner.name}</Link>)}</div>
                 : <span className="text-muted">—</span>}</td>
               <td className="py-4 text-right text-muted"><Link href={href} className="block">{session.exchange_rate ? `${session.exchange_rate}:1` : '—'}</Link></td>
               <td className="py-4 text-right"><DeleteSessionButton groupId={groupId} sessionId={session.id} /></td>

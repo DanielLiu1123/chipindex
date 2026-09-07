@@ -2,7 +2,7 @@ import { Children, isValidElement, type ReactElement, type ReactNode } from 'rea
 import { createHookHarness, loadUiModule } from './test-ui'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiClientError } from './client'
-import type { LiveParticipant } from './queries'
+import type { LiveParticipant } from './domain-types'
 import type { ComponentProps } from 'react'
 import type PlayerSelectionModal from '../components/PlayerSelectionModal'
 
@@ -18,6 +18,7 @@ type HostProps = {
   children?: ReactNode; id?: string; type?: string; disabled?: boolean; checked?: boolean; value?: string
   onClick?: () => void; onChange?: (event: { target: { value: string } }) => void
   onSubmit?: (event: { preventDefault: () => void }) => Promise<void>
+  onClose?: () => void
   onCancel?: (event: { preventDefault: () => void }) => void
 }
 function nodes(node: ReactNode): ReactElement<HostProps>[] {
@@ -142,7 +143,7 @@ describe('PlayerSelectionModal interactions', () => {
     expect(checkboxes()).toHaveLength(25)
     expect(checkboxes().filter(n => n.props.checked)).toHaveLength(2)
     expect(more()).toBeUndefined()
-    nodes(app.render()).find(n => n.type === 'dialog')!.props.onCancel!({ preventDefault() {} })
+    nodes(app.render()).find(n => typeof n.props.onClose === 'function')!.props.onClose!()
     expect(checkboxes()).toHaveLength(10)
     expect(checkboxes().filter(n => n.props.checked)).toHaveLength(0)
   })
@@ -251,7 +252,7 @@ describe('PlayerSelectionModal interactions', () => {
     const app = mount(); app.choose('Alice'); await app.submit()
     const first = save.mock.calls[0][2]
     expect(text(nodes(app.render()).find(n => n.props.type === 'submit'))).toBe('RETRY')
-    nodes(app.render()).find(n => n.type === 'dialog')!.props.onCancel!({ preventDefault() {} })
+    nodes(app.render()).find(n => typeof n.props.onClose === 'function')!.props.onClose!()
     await app.submit()
     expect(save.mock.calls[1][2]).toEqual(first)
     expect(app.props.onSaved).toHaveBeenCalledExactlyOnceWith(first)
@@ -312,7 +313,7 @@ describe('PlayerSelectionModal interactions', () => {
     const app = mount('group')
     app.props.onAddPlayers = vi.fn(() => new Promise<void>(resolve => { finish = resolve }))
     app.choose('Alice'); const pending = app.submit(); await app.submit()
-    nodes(app.render()).find(n => n.type === 'dialog')!.props.onCancel!({ preventDefault() {} })
+    nodes(app.render()).find(n => typeof n.props.onClose === 'function')!.props.onClose!()
     expect(app.props.onClose).not.toHaveBeenCalled()
     expect(app.props.onAddPlayers).toHaveBeenCalledTimes(1)
     finish(); await pending

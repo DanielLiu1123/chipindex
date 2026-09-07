@@ -103,3 +103,20 @@ describe('participant cash out', () => {
     })
   })
 })
+
+describe('client failure policy', () => {
+  it('masks unexpected server internals', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500, json: async () => ({ error: 'secret table and constraint' }) }))
+    await expect(startSession('g1', {} as never)).rejects.toMatchObject({ status: 500, message: 'Something went wrong. Please try again.' })
+  })
+  it('retains expected domain details and reports network failures consistently', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 422, json: async () => ({ error: 'unbalanced', code: 'unbalanced', diff: 100 }) }))
+    await expect(startSession('g1', {} as never)).rejects.toMatchObject({ status: 422, message: 'unbalanced', payload: { diff: 100 } })
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
+    await expect(startSession('g1', {} as never)).rejects.toMatchObject({ status: 0, message: 'Unable to connect. Please try again.' })
+  })
+  it('rejects malformed successful responses rather than returning an empty object', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => { throw new SyntaxError('HTML response') } }))
+    await expect(startSession('g1', {} as never)).rejects.toMatchObject({ status: 502 })
+  })
+})

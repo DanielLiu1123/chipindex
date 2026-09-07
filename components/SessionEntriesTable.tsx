@@ -1,5 +1,6 @@
 'use client'
 
+import BrowserTime from '@/components/BrowserTime'
 import { Fragment, useState } from 'react'
 import Link from 'next/link'
 import ChipValue from '@/components/ChipValue'
@@ -73,7 +74,7 @@ export default function SessionEntriesTable({ groupId, entries, exchangeRate, to
                         <div className="flex flex-col gap-1">
                           {e.buy_ins.map((buyIn, index) => (
                             <div key={`${buyIn.created_at}-${index}`}>
-                              {new Date(buyIn.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })} · +{buyIn.amount.toLocaleString()}
+                              <BrowserTime value={buyIn.created_at} /> · +{buyIn.amount.toLocaleString()}
                             </div>
                           ))}
                         </div>
