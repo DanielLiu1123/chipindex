@@ -2,6 +2,7 @@
 
 import PlayerSelectionModal from './PlayerSelectionModal'
 import { addBatchBuyIn, addBatchSessionParticipants } from '@/lib/client'
+import type { BatchBuyInCommand } from '@/lib/contracts'
 import type { SelectablePlayer } from '@/lib/player-selection'
 
 interface Props {
@@ -13,7 +14,7 @@ interface Props {
   mode?: 'buy-in' | 'join'
   onCreatePlayer?: (name: string) => Promise<SelectablePlayer>
   onClose: () => void
-  onSaved: () => void
+  onSaved: (command: BatchBuyInCommand) => void
 }
 
 // Session persistence is an adapter to the shared picker, not a group/draft mode.

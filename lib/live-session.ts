@@ -1,5 +1,4 @@
 import type { LiveParticipant } from './queries'
-
 export type FinalChipDrafts = Readonly<Record<string, string>>
 
 export interface LiveSessionSummary {

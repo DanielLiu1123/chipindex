@@ -6,9 +6,11 @@ import { useRouter } from 'next/navigation'
 import ConfirmModal from '@/components/ConfirmModal'
 import CashOutModal from '@/components/CashOutModal'
 import BuyInModal from '@/components/BuyInModal'
+import BuyInNotice from '@/components/BuyInNotice'
 import PlayerActionButton from '@/components/PlayerActionButton'
 import LiveParticipantList from '@/components/LiveParticipantList'
 import LiveSettlementPanel from '@/components/LiveSettlementPanel'
+import type { BatchBuyInCommand } from '@/lib/contracts'
 import type { Player } from '@/lib/domain-types'
 import type { LiveSessionData, LiveParticipant } from '@/lib/queries'
 import { activeFinalEntries, summarizeLiveSession } from '@/lib/live-session'
@@ -35,6 +37,7 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
   const [cashOut, setCashOut] = useState<LiveParticipant | null>(null)
   const [cashOutError, setCashOutError] = useState('')
   const [error, setError] = useState('')
+  const [buyInNotice, setBuyInNotice] = useState<BatchBuyInCommand | null>(null)
 
   const unit = session.buy_in_unit
   const { pot, cashedOutTotal } = summarizeLiveSession(session.participants, finals)
@@ -119,9 +122,10 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
 
   return (
     <>
+      <BuyInNotice command={buyInNotice} participants={session.participants} onDismiss={() => setBuyInNotice(null)} />
       <BuyInModal open={buyInOpen} groupId={groupId} sessionId={session.id}
         participants={session.participants} unit={unit}
-        onClose={() => setBuyInOpen(false)} onSaved={() => router.refresh()} />
+        onClose={() => setBuyInOpen(false)} onSaved={command => { setBuyInNotice(command); router.refresh() }} />
       <BuyInModal open={addPlayersOpen} groupId={groupId} sessionId={session.id} mode="join"
         participants={directory.participants}
         unit={unit} onClose={() => setAddPlayersOpen(false)} onSaved={() => router.refresh()}

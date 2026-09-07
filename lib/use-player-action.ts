@@ -9,7 +9,7 @@ import type { SelectablePlayer } from './player-selection'
 export type PlayerAction =
   | { kind: 'players'; submit: (ids: string[]) => Promise<void> }
   | { kind: 'draft'; unit: number; submit: (ids: string[], amount: number) => void }
-  | { kind: 'buy-in'; unit: number; record: (command: BatchBuyInCommand) => Promise<unknown>; onSaved: () => void }
+  | { kind: 'buy-in'; unit: number; record: (command: BatchBuyInCommand) => Promise<unknown>; onSaved: (command: BatchBuyInCommand) => void }
 
 // Owns amount validation and submission lifetime. Failed network responses
 // retain request IDs, including when server props refresh.
@@ -48,7 +48,7 @@ export function usePlayerAction(action: PlayerAction, chosen: SelectablePlayer[]
         }
         setAttempt(request)
         await action.record(request)
-        action.onSaved()
+        action.onSaved(request)
       }
       setAttempt(null)
       setValue(initialValue)

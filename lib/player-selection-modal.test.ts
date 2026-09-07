@@ -254,7 +254,7 @@ describe('PlayerSelectionModal interactions', () => {
     nodes(app.render()).find(n => n.type === 'dialog')!.props.onCancel!({ preventDefault() {} })
     await app.submit()
     expect(save.mock.calls[1][2]).toEqual(first)
-    expect(app.props.onSaved).toHaveBeenCalledOnce()
+    expect(app.props.onSaved).toHaveBeenCalledExactlyOnceWith(first)
     expect(nodes(app.render()).filter(n => n.props.type === 'checkbox' && n.props.checked)).toHaveLength(0)
     expect(text(nodes(app.render()).find(n => n.props.type === 'submit'))).toBe('BUY IN')
   })
