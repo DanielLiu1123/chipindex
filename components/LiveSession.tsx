@@ -42,7 +42,7 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
 
   useEffect(() => {
     if (!noticeReady || !buyInNotice) return
-    const duration = 3000 + (buyInNotice.entries.length - 1) * 2000
+    const duration = buyInNotice.entries.length * 2000
     const timer = setTimeout(() => setBuyInNotice(null), duration)
     return () => clearTimeout(timer)
   }, [buyInNotice, noticeReady])
