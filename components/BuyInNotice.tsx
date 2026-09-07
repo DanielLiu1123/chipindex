@@ -11,17 +11,13 @@ interface Props {
   onDismiss: () => void
 }
 
-const INITIAL_DISPLAY_MS = 3000
-const ADDITIONAL_PLAYER_MS = 2000
-
 export default function BuyInNotice({ command, participants, onDismiss }: Props) {
   const totals = command ? completedBuyInTotals(participants, command) : null
   const playerCount = totals?.length ?? 0
 
   useEffect(() => {
     if (playerCount === 0) return
-    const duration = INITIAL_DISPLAY_MS + (playerCount - 1) * ADDITIONAL_PLAYER_MS
-    const timer = setTimeout(onDismiss, duration)
+    const timer = setTimeout(onDismiss, 3000 + (playerCount - 1) * 2000)
     return () => clearTimeout(timer)
   }, [command, playerCount, onDismiss])
 
