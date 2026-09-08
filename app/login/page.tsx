@@ -3,11 +3,12 @@
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
+import { errorMessage } from '@/lib/error-message'
 import { login } from '@/lib/client'
 
 function LoginForm() {
   const [password, setPassword] = useState('')
-  const [error, setError] = useState(false)
+  const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -20,8 +21,8 @@ function LoginForm() {
       const next = searchParams.get('next') || '/'
       router.push(next)
       router.refresh()
-    } catch {
-      setError(true)
+    } catch (reason) {
+      setError(errorMessage(reason))
       setPassword('')
     } finally {
       setLoading(false)
@@ -36,12 +37,12 @@ function LoginForm() {
           <input
             type="password"
             value={password}
-            onChange={e => { setPassword(e.target.value); setError(false) }}
+            onChange={e => { setPassword(e.target.value); setError('') }}
             placeholder="password"
             autoFocus
             className={`bg-surface border ${error ? 'border-danger' : 'border-border'} text-white text-sm px-4 py-3 w-full outline-none focus:border-white transition-colors placeholder:text-muted`}
           />
-          {error && <p className="text-danger text-xs">wrong password</p>}
+          {error && <p className="text-danger text-xs" role="alert">{error}</p>}
           <button
             type="submit"
             disabled={loading}

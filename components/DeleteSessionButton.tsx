@@ -10,7 +10,7 @@ export default function DeleteSessionButton({ groupId, sessionId }: { groupId: s
   const [open, setOpen] = useState(false)
 
   async function handleDelete() {
-    await deleteSession(groupId, sessionId).catch(() => {})
+    await deleteSession(groupId, sessionId)
     setOpen(false)
     router.refresh()
   }

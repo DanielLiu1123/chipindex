@@ -44,6 +44,7 @@ function loadSessionEntriesTable(): SessionEntriesTableComponent {
       default: ({ children, ...props }: { children: ReactNode }) =>
         createElement('a', props, children),
     },
+    '@/components/BrowserTime': { __esModule: true, default: ({ value }: { value: string }) => createElement('time', null, new Date(value).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })) },
     '@/components/ChipValue': {
       __esModule: true,
       default: ({ chips, prefix = '' }: { chips: number; prefix?: string }) =>
@@ -82,8 +83,8 @@ describe('SessionEntriesTable', () => {
     }))
 
     expect(html).toContain('class="flex flex-col gap-1"')
-    expect(html).toContain('06:59 · +2,000')
-    expect(html).toContain('09:56 · +3,000')
+    expect(html).toContain('06:59</time> · +2,000')
+    expect(html).toContain('09:56</time> · +3,000')
     expect(html).toContain('TOTAL</span>5,000')
     expect(html).toContain('FINAL</span>6,000')
   })

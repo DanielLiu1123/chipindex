@@ -1,9 +1,13 @@
 'use client'
 
+import { errorMessage } from '@/lib/error-message'
+import { DEFAULT_EXCHANGE_RATE, BUY_IN_UNIT } from '@/lib/session-rules'
+import { toDateTimeLocal, toIsoTimestamp } from '@/lib/browser-time'
+import { useBrowserReady } from '@/lib/use-browser-ready'
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import type { SessionForEdit } from '@/lib/queries'
+import type { SessionForEdit } from '@/lib/domain-types'
 import PlayerSelectionModal from '@/components/PlayerSelectionModal'
 import PlayerActionButton from '@/components/PlayerActionButton'
 import SessionMetaFields from '@/components/SessionMetaFields'
@@ -13,9 +17,8 @@ import { usePlayerDirectory } from '@/lib/use-player-directory'
 import type { Player } from '@/lib/domain-types'
 import { ApiClientError, updateSession } from '@/lib/client'
 import { buyinSum, netChips } from '@/lib/settlement'
-import { BUY_IN_UNIT } from '@/lib/synth'
 
-interface BuyInRow { amount: string; created_at: string }
+interface BuyInRow { id?: string; original_created_at?: string; amount: string; created_at: string }
 interface ParticipantRow {
   playerId: string
   name: string
@@ -23,26 +26,16 @@ interface ParticipantRow {
   buyins: BuyInRow[]
 }
 
-function toDateTimeLocal(value: string): string {
-  const date = new Date(value)
-  const pad = (part: number) => String(part).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
-}
-
-function toIsoTimestamp(value: string): string {
-  return new Date(value).toISOString()
-}
-
 function rowsFromSession(session: SessionForEdit): ParticipantRow[] {
   return session.participants.map(participant => ({
     playerId: participant.player_id,
     name: participant.name,
     final: participant.final_chips != null ? String(participant.final_chips) : '',
-    buyins: participant.buy_ins.map(buyIn => ({ amount: String(buyIn.amount), created_at: toDateTimeLocal(buyIn.created_at) })),
+    buyins: participant.buy_ins.map(buyIn => ({ id: buyIn.id, original_created_at: buyIn.created_at, amount: String(buyIn.amount), created_at: toDateTimeLocal(buyIn.created_at) })),
   }))
 }
 
-export default function EditSessionForm({ groupId, sessionId, session, initialPlayers }: {
+function EditSessionEditor({ groupId, sessionId, session, initialPlayers }: {
   groupId: string
   sessionId: string
   session: SessionForEdit
@@ -100,6 +93,9 @@ export default function EditSessionForm({ groupId, sessionId, session, initialPl
     if (rows.some(row => !row.final.trim() || !Number.isSafeInteger(Number(row.final)) || Number(row.final) < 0)) {
       setError('Enter final chips for every player.'); return
     }
+    if (rows.some(row => row.buyins.some(buyIn => !buyIn.amount.trim() || !Number.isSafeInteger(Number(buyIn.amount)) || Number(buyIn.amount) <= 0 || !buyIn.created_at))) {
+      setError('Every buy-in needs a positive integer amount and a valid time.'); return
+    }
     saveBusy.current = true
     setSubmitting(true)
     try {
@@ -107,13 +103,12 @@ export default function EditSessionForm({ groupId, sessionId, session, initialPl
         player_id: row.playerId,
         final_chips: Number(row.final),
         buy_ins: row.buyins
-          .filter(b => Number(b.amount) > 0)
-          .map(b => ({ amount: Number(b.amount), created_at: toIsoTimestamp(b.created_at) })),
+          .map(b => ({ ...(b.id ? { id: b.id } : {}), amount: Number(b.amount), created_at: b.original_created_at && b.created_at === toDateTimeLocal(b.original_created_at) ? b.original_created_at : toIsoTimestamp(b.created_at) })),
       }))
 
       await updateSession(groupId, sessionId, {
         date,
-        exchange_rate: exchangeRate ? Number(exchangeRate) : 40,
+        exchange_rate: exchangeRate ? Number(exchangeRate) : DEFAULT_EXCHANGE_RATE,
         description: description || null,
         participants,
         force,
@@ -121,10 +116,10 @@ export default function EditSessionForm({ groupId, sessionId, session, initialPl
       router.push(`/groups/${groupId}/sessions/${sessionId}`)
       router.refresh()
     } catch (err) {
-      if (err instanceof ApiClientError && err.status === 422) {
+      if (err instanceof ApiClientError && err.payload.code === 'unbalanced' && typeof err.payload.diff === 'number') {
         setSaveError({ diff: Number(err.payload.diff) })
       } else {
-        setError(err instanceof Error ? err.message : 'Save failed')
+        setError(errorMessage(err))
       }
       setSubmitting(false)
       saveBusy.current = false
@@ -157,7 +152,7 @@ export default function EditSessionForm({ groupId, sessionId, session, initialPl
       <h1 className="text-xs text-muted tracking-widest mb-6">EDIT SESSION</h1>
 
       <div className="flex flex-col gap-6 max-w-lg">
-        <SessionMetaFields
+        <SessionMetaFields disabled={submitting}
           date={date} setDate={setDate}
           exchangeRate={exchangeRate} setExchangeRate={setExchangeRate}
           description={description} setDescription={setDescription}
@@ -189,18 +184,18 @@ export default function EditSessionForm({ groupId, sessionId, session, initialPl
                       <div className="flex flex-col gap-1">
                         {row.buyins.map((b, i) => (
                           <div key={i} className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                            <input type="datetime-local" step="1" value={b.created_at}
+                            <input disabled={submitting} type="datetime-local" step="1" value={b.created_at}
                               aria-label={`buy-in time for ${row.name}`}
                               onChange={e => updateRow(row.playerId, { buyins: row.buyins.map((x, j) => j === i ? { ...x, created_at: e.target.value } : x) })}
                               className="w-full bg-surface border border-border text-white text-xs px-3 py-2 outline-none focus:border-white transition-colors sm:w-52" />
-                            <input type="number" value={b.amount} min="1"
+                            <input disabled={submitting} type="number" value={b.amount} min="1"
                               onChange={e => updateRow(row.playerId, { buyins: row.buyins.map((x, j) => j === i ? { ...x, amount: e.target.value } : x) })}
                               className="flex-1 bg-surface border border-border text-white text-xs px-3 py-2 outline-none focus:border-white transition-colors text-right" />
-                            <button type="button" onClick={() => updateRow(row.playerId, { buyins: row.buyins.filter((_, j) => j !== i) })}
+                            <button disabled={submitting} type="button" onClick={() => updateRow(row.playerId, { buyins: row.buyins.filter((_, j) => j !== i) })}
                               className="text-muted hover:text-danger text-xs px-1 transition-colors">✕</button>
                           </div>
                         ))}
-                        <button type="button" onClick={() => updateRow(row.playerId, { buyins: [...row.buyins, { amount: String(unit), created_at: defaultEventTime }] })}
+                        <button disabled={submitting} type="button" onClick={() => updateRow(row.playerId, { buyins: [...row.buyins, { amount: String(unit), created_at: defaultEventTime }] })}
                           className="text-xs text-muted hover:text-white tracking-widest text-left py-1.5 transition-colors">+ ADD BUY-IN</button>
                       </div>
                     </div>
@@ -241,4 +236,9 @@ export default function EditSessionForm({ groupId, sessionId, session, initialPl
       </div>
     </>
   )
+}
+
+export default function EditSessionForm(props: Parameters<typeof EditSessionEditor>[0]) {
+  const ready = useBrowserReady()
+  return ready ? <EditSessionEditor {...props} /> : <p className="text-xs text-muted">LOADING...</p>
 }

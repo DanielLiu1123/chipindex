@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { useBrowserReady } from './use-browser-ready'
+import { orderPlayersByRecentParticipation } from './player-activity'
 import { createPlayerInGroup } from './client'
 import type { Player } from './domain-types'
 import type { SelectablePlayer } from './player-selection'
@@ -19,11 +21,13 @@ interface Options {
 export function usePlayerDirectory(options: Options) {
   const [created, setCreated] = useState<Player[]>([])
   const [retainedIds, setRetainedIds] = useState<string[]>([])
+  const ready = useBrowserReady()
+  const serverPlayers = ready ? orderPlayersByRecentParticipation(options.players) : options.players
   const serverIds = new Set(options.players.map(player => player.id))
   const localPlayers = created.filter(player => !serverIds.has(player.id)
     || (options.retainCreatedSelections && retainedIds.includes(player.id)))
   const localIds = new Set(localPlayers.map(player => player.id))
-  const players = [...localPlayers, ...options.players.filter(player => !localIds.has(player.id))]
+  const players = [...localPlayers, ...serverPlayers.filter(player => !localIds.has(player.id))]
   const excluded = new Set(options.excludedIds)
   const available = players.filter(player => !excluded.has(player.id)
     || (options.retainCreatedSelections && retainedIds.includes(player.id)))

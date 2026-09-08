@@ -9,7 +9,7 @@ describe('parseCreateSessionCommand', () => {
       exchange_rate: 40,
       description: null,
       entries: [],
-    })).toThrow(expect.objectContaining({ status: 400, message: 'status must be OPEN or SETTLED' }))
+    })).toThrow(expect.objectContaining({ code: 'invalid_input', message: 'status must be OPEN or SETTLED' }))
   })
 
   it('returns a discriminated OPEN command after validating nested players', () => {
@@ -36,7 +36,7 @@ describe('parseCreateSessionCommand', () => {
       description: null,
       players: [{ player_id: 'p1', initial_buyin: 0 }],
     })).toThrow(expect.objectContaining({
-      status: 400,
+      code: 'invalid_input',
       message: 'players[0].initial_buyin must be an integer >= 1',
     }))
   })
@@ -48,7 +48,7 @@ describe('parseCreateSessionCommand', () => {
       exchange_rate: 40,
       description: null,
       entries: [],
-    })).toThrow(expect.objectContaining({ status: 400, message: 'date must be a valid calendar date' }))
+    })).toThrow(expect.objectContaining({ code: 'invalid_input', message: 'date must be a valid calendar date' }))
   })
 })
 
@@ -60,7 +60,7 @@ describe('readCommand', () => {
       body: '{',
     })
     await expect(readCommand(request, parseBuyInCommand)).rejects.toMatchObject({
-      status: 400,
+      code: 'invalid_input',
       message: 'Invalid JSON body',
     })
   })
@@ -76,7 +76,7 @@ describe('parseCashOutParticipantCommand', () => {
 
   it.each([-1, 1.5])('rejects invalid final chips: %s', final_chips => {
     expect(() => parseCashOutParticipantCommand({ player_id: 'p1', final_chips }))
-      .toThrow(expect.objectContaining({ status: 400 }))
+      .toThrow(expect.objectContaining({ code: 'invalid_input' }))
   })
 })
 
@@ -99,4 +99,10 @@ describe('parseUpdateSessionCommand', () => {
       buy_ins: [{ amount: 2000, created_at: '2026-08-14T12:00:00.000Z' }],
     })
   })
+})
+
+it('retains buy-in identity when parsing a settled-session edit', () => {
+  const command = parseUpdateSessionCommand({ date: '2026-09-08', exchange_rate: 40, description: null,
+    participants: [{ player_id: 'p1', final_chips: 100, buy_ins: [{ id: 'existing-event', amount: 100 }] }], force: false })
+  expect(command.participants[0].buy_ins).toEqual([{ id: 'existing-event', amount: 100 }])
 })

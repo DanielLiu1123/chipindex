@@ -1,5 +1,6 @@
 'use client'
 
+import { errorMessage } from '@/lib/error-message'
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -12,7 +13,7 @@ import LiveParticipantList from '@/components/LiveParticipantList'
 import LiveSettlementPanel from '@/components/LiveSettlementPanel'
 import type { BatchBuyInCommand } from '@/lib/contracts'
 import type { Player } from '@/lib/domain-types'
-import type { LiveSessionData, LiveParticipant } from '@/lib/queries'
+import type { LiveSessionData, LiveParticipant } from '@/lib/domain-types'
 import { activeFinalEntries, summarizeLiveSession } from '@/lib/live-session'
 import { usePlayerDirectory } from '@/lib/use-player-directory'
 import {
@@ -54,7 +55,7 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
       await fn()
       router.refresh()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Request failed')
+      setError(errorMessage(e))
     } finally {
       setPending(false)
     }
@@ -63,14 +64,12 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
   const undoBuyIn = (buyinId: string) =>
     act(() => revokeBuyIn(groupId, session.id, buyinId))
 
-  const removeParticipant = (player_id: string) =>
-    act(() => removeSessionParticipant(groupId, session.id, player_id))
-
   async function doRemove() {
     if (!confirmRemove) return
     const pid = confirmRemove.player_id
+    await removeSessionParticipant(groupId, session.id, pid)
     setConfirmRemove(null)
-    await removeParticipant(pid)
+    router.refresh()
   }
 
   async function doCashOut(finalChips: number) {
@@ -82,7 +81,7 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
       setCashOut(null)
       router.refresh()
     } catch (e) {
-      setCashOutError(e instanceof Error ? e.message : `Could not cash out ${cashOut.name}. Please try again.`)
+      setCashOutError(errorMessage(e))
     } finally {
       setPending(false)
     }
@@ -111,10 +110,10 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
       })
       router.push(`/groups/${groupId}/sessions/${session.id}`)
     } catch (e) {
-      if (e instanceof ApiClientError && e.status === 422) {
+      if (e instanceof ApiClientError && e.payload.code === 'unbalanced' && typeof e.payload.diff === 'number') {
         setSettleError({ diff: Number(e.payload.diff) })
       } else {
-        setError(e instanceof Error ? e.message : 'Settle failed')
+        setError(errorMessage(e))
       }
       setPending(false)
     }

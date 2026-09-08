@@ -1,5 +1,7 @@
 'use client'
 
+import { errorMessage } from '@/lib/error-message'
+
 import { useRef, useState } from 'react'
 import { ApiClientError } from './client'
 import { MAX_BATCH_PLAYERS, parseBuyInAmount } from './buy-in-policy'
@@ -54,7 +56,7 @@ export function usePlayerAction(action: PlayerAction, chosen: SelectablePlayer[]
       setValue(initialValue)
       return true
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Could not save. Please retry.')
+      setError(errorMessage(reason))
       // Auth, timeout and throttling errors can occur on a retry after the first
       // request committed. Only definitive command rejections release the IDs.
       if (reason instanceof ApiClientError && [400, 404, 409, 422].includes(reason.status)) setAttempt(null)

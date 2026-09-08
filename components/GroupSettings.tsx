@@ -1,8 +1,10 @@
 'use client'
 
+import { errorMessage } from '@/lib/error-message'
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import BrowserTime from '@/components/BrowserTime'
 import ConfirmModal from '@/components/ConfirmModal'
 import PlayerSelectionModal from '@/components/PlayerSelectionModal'
 import PlayerActionButton from '@/components/PlayerActionButton'
@@ -16,18 +18,6 @@ function byJoinedAt(
 ): number {
   return a.group_player.created_at.localeCompare(b.group_player.created_at)
     || a.player.id.localeCompare(b.player.id)
-}
-
-function formatJoinedAt(value: string): string {
-  return new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Asia/Shanghai',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hourCycle: 'h23',
-  }).format(new Date(value)).replace(',', '')
 }
 
 export default function GroupSettings({ group, initialGroupPlayers, players }: {
@@ -58,7 +48,7 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
       await action()
       router.refresh()
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Request failed')
+      setError(errorMessage(reason))
     } finally {
       setPending(false)
     }
@@ -89,18 +79,13 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
     }
   }
 
-  function deletePlayer(row: { player: Player; group_player: GroupPlayer }) {
-    return run(async () => {
-      await deleteGroupPlayer(group.id, row.player.id)
-      setGroupPlayers(current => current.filter(item => item.group_player.id !== row.group_player.id))
-    })
-  }
-
-  function confirmDeletePlayer() {
+  async function confirmDeletePlayer() {
     if (!playerToDelete) return
     const row = playerToDelete
+    await deleteGroupPlayer(group.id, row.player.id)
+    setGroupPlayers(current => current.filter(item => item.group_player.id !== row.group_player.id))
     setPlayerToDelete(null)
-    return deletePlayer(row)
+    router.refresh()
   }
 
   return <>
@@ -138,10 +123,10 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
                 className="min-w-0 truncate text-sm text-white transition-colors hover:text-accent focus-visible:outline-accent">
                 {row.player.name}
               </Link>
-              <time dateTime={row.group_player.created_at} aria-label={`Joined ${formatJoinedAt(row.group_player.created_at)}`}
+              <span aria-label={`Joined time for ${row.player.name}`}
                 className="col-start-1 row-start-2 mt-1 text-[10px] tabular-nums text-white/40 sm:col-start-auto sm:row-start-auto sm:mt-0 sm:text-xs">
-                {formatJoinedAt(row.group_player.created_at)}
-              </time>
+                <BrowserTime value={row.group_player.created_at} includeDate />
+              </span>
               <button type="button" onClick={() => setPlayerToDelete(row)} disabled={pending} aria-label={`Remove ${row.player.name} from group`}
                 className="col-start-2 row-span-2 row-start-1 min-h-9 bg-[#211517] px-2 text-[10px] tracking-widest text-[#C58B91] transition-colors hover:enabled:bg-[#301C20] focus-visible:bg-[#301C20] focus-visible:outline-[#C58B91] disabled:opacity-40 sm:col-start-3 sm:row-span-1">
                 REMOVE

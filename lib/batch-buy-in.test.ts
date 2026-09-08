@@ -95,7 +95,7 @@ describe('batch buy-in persistence', () => {
       { player_id: 'p1', settled_at: '2026-09-06T00:00:00Z' },
       { player_id: 'p2', settled_at: null },
     ] })
-    await expect(addBatchParticipants('g1', 's1', command)).rejects.toMatchObject({ status: 409 })
+    await expect(addBatchParticipants('g1', 's1', command)).rejects.toMatchObject({ code: 'conflict' })
     expect(mocks.upsert).toHaveBeenCalledWith(expect.any(Array), {
       onConflict: 'session_id,player_id', ignoreDuplicates: true,
     })
@@ -110,7 +110,7 @@ describe('batch buy-in persistence', () => {
   })
   it('retries the original IDs after initial buy-in insert fails, without resetting participants', async () => {
     setup({ participants: [], buyins: [{ data: [], error: null }, { data: null, error: { message: 'write failed' } }] })
-    await expect(addBatchParticipants('g1', 's1', command)).rejects.toMatchObject({ status: 500 })
+    await expect(addBatchParticipants('g1', 's1', command)).rejects.toMatchObject({ message: 'Database operation failed' })
     const originalRows = mocks.insert.mock.calls[0][0]
     mocks.upsert.mockClear()
     mocks.update.mockClear()
@@ -132,7 +132,7 @@ describe('batch buy-in persistence', () => {
   })
   it('rejects group outsiders before adding any participants', async () => {
     setup({ participants: [], members: ['p1'] })
-    await expect(addBatchParticipants('g1', 's1', command)).rejects.toMatchObject({ status: 422 })
+    await expect(addBatchParticipants('g1', 's1', command)).rejects.toMatchObject({ code: 'rule_violation' })
     expect(mocks.upsert).not.toHaveBeenCalled(); expect(mocks.insert).not.toHaveBeenCalled()
   })
   it('does not repeat a completed join after a lost response', async () => {
@@ -153,17 +153,17 @@ describe('batch buy-in persistence', () => {
   })
   it('rejects a session outsider before inserting any of the batch', async () => {
     setup({ participants: [{ player_id: 'p1', settled_at: null }] })
-    await expect(addBatchBuyin('g1', 's1', command)).rejects.toMatchObject({ status: 422 })
+    await expect(addBatchBuyin('g1', 's1', command)).rejects.toMatchObject({ code: 'rule_violation' })
     expect(mocks.insert).not.toHaveBeenCalled()
   })
   it('rejects a cashed-out participant before inserting any of the batch', async () => {
     setup({ participants: [{ player_id: 'p1', settled_at: null }, { player_id: 'p2', settled_at: '2026-09-06T00:00:00Z' }] })
-    await expect(addBatchBuyin('g1', 's1', command)).rejects.toMatchObject({ status: 409 })
+    await expect(addBatchBuyin('g1', 's1', command)).rejects.toMatchObject({ code: 'conflict' })
     expect(mocks.insert).not.toHaveBeenCalled()
   })
   it('rejects a closed session', async () => {
     setup({ status: 'SETTLED' })
-    await expect(addBatchBuyin('g1', 's1', command)).rejects.toMatchObject({ status: 409 })
+    await expect(addBatchBuyin('g1', 's1', command)).rejects.toMatchObject({ code: 'conflict' })
     expect(mocks.insert).not.toHaveBeenCalled()
   })
   it('recovers a lost response without inserting again', async () => {
@@ -182,11 +182,11 @@ describe('batch buy-in persistence', () => {
     existing.map(row => ({ ...row, session_id: 'other-session' })),
   ])('does not overwrite or resurrect conflicting records', async (...rows) => {
     setup({ buyins: [{ data: rows, error: null }] })
-    await expect(addBatchBuyin('g1', 's1', command)).rejects.toMatchObject({ status: 409 })
+    await expect(addBatchBuyin('g1', 's1', command)).rejects.toMatchObject({ code: 'conflict' })
     expect(mocks.insert).not.toHaveBeenCalled()
   })
   it('surfaces insert failures rather than reporting a successful batch', async () => {
     setup({ buyins: [{ data: [], error: null }, { data: null, error: { message: 'write failed' } }] })
-    await expect(addBatchBuyin('g1', 's1', command)).rejects.toMatchObject({ status: 500 })
+    await expect(addBatchBuyin('g1', 's1', command)).rejects.toMatchObject({ message: 'Database operation failed' })
   })
 })

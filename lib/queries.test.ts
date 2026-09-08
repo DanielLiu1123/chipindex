@@ -1,3 +1,4 @@
+import { orderPlayersByRecentParticipation } from './player-activity'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const dbMocks = vi.hoisted(() => ({
@@ -22,7 +23,7 @@ vi.mock('./db', () => ({
 import {
   getAllPlayers,
   getGroupPlayers,
-  getPlayersByRecentParticipation,
+  getPlayersWithActivity,
   getLeaderboardData,
   getPlayerDetail,
   getSessionForEdit,
@@ -89,7 +90,7 @@ describe('live-session player activity ordering', () => {
         ] },
       ],
     })
-    expect((await getPlayersByRecentParticipation('g1')).map(player => player.id))
+    expect(orderPlayersByRecentParticipation(await getPlayersWithActivity('g1')).map(player => player.id))
       .toEqual(['new-recent', 'new-old', 'active', 'imported', 'old'])
     const historyQueries = dbMocks.chains.filter(chain => chain.table === 'session_participant')
     expect(historyQueries).toHaveLength(2)
@@ -180,11 +181,11 @@ describe('getSessionsPage', () => {
       page_size: 10,
       total: 27,
       total_pages: 3,
-      sessions: [{ id: 's11', winner: { name: 'Alice', player_id: 'alice' } }],
+      sessions: [{ id: 's11', winners: [{ name: 'Alice', player_id: 'alice' }] }],
     })
   })
 
-  it('uses player id to break a tied winner net', async () => {
+  it('returns every tied POG in stable player ID order', async () => {
     mockQueryResponses({
       session: [
         { data: null, count: 0 },
@@ -207,7 +208,7 @@ describe('getSessionsPage', () => {
 
     const result = await getSessionsPage('g1')
 
-    expect(result.sessions[0].winner).toEqual({ name: 'Z', player_id: 'player-a' })
+    expect(result.sessions[0].winners).toEqual([{ name: 'Z', player_id: 'player-a' }, { name: 'A', player_id: 'player-b' }])
   })
 })
 

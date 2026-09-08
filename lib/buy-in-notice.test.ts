@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { completedBuyInTotals } from './buy-in-notice'
-import type { LiveParticipant } from './queries'
+import type { LiveParticipant } from './domain-types'
 
 function participant(overrides: Partial<LiveParticipant> = {}): LiveParticipant {
   return {

@@ -1,5 +1,5 @@
 import { db } from './db'
-import { ApiError } from './http'
+import { DomainError } from './domain-error'
 import { ensure, now, requireActiveMembers, requireSession } from './mutation-guards'
 import type { BatchBuyInCommand } from './contracts'
 
@@ -19,7 +19,7 @@ async function alreadyRecorded(sessionId: string, command: BatchBuyInCommand): P
       && record.amount === command.amount && record.deleted_at === null
   })
   if (data.length !== command.entries.length || !matches) {
-    throw new ApiError(409, 'Buy-in request conflicts with existing records. Refresh and check the buy-in history.')
+    throw new DomainError('conflict', 'Buy-in request conflicts with existing records. Refresh and check the buy-in history.')
   }
   return true
 }
@@ -35,8 +35,8 @@ async function readParticipants(sessionId: string, playerIds: string[]): Promise
 function validateParticipants(playerIds: string[], participants: Map<string, Participant>, allowMissing: boolean) {
   for (const playerId of playerIds) {
     const participant = participants.get(playerId)
-    if (!participant && !allowMissing) throw new ApiError(422, 'Buy-ins are limited to participants in this session')
-    if (participant && participant.settled_at !== null) throw new ApiError(409, 'Cashed-out participant cannot buy in')
+    if (!participant && !allowMissing) throw new DomainError('rule_violation', 'Buy-ins are limited to participants in this session')
+    if (participant && participant.settled_at !== null) throw new DomainError('conflict', 'Cashed-out participant cannot buy in')
   }
 }
 
@@ -66,7 +66,7 @@ async function recordBatch(groupId: string, sessionId: string, command: BatchBuy
   // Verify ownership before accepting a replay, including after settlement.
   const session = await requireSession(groupId, sessionId)
   if (await alreadyRecorded(sessionId, command)) return { count: command.entries.length }
-  if (session.status !== 'OPEN') throw new ApiError(409, 'Session is not open')
+  if (session.status !== 'OPEN') throw new DomainError('conflict', 'Session is not open')
   await prepareParticipants(groupId, sessionId, command.entries.map(entry => entry.player_id), mode)
 
   // The buy-in rows are one atomic INSERT. Participant preparation is separate;

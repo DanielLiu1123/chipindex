@@ -1,4 +1,5 @@
-import { withAuth, ApiError } from '@/lib/http'
+import { withAuth } from '@/lib/http'
+import { DomainError } from '@/lib/domain-error'
 import { getGroup, getPlayers } from '@/lib/queries'
 import { createPlayer } from '@/lib/group-mutations'
 import { parseNameCommand, readCommand } from '@/lib/commands'
@@ -7,7 +8,7 @@ type Ctx = { params: Promise<{ groupId: string }> }
 
 export const GET = withAuth(async (_req, { params }: Ctx) => {
   const { groupId } = await params
-  if (!await getGroup(groupId)) throw new ApiError(404, 'Group not found')
+  if (!await getGroup(groupId)) throw new DomainError('not_found', 'Group not found')
   return Response.json(await getPlayers(groupId))
 })
 

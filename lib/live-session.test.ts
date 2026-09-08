@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { activeFinalEntries, isCashedOut, summarizeLiveSession } from './live-session'
-import type { LiveParticipant } from './queries'
+import type { LiveParticipant } from './domain-types'
 
 function participant(overrides: Partial<LiveParticipant> = {}): LiveParticipant {
   return {

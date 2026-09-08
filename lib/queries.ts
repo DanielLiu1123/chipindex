@@ -1,29 +1,22 @@
+import { DEFAULT_EXCHANGE_RATE, BUY_IN_UNIT, pogPlayerIds } from './session-rules'
 import { cache } from 'react'
 import { db } from './db'
-import { BUY_IN_UNIT } from './synth'
 import { buyinSum, netChips } from './settlement'
 import { MAX_SESSION_PAGE_SIZE } from './session-pagination'
 import {
   buildResultsBySession,
   type BuyInResultRow,
   type ParticipantResultRow,
-  type ResultEntry,
 } from './session-results'
-import type { Group, GroupPlayer, Player } from '@/lib/domain-types'
-
-export type { ResultEntry } from './session-results'
+import type {
+  Group, GroupPlayer, Player, SessionStatus, SessionPageData, PlayerDetail,
+  PlayerHistoryEntry, LiveSessionData, LiveBuyIn, SessionForEdit, EditParticipant,
+  SessionDetail, SessionsPage, SessionRow, LeaderboardData, ResultEntry,
+} from './domain-types'
 
 // ── Central place for all table reads. Net result chips come from
 //    lib/settlement.ts, computed over non-deleted rows (see resultsBySession).
 //    Session-level deleted_at/status is filtered on the session table first.
-
-// For leaderboard / charts: only settled, non-deleted sessions
-export interface LeaderboardSessionRow {
-  id: string
-  date: string
-  exchange_rate: number
-  session_entries: ResultEntry[]
-}
 
 // Group a session's buy-in rows by player, preserving query order.
 function groupByPlayer<T extends { player_id: string }>(rows: T[]): Map<string, T[]> {
@@ -44,7 +37,7 @@ function throwIfQueryError(error: unknown): void {
 }
 
 function exchangeRate(value: number | null): number {
-  return value ?? 40
+  return value ?? DEFAULT_EXCHANGE_RATE
 }
 
 async function fetchAllResultRows<T>(
@@ -139,7 +132,7 @@ export const getPlayers = cache(async (groupId: string): Promise<Player[]> => {
 
 // Session pickers share group-local activity ordering. Imported sessions fall
 // back to their recorded date; other player lists keep their existing order.
-export async function getPlayersByRecentParticipation(groupId: string): Promise<Player[]> {
+export async function getPlayersWithActivity(groupId: string): Promise<Player[]> {
   const [members, history] = await Promise.all([
     getGroupPlayers(groupId),
     fetchAllResultRows<{ player_id: string; session: { date: string; started_at: string | null } }>((from, to) => db
@@ -151,20 +144,20 @@ export async function getPlayersByRecentParticipation(groupId: string): Promise<
       .order('id', { ascending: true })
       .range(from, to)),
   ])
-  const latest = new Map<string, number>()
+  const activity = new Map<string, { latest_started_at: string | null; latest_import_date: string | null }>()
   for (const row of history) {
-    const timestamp = Date.parse(row.session.started_at ?? `${row.session.date}T00:00:00+08:00`)
-    latest.set(row.player_id, Math.max(latest.get(row.player_id) ?? -Infinity, timestamp))
+    const current = activity.get(row.player_id) ?? { latest_started_at: null, latest_import_date: null }
+    if (row.session.started_at) {
+      if (!current.latest_started_at || Date.parse(row.session.started_at) > Date.parse(current.latest_started_at)) current.latest_started_at = row.session.started_at
+    } else if (!current.latest_import_date || row.session.date > current.latest_import_date) current.latest_import_date = row.session.date
+    activity.set(row.player_id, current)
   }
-  return [...members].sort((a, b) => {
-    const aTime = latest.get(a.player.id)
-    const bTime = latest.get(b.player.id)
-    if (aTime === undefined && bTime !== undefined) return -1
-    if (bTime === undefined && aTime !== undefined) return 1
-    return (bTime !== undefined && aTime !== undefined ? bTime - aTime : 0)
-      || b.group_player.created_at.localeCompare(a.group_player.created_at)
-      || a.player.id.localeCompare(b.player.id)
-  }).map(row => row.player)
+  // Return facts, not a server-timezone-dependent ordering. The directory sorts
+  // mixed instants and imported calendar dates after browser hydration.
+  return members.map(row => ({ ...row.player, recent_activity: {
+    ...(activity.get(row.player.id) ?? { latest_started_at: null, latest_import_date: null }),
+    joined_at: row.group_player.created_at,
+  } }))
 }
 
 export async function getAllPlayers(): Promise<Player[]> {
@@ -186,11 +179,6 @@ async function playerNameMap(playerIds?: string[]): Promise<Map<string, string>>
   const { data, error } = await query
   if (error) throw error
   return new Map((data ?? []).map(player => [player.id, player.name]))
-}
-
-export interface LeaderboardData {
-  players: Player[]
-  sessions: LeaderboardSessionRow[]
 }
 
 export async function getLeaderboardData(groupId: string): Promise<LeaderboardData> {
@@ -235,16 +223,7 @@ export async function getLeaderboardData(groupId: string): Promise<LeaderboardDa
 }
 
 // ── sessions list ──────────────────────────────────────────────
-// Unified list row: OPEN pinned on top + SETTLED by date descending. OPEN rows have winner = null.
-export interface SessionRow {
-  id: string
-  date: string
-  description: string | null
-  exchange_rate: number
-  status: 'OPEN' | 'SETTLED'
-  player_count: number
-  winner: { name: string; player_id: string } | null
-}
+// Unified list row: OPEN pinned on top + SETTLED by date descending. OPEN rows have no winners.
 
 interface SessionListSource {
   id: string
@@ -253,14 +232,6 @@ interface SessionListSource {
   exchange_rate: number
   status: 'OPEN' | 'SETTLED'
   started_at: string | null
-}
-
-export interface SessionsPage {
-  sessions: SessionRow[]
-  page: number
-  page_size: number
-  total: number
-  total_pages: number
 }
 
 const SESSION_LIST_COLUMNS = 'id, date, description, exchange_rate, status, started_at'
@@ -272,14 +243,7 @@ async function buildSessionRows(rows: SessionListSource[]): Promise<SessionRow[]
 
   return rows.map(session => {
     const entries = byId.get(session.id) ?? []
-    const top = entries.length > 0
-      ? entries.reduce((best, entry) => (
-          entry.chips > best.chips
-          || (entry.chips === best.chips && entry.player_id.localeCompare(best.player_id) < 0)
-            ? entry
-            : best
-        ), entries[0])
-      : null
+    const winners = pogPlayerIds(entries)
     return {
       id: session.id,
       date: session.date,
@@ -287,9 +251,9 @@ async function buildSessionRows(rows: SessionListSource[]): Promise<SessionRow[]
       exchange_rate: session.exchange_rate,
       status: session.status,
       player_count: entries.length,
-      winner: session.status === 'SETTLED' && top
-        ? { name: names.get(top.player_id) ?? top.player_id, player_id: top.player_id }
-        : null,
+      winners: session.status === 'SETTLED'
+        ? winners.map(player_id => ({ name: names.get(player_id) ?? player_id, player_id }))
+        : [],
     }
   })
 }
@@ -367,28 +331,6 @@ export async function getSessionsPage(groupId: string, requestedPage = 1, reques
 }
 
 // ── session detail ─────────────────────────────────────────────
-export interface SessionDetailEntry {
-  id: string
-  player_id: string
-  chips: number
-  final_chips: number | null
-  total_buyin: number
-  buy_ins: { amount: number; created_at: string }[]
-  settled_at: string | null
-  players: { name: string } | null
-}
-export interface SessionDetail {
-  id: string
-  date: string
-  description: string | null
-  exchange_rate: number
-  status: string
-  started_at: string | null
-  ended_at: string | null
-  session_entries: SessionDetailEntry[]
-}
-
-type SessionStatus = 'OPEN' | 'SETTLED'
 
 function sessionStatus(value: string): SessionStatus {
   if (value === 'OPEN' || value === 'SETTLED') return value
@@ -462,7 +404,7 @@ function sessionDetailFromAggregate(source: SessionAggregateSource): SessionDeta
       chips: netChips(participant.final_chips, total_buyin),
       final_chips: participant.final_chips,
       total_buyin,
-      buy_ins: flow.map(buyIn => ({ amount: buyIn.amount, created_at: buyIn.created_at })),
+      buy_ins: flow.map(buyIn => ({ id: buyIn.id, amount: buyIn.amount, created_at: buyIn.created_at })),
       settled_at: participant.settled_at,
       players: { name: source.names.get(participant.player_id) ?? participant.player_id },
     }
@@ -472,21 +414,6 @@ function sessionDetailFromAggregate(source: SessionAggregateSource): SessionDeta
 }
 
 // For loading the edit form: returns each player's buy-in flow + final chips (net is derived on the client)
-export interface EditBuyIn { amount: number; created_at: string }
-export interface EditParticipant {
-  player_id: string
-  name: string
-  final_chips: number | null
-  buy_ins: EditBuyIn[]
-}
-export interface SessionForEdit {
-  date: string
-  exchange_rate: number
-  description: string | null
-  status: string
-  ended_at: string | null
-  participants: EditParticipant[]
-}
 
 export async function getSessionForEdit(groupId: string, id: string): Promise<SessionForEdit | null> {
   const source = await loadSessionAggregate(groupId, id)
@@ -496,37 +423,13 @@ export async function getSessionForEdit(groupId: string, id: string): Promise<Se
     player_id: participant.player_id,
     name: source.names.get(participant.player_id) ?? participant.player_id,
     final_chips: participant.final_chips,
-    buy_ins: (flowByPlayer.get(participant.player_id) ?? []).map(buyIn => ({ amount: buyIn.amount, created_at: buyIn.created_at })),
+    buy_ins: (flowByPlayer.get(participant.player_id) ?? []).map(buyIn => ({ id: buyIn.id, amount: buyIn.amount, created_at: buyIn.created_at })),
   }))
   const { id: _id, buy_in_unit: _buyInUnit, started_at: _startedAt, ...session } = source.session
   return { ...session, participants }
 }
 
 // ── live session (OPEN) ────────────────────────────────────────
-export interface LiveBuyIn {
-  id: string
-  player_id: string
-  amount: number
-  created_at: string
-}
-export interface LiveParticipant {
-  player_id: string
-  name: string
-  total_buyin: number
-  buy_ins: LiveBuyIn[]
-  final_chips: number | null
-  settled_at: string | null
-}
-export interface LiveSessionData {
-  id: string
-  date: string
-  description: string | null
-  exchange_rate: number
-  buy_in_unit: number
-  started_at: string | null
-  status: string
-  participants: LiveParticipant[]
-}
 
 function liveSessionFromAggregate(source: SessionAggregateSource): LiveSessionData {
   const flowByPlayer = groupByPlayer(source.buy_ins)
@@ -550,10 +453,6 @@ function liveSessionFromAggregate(source: SessionAggregateSource): LiveSessionDa
   }
 }
 
-export type SessionPageData =
-  | { status: 'OPEN'; session: LiveSessionData }
-  | { status: 'SETTLED'; session: SessionDetail }
-
 export async function getSessionPageData(groupId: string, id: string): Promise<SessionPageData | null> {
   const source = await loadSessionAggregate(groupId, id)
   if (!source) return null
@@ -563,28 +462,6 @@ export async function getSessionPageData(groupId: string, id: string): Promise<S
 }
 
 // ── player detail ──────────────────────────────────────────────
-export interface PlayerHistorySession {
-  id: string
-  date: string
-  description: string | null
-  exchange_rate: number
-  started_at: string | null
-  session_entries: ResultEntry[] // all players in the session, for POG computation
-}
-export interface PlayerHistoryEntry {
-  session_id: string
-  chips: number
-  final_chips: number | null
-  total_buyin: number
-  buy_in_count: number
-  sessions: PlayerHistorySession
-}
-export interface PlayerDetail {
-  id: string
-  name: string
-  group_player: GroupPlayer | null
-  entries: PlayerHistoryEntry[]
-}
 
 export async function getPlayerDetail(groupId: string, id: string): Promise<PlayerDetail | null> {
   // sessions this player took part in that are settled and not deleted
@@ -624,7 +501,7 @@ export async function getPlayerDetail(groupId: string, id: string): Promise<Play
     .eq('group_id', groupId)
     .in('id', mySessionIds)
   throwIfQueryError(error)
-  const sessionRows = (sessions ?? []) as { id: string; date: string; description: string | null; exchange_rate: number; started_at: string | null }[]
+  const sessionRows = (sessions ?? []).map(session => ({ ...session, exchange_rate: exchangeRate(session.exchange_rate) }))
   const allBySession = await resultsBySession(sessionRows.map(s => s.id))
 
   const entries: PlayerHistoryEntry[] = sessionRows.map(s => {

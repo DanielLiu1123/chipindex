@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { synthFromNet, BUY_IN_UNIT } from './synth'
+import { synthFromNet } from './synth'
+import { BUY_IN_UNIT } from './session-rules'
 
 describe('synthFromNet', () => {
   const nets = [0, 1, -1, 2000, -2000, 3500, -3500, -4001, 100000]

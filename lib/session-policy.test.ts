@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ApiError } from './http'
+import { DomainError } from './domain-error'
 import { requireConservation, requireNonNegativeInteger, requirePositiveInteger } from './session-policy'
 
 describe('session policy', () => {
@@ -10,16 +10,16 @@ describe('session policy', () => {
 
   it('preserves conservation details in the domain error', () => {
     expect(() => requireConservation(4_000, 3_000, false)).toThrowError(expect.objectContaining({
-      status: 422,
+      code: 'unbalanced',
       message: 'unbalanced',
-      payload: { diff: -1_000, total_buyin: 4_000, total_final: 3_000 },
+      details: { diff: -1_000, total_buyin: 4_000, total_final: 3_000 },
     }))
   })
 
   it('enforces integer chip amounts at the policy boundary', () => {
     expect(() => requireNonNegativeInteger(0, 'final_chips')).not.toThrow()
     expect(() => requirePositiveInteger(1, 'amount')).not.toThrow()
-    expect(() => requireNonNegativeInteger(-1, 'final_chips')).toThrow(ApiError)
-    expect(() => requirePositiveInteger(0, 'amount')).toThrow(ApiError)
+    expect(() => requireNonNegativeInteger(-1, 'final_chips')).toThrow(DomainError)
+    expect(() => requirePositiveInteger(0, 'amount')).toThrow(DomainError)
   })
 })

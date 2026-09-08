@@ -1,4 +1,4 @@
-import type { LiveParticipant } from './queries'
+import type { LiveParticipant } from './domain-types'
 export type FinalChipDrafts = Readonly<Record<string, string>>
 
 export interface LiveSessionSummary {

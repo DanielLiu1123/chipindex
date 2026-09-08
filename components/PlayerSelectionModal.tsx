@@ -1,6 +1,8 @@
 'use client'
 
-import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
+import { errorMessage } from '@/lib/error-message'
+import { useId, useRef, useState, type FormEvent } from 'react'
+import Dialog from './Dialog'
 import { MAX_BUY_IN_AMOUNT } from '@/lib/buy-in-policy'
 import { PLAYER_PAGE_SIZE, type SelectablePlayer } from '@/lib/player-selection'
 import { usePlayerAction, type PlayerAction } from '@/lib/use-player-action'
@@ -15,7 +17,6 @@ interface Props {
 }
 
 export default function PlayerSelectionModal({ open, participants, picker = 'available', action, onCreatePlayer, onClose }: Props) {
-  const dialog = useRef<HTMLDialogElement>(null)
   const busy = useRef(false)
   const id = useId()
   const [selected, setSelected] = useState<string[]>([])
@@ -25,11 +26,6 @@ export default function PlayerSelectionModal({ open, participants, picker = 'ava
   const [newError, setNewError] = useState('')
   const [visibleCount, setVisibleCount] = useState(PLAYER_PAGE_SIZE)
   const [query, setQuery] = useState('')
-
-  useEffect(() => {
-    if (open && !dialog.current?.open) dialog.current?.showModal()
-    else if (!open && dialog.current?.open) dialog.current.close()
-  }, [open])
 
   const chosen = participants.filter(p => selected.includes(p.player_id) && p.settled_at === null)
   const submission = usePlayerAction(action, chosen)
@@ -66,7 +62,7 @@ export default function PlayerSelectionModal({ open, participants, picker = 'ava
       if (index >= visibleCount) setVisibleCount(Math.ceil((index + 1) / PLAYER_PAGE_SIZE) * PLAYER_PAGE_SIZE)
       setAddingNew(false); setNewName(''); setQuery('')
     } catch (e) {
-      setNewError(e instanceof Error ? e.message : 'Could not create player.')
+      setNewError(errorMessage(e))
     } finally {
       busy.current = false; setCreating(false)
     }
@@ -82,15 +78,7 @@ export default function PlayerSelectionModal({ open, participants, picker = 'ava
   }
 
   return (
-    <dialog ref={dialog} aria-label={addingPlayers ? 'Add players' : 'Buy in'}
-      onCancel={event => { event.preventDefault(); close() }}
-      onClick={event => {
-        if (event.target !== event.currentTarget) return
-        const rect = event.currentTarget.getBoundingClientRect()
-        if (event.clientX < rect.left || event.clientX > rect.right
-          || event.clientY < rect.top || event.clientY > rect.bottom) close()
-      }}
-      className="fixed inset-0 m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-md overflow-y-auto border border-border bg-surface p-5 text-white backdrop:bg-black/70">
+    <Dialog open={open} label={addingPlayers ? 'Add players' : 'Buy in'} pending={creating || pending} onClose={close}>
       {/* Receive initial dialog focus without adding a Tab stop before search. */}
       <form tabIndex={addingPlayers ? -1 : undefined} onSubmit={submit} className="outline-none">
         {addingPlayers && <input id={`${id}-search`} type="search" aria-label="Search players" placeholder="Search players..."
@@ -140,6 +128,6 @@ export default function PlayerSelectionModal({ open, participants, picker = 'ava
           {pending ? 'SAVING...' : retrying ? 'RETRY' : addingPlayers ? 'ADD' : 'BUY IN'}
         </button>
       </form>
-    </dialog>
+    </Dialog>
   )
 }

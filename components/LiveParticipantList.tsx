@@ -1,5 +1,6 @@
+import BrowserTime from '@/components/BrowserTime'
 import ChipValue from '@/components/ChipValue'
-import type { LiveParticipant } from '@/lib/queries'
+import type { LiveParticipant } from '@/lib/domain-types'
 import { isCashedOut } from '@/lib/live-session'
 
 interface Props {
@@ -98,7 +99,7 @@ export default function LiveParticipantList({
             {cashedOut && (
               <div className="mb-2 flex min-w-0 items-baseline gap-2 overflow-hidden text-[10px] text-muted">
                 <span className="shrink-0 tracking-widest">
-                  CASHED OUT {new Date(participant.settled_at!).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                  CASHED OUT <BrowserTime value={participant.settled_at!} />
                 </span>
                 <span className="min-w-0 truncate">
                   · BUY-IN <span className="text-white tabular-nums">{participant.total_buyin.toLocaleString()}</span>
@@ -110,7 +111,7 @@ export default function LiveParticipantList({
               <div className="flex flex-col gap-1 mb-2">
                 {participant.buy_ins.map(buyIn => (
                   <div key={buyIn.id} className="flex items-center justify-between text-xs text-muted">
-                    <span>{new Date(buyIn.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })} · +{buyIn.amount.toLocaleString()}</span>
+                    <span><BrowserTime value={buyIn.created_at} /> · +{buyIn.amount.toLocaleString()}</span>
                     {!cashedOut && (
                       <button onClick={() => onRevokeBuyIn(buyIn.id)} disabled={pending}
                         className="hover:text-danger transition-colors px-1">✕</button>

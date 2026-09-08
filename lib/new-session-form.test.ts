@@ -26,10 +26,9 @@ function nodes(node: ReactNode): { type: unknown; props: NodeProps }[] {
 }
 function mount() {
   const mocks: Record<string, unknown> = {
-    react: hooks.react, 'next/navigation': { useRouter: () => ({ push }) },
+    '@/lib/use-browser-ready': { useBrowserReady: () => true }, react: hooks.react, 'next/navigation': { useRouter: () => ({ push }) },
     'next/link': () => null, '@/components/PlayerSelectionModal': Modal, '@/components/SessionMetaFields': () => null,
     '@/lib/client': { startSession: start, createPlayerInGroup: create },
-    '@/lib/synth': { BUY_IN_UNIT: 2000 }, '@/lib/uid': { uid: () => crypto.randomUUID() },
   }
   const module = loadUiModule<{ default: (props: unknown) => ReactNode }>(new URL('../components/NewSessionForm.tsx', import.meta.url), mocks)
   const render = () => {
