@@ -39,8 +39,8 @@ function Confirmation({ title, description, confirmLabel = 'DELETE', onConfirm, 
         {description && <p className="mt-1 text-xs text-muted">{description}</p>}</div>
       {error && <p role="alert" className="text-xs text-danger">{error}</p>}
       <div className="flex justify-end gap-2">
-        <button type="button" autoFocus disabled={pending} onClick={onCancel} className="border border-border px-4 py-2 text-xs text-muted hover:border-white hover:text-white disabled:opacity-40">CANCEL</button>
-        <button type="button" disabled={pending} onClick={() => { void confirm() }} className="border border-red-500/40 px-4 py-2 text-xs text-red-500 hover:border-red-500 disabled:opacity-40">{pending ? 'SAVING...' : confirmLabel}</button>
+        <button type="button" autoFocus disabled={pending} onClick={onCancel} className="border border-border px-4 py-2 text-xs font-medium tracking-widest text-muted hover:border-white hover:text-white transition-colors disabled:opacity-40">CANCEL</button>
+        <button type="button" disabled={pending} onClick={() => { void confirm() }} className="border border-red-500/40 px-4 py-2 text-xs font-medium tracking-widest text-red-500 hover:border-red-400 transition-colors disabled:opacity-40">{pending ? 'SAVING...' : confirmLabel}</button>
       </div>
     </div>
   </Dialog>
