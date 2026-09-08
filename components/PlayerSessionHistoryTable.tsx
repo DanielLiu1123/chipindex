@@ -29,6 +29,7 @@ export default function PlayerSessionHistoryTable({ groupId, rows }: { groupId: 
         </tr>
       </thead>
       <tbody>
+        {rows.length === 0 && <tr><td colSpan={5} className="py-12 text-center text-xs text-muted tracking-widest">NO SESSIONS YET</td></tr>}
         {rows.map(row => (
           <tr key={row.session_id} className="border-b border-border hover:bg-surface transition-colors">
             <td className="py-4 px-1 first:pl-0 last:pr-0">
