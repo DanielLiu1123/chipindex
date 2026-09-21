@@ -95,7 +95,7 @@ export default function LeaderboardView({ groupId, players, sessions }: { groupI
 
   return (
     <>
-      <div className={`flex items-baseline justify-between ${activityFilter.hiddenCount > 0 ? 'mb-3' : 'mb-6'}`}>
+      <div className="flex items-baseline justify-between mb-3">
         <div className="flex items-baseline gap-4">
           <div className="flex gap-3">
             <button onClick={() => setView('table')}
@@ -113,7 +113,7 @@ export default function LeaderboardView({ groupId, players, sessions }: { groupI
       </div>
 
       <div className="mb-6">
-        <div role="group" aria-label="Leaderboard period" className="flex flex-wrap items-center gap-x-4 gap-y-3">
+        <div role="group" aria-label="Leaderboard period" className="flex flex-wrap items-center gap-2">
           {([
             ['all', 'ALL'],
             ['month', 'THIS MONTH'],
@@ -122,7 +122,7 @@ export default function LeaderboardView({ groupId, players, sessions }: { groupI
             ['custom', 'CUSTOM'],
           ] as const).map(([value, label]) => (
             <button key={value} type="button" aria-pressed={period === value} onClick={() => changePeriod(value)}
-              className={`text-xs tracking-widest transition-colors ${period === value ? 'text-white' : 'text-muted hover:text-white'}`}>
+              className={`min-h-9 border px-3 py-2 text-[10px] tracking-widest transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:text-xs ${period === value ? 'border-accent/60 bg-accent/10 text-accent' : 'border-border bg-surface text-[#aaaaaa] hover:border-muted hover:text-white'}`}>
               {label}
             </button>
           ))}
@@ -143,31 +143,29 @@ export default function LeaderboardView({ groupId, players, sessions }: { groupI
       </div>
       {rangeError && <p id="leaderboard-range-error" role="alert" className="text-danger text-xs mb-4">{rangeError}</p>}
 
-      {activityFilter.hiddenCount > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-2 min-h-8 mb-3 text-[10px] tracking-widest text-muted">
-          <button
-            type="button"
-            aria-pressed={hideLowActivity}
-            onClick={() => setHideLowActivity(hidden => !hidden)}
-            className="flex items-center gap-2 text-[#aaaaaa] transition-colors hover:text-white"
+      <div className="flex flex-wrap items-center justify-between gap-2 min-h-8 mb-3 text-[10px] tracking-widest text-muted">
+        <button
+          type="button"
+          aria-pressed={hideLowActivity}
+          onClick={() => setHideLowActivity(hidden => !hidden)}
+          className="flex items-center gap-2 text-[#aaaaaa] transition-colors hover:text-white"
+        >
+          <span
+            aria-hidden="true"
+            className={`relative inline-flex h-4 w-7 shrink-0 border transition-colors ${hideLowActivity ? 'border-accent' : 'border-muted'}`}
           >
             <span
-              aria-hidden="true"
-              className={`relative inline-flex h-4 w-7 shrink-0 border transition-colors ${hideLowActivity ? 'border-accent' : 'border-muted'}`}
-            >
-              <span
-                className={`absolute left-0.5 top-0.5 h-2.5 w-2.5 transition-all ${hideLowActivity ? 'translate-x-3 bg-accent' : 'bg-muted'}`}
-              />
-            </span>
-            HIDE LOW-ACTIVITY PLAYERS
-          </button>
-          <span>
-            {hideLowActivity
-              ? `${activityFilter.hiddenCount} HIDDEN · FEWER THAN ${activityFilter.threshold} SESSIONS`
-              : `SHOWING ALL ${stats.length} PLAYERS`}
+              className={`absolute left-0.5 top-0.5 h-2.5 w-2.5 transition-all ${hideLowActivity ? 'translate-x-3 bg-accent' : 'bg-muted'}`}
+            />
           </span>
-        </div>
-      )}
+          HIDE LOW-ACTIVITY PLAYERS
+        </button>
+        <span>
+          {hideLowActivity && activityFilter.hiddenCount > 0
+            ? `${activityFilter.hiddenCount} HIDDEN · FEWER THAN ${activityFilter.threshold} SESSIONS`
+            : `SHOWING ALL ${stats.length} PLAYERS`}
+        </span>
+      </div>
 
       {rangeError ? null : filteredSessions.length === 0 && period !== 'all' ? (
         <p className="py-12 text-center text-xs text-muted tracking-widest">NO SESSIONS</p>
