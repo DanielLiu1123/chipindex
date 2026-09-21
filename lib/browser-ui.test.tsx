@@ -185,7 +185,7 @@ it('shares the date range between rankings and rebased CNY/chip curves, and vali
     { id: 'after', date: '2026-02-01', exchange_rate: 40, session_entries: [{ player_id: 'Bob', chips: 8000, final_chips: 10000, total_buyin: 2000, buy_in_count: 1 }] },
   ]
   render(<LeaderboardView groupId="g1" players={players} sessions={sessions} />)
-  fireEvent.change(screen.getByLabelText('Leaderboard period'), { target: { value: 'custom' } })
+  fireEvent.click(screen.getByRole('button', { name: 'CUSTOM' }))
   fireEvent.change(screen.getByLabelText('Start date'), { target: { value: '2026-01-01' } })
   fireEvent.change(screen.getByLabelText('End date'), { target: { value: '2026-01-31' } })
   const row = screen.getByRole('link', { name: 'Alice' }).closest('tr')!
@@ -204,7 +204,7 @@ it('shares the date range between rankings and rebased CNY/chip curves, and vali
   fireEvent.change(screen.getByLabelText('End date'), { target: { value: '' } })
   expect(screen.getByRole('alert').textContent).toContain('Choose a valid')
   fireEvent.change(screen.getByLabelText('End date'), { target: { value: '2026-02-03' } })
-  expect(screen.getByText('NO SESSIONS IN THIS PERIOD.')).toBeTruthy()
-  fireEvent.change(screen.getByLabelText('Leaderboard period'), { target: { value: 'all' } })
+  expect(screen.getByText('NO SESSIONS')).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: /^ALL$/ }))
   expect(JSON.parse(screen.getByTestId('leaderboard-chart').textContent!).data).toHaveLength(4)
 })

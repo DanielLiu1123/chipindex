@@ -112,38 +112,34 @@ export default function LeaderboardView({ groupId, players, sessions }: { groupI
         <Link href={`/groups/${groupId}/sessions/new`} className="text-xs text-accent tracking-widest hover:underline">+ NEW SESSION</Link>
       </div>
 
-      <div className="mb-5 flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-2 text-xs text-muted">
-          PERIOD
-          <select aria-label="Leaderboard period" value={period} onChange={event => changePeriod(event.target.value as LeaderboardPeriod)}
-            className="bg-surface border border-border text-white px-3 py-2">
-            <option value="all">ALL TIME</option>
-            <option value="month">THIS MONTH</option>
-            <option value="last-month">LAST MONTH</option>
-            <option value="year">THIS YEAR</option>
-            <option value="custom">CUSTOM</option>
-          </select>
-        </label>
-        {period === 'custom' && <>
-          <label className="flex flex-col gap-2 text-xs text-muted">
-            FROM
+      <div className="mb-6">
+        <div role="group" aria-label="Leaderboard period" className="flex flex-wrap items-center gap-x-4 gap-y-3">
+          {([
+            ['all', 'ALL'],
+            ['month', 'THIS MONTH'],
+            ['last-month', 'LAST MONTH'],
+            ['year', 'THIS YEAR'],
+            ['custom', 'CUSTOM'],
+          ] as const).map(([value, label]) => (
+            <button key={value} type="button" aria-pressed={period === value} onClick={() => changePeriod(value)}
+              className={`text-xs tracking-widest transition-colors ${period === value ? 'text-white' : 'text-muted hover:text-white'}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+        {period === 'custom' && (
+          <div className="mt-4 flex items-center gap-3 max-w-sm">
             <input type="date" aria-label="Start date" value={range.start} max={range.end || undefined}
               aria-invalid={Boolean(rangeError)} aria-describedby={rangeError ? 'leaderboard-range-error' : undefined}
               onChange={event => setRange(current => ({ ...current, start: event.target.value }))}
-              className="min-w-0 bg-surface border border-border text-white px-3 py-2" />
-          </label>
-          <label className="flex flex-col gap-2 text-xs text-muted">
-            TO
+              className="w-full min-w-0 bg-surface border border-border text-white text-xs px-3 py-2 outline-none focus:border-white transition-colors" />
+            <span aria-hidden="true" className="text-xs text-muted">–</span>
             <input type="date" aria-label="End date" value={range.end} min={range.start || undefined}
               aria-invalid={Boolean(rangeError)} aria-describedby={rangeError ? 'leaderboard-range-error' : undefined}
               onChange={event => setRange(current => ({ ...current, end: event.target.value }))}
-              className="min-w-0 bg-surface border border-border text-white px-3 py-2" />
-          </label>
-        </>}
-        {!rangeError && <p className="text-xs text-muted py-2" aria-live="polite">
-          {period !== 'all' && `${range.start} – ${range.end} · `}{filteredSessions.length} SESSIONS
-          {period !== 'all' && ' · TOTALS WITHIN PERIOD'}
-        </p>}
+              className="w-full min-w-0 bg-surface border border-border text-white text-xs px-3 py-2 outline-none focus:border-white transition-colors" />
+          </div>
+        )}
       </div>
       {rangeError && <p id="leaderboard-range-error" role="alert" className="text-danger text-xs mb-4">{rangeError}</p>}
 
@@ -174,7 +170,7 @@ export default function LeaderboardView({ groupId, players, sessions }: { groupI
       )}
 
       {rangeError ? null : filteredSessions.length === 0 && period !== 'all' ? (
-        <p className="py-12 text-center text-xs text-muted tracking-widest">NO SESSIONS IN THIS PERIOD.</p>
+        <p className="py-12 text-center text-xs text-muted tracking-widest">NO SESSIONS</p>
       ) : view === 'table' ? (
         <table className="w-full text-sm">
           <thead>
