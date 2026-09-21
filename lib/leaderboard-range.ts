@@ -2,16 +2,18 @@ import { localDate } from './browser-time'
 import type { LeaderboardSessionRow } from './domain-types'
 
 export type LeaderboardPeriod = 'all' | 'month' | 'last-month' | 'year' | 'custom'
+export type LeaderboardFilter =
+  | { period: 'all' }
+  | { period: Exclude<LeaderboardPeriod, 'all'>; range: LeaderboardRange }
 export interface LeaderboardRange { start: string; end: string }
 
-export function presetLeaderboardRange(period: Exclude<LeaderboardPeriod, 'custom'>, now = new Date()): LeaderboardRange {
+export function presetLeaderboardRange(period: Exclude<LeaderboardPeriod, 'custom' | 'all'>, now = new Date()): LeaderboardRange {
   const year = now.getFullYear()
   const month = now.getMonth()
   switch (period) {
     case 'month': return { start: localDate(new Date(year, month, 1)), end: localDate(new Date(year, month + 1, 0)) }
     case 'last-month': return { start: localDate(new Date(year, month - 1, 1)), end: localDate(new Date(year, month, 0)) }
     case 'year': return { start: `${year}-01-01`, end: `${year}-12-31` }
-    case 'all': return { start: '', end: '' }
   }
 }
 
@@ -27,6 +29,7 @@ export function leaderboardRangeError(range: LeaderboardRange): string | null {
   return null
 }
 
-export function filterLeaderboardSessions(sessions: LeaderboardSessionRow[], range: LeaderboardRange): LeaderboardSessionRow[] {
-  return sessions.filter(session => (!range.start || session.date >= range.start) && (!range.end || session.date <= range.end))
+export function filterLeaderboardSessions(sessions: LeaderboardSessionRow[], range: LeaderboardRange | null): LeaderboardSessionRow[] {
+  if (!range) return sessions
+  return sessions.filter(session => session.date >= range.start && session.date <= range.end)
 }

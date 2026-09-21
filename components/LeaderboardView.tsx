@@ -4,11 +4,12 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import ChipValue from '@/components/ChipValue'
 import LeaderboardChart from '@/components/LeaderboardChart'
-import { computeLeaderboardStats, filterLowActivityPlayers } from '@/lib/stats'
-import { filterLeaderboardSessions, leaderboardRangeError, presetLeaderboardRange, type LeaderboardPeriod, type LeaderboardRange } from '@/lib/leaderboard-range'
+import { computeLeaderboardStats, filterLowActivityPlayers, type PlayerStats } from '@/lib/stats'
+import LeaderboardDateFilter from '@/components/LeaderboardDateFilter'
+import { filterLeaderboardSessions, leaderboardRangeError, type LeaderboardFilter } from '@/lib/leaderboard-range'
 import type { LeaderboardSessionRow, Player } from '@/lib/domain-types'
 
-function buildChartData(sessions: LeaderboardSessionRow[], stats: ReturnType<typeof computeLeaderboardStats>, mode: 'chips' | 'cny'): { date: string; [player: string]: string | number }[] {
+function buildChartData(sessions: LeaderboardSessionRow[], stats: PlayerStats[], mode: 'chips' | 'cny'): { date: string; [player: string]: string | number }[] {
   const sorted = [...sessions].sort((a, b) => a.date.localeCompare(b.date))
   const playerIds = stats.map(s => s.player.id)
 
@@ -49,23 +50,19 @@ export default function LeaderboardView({ groupId, players, sessions }: { groupI
   const [sortKey, setSortKey] = useState<SortKey>('total_yuan')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [hideLowActivity, setHideLowActivity] = useState(true)
-  const [period, setPeriod] = useState<LeaderboardPeriod>('all')
-  const [range, setRange] = useState<LeaderboardRange>({ start: '', end: '' })
-  const rangeError = period === 'custom' ? leaderboardRangeError(range) : null
+  const [filter, setFilter] = useState<LeaderboardFilter>({ period: 'all' })
+  const range = filter.period === 'all' ? null : filter.range
+  const rangeError = range ? leaderboardRangeError(range) : null
   const filteredSessions = useMemo(
     () => rangeError ? [] : filterLeaderboardSessions(sessions, range),
     [sessions, range, rangeError],
   )
   const stats = useMemo(() => {
     const computed = computeLeaderboardStats(players, filteredSessions)
-    return period === 'all' ? computed : computed.filter(stat => stat.sessions_played > 0)
-  }, [players, filteredSessions, period])
-
-  function changePeriod(next: LeaderboardPeriod) {
-    setPeriod(next)
-    if (next !== 'custom') setRange(presetLeaderboardRange(next))
-    else if (!range.start || !range.end) setRange(presetLeaderboardRange('month'))
-  }
+    return range ? computed.filter(stat => stat.sessions_played > 0) : computed
+  }, [players, filteredSessions, range])
+  const emptyRange = range !== null && filteredSessions.length === 0
+  const showResults = !rangeError && !emptyRange
 
   const activityFilter = useMemo(() => filterLowActivityPlayers(stats), [stats])
   const displayedStats = hideLowActivity ? activityFilter.visibleStats : stats
@@ -112,36 +109,7 @@ export default function LeaderboardView({ groupId, players, sessions }: { groupI
         <Link href={`/groups/${groupId}/sessions/new`} className="text-xs text-accent tracking-widest hover:underline">+ NEW SESSION</Link>
       </div>
 
-      <div className="mb-6">
-        <div role="group" aria-label="Leaderboard period" className="flex flex-wrap items-center gap-2">
-          {([
-            ['all', 'ALL'],
-            ['month', 'THIS MONTH'],
-            ['last-month', 'LAST MONTH'],
-            ['year', 'THIS YEAR'],
-            ['custom', 'CUSTOM'],
-          ] as const).map(([value, label]) => (
-            <button key={value} type="button" aria-pressed={period === value} onClick={() => changePeriod(value)}
-              className={`min-h-9 border px-3 py-2 text-[10px] tracking-widest transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:text-xs ${period === value ? 'border-accent/60 bg-accent/10 text-accent' : 'border-border bg-surface text-[#aaaaaa] hover:border-muted hover:text-white'}`}>
-              {label}
-            </button>
-          ))}
-        </div>
-        {period === 'custom' && (
-          <div className="mt-4 flex items-center gap-3 max-w-sm">
-            <input type="date" aria-label="Start date" value={range.start} max={range.end || undefined}
-              aria-invalid={Boolean(rangeError)} aria-describedby={rangeError ? 'leaderboard-range-error' : undefined}
-              onChange={event => setRange(current => ({ ...current, start: event.target.value }))}
-              className="w-full min-w-0 bg-surface border border-border text-white text-xs px-3 py-2 outline-none focus:border-white transition-colors" />
-            <span aria-hidden="true" className="text-xs text-muted">–</span>
-            <input type="date" aria-label="End date" value={range.end} min={range.start || undefined}
-              aria-invalid={Boolean(rangeError)} aria-describedby={rangeError ? 'leaderboard-range-error' : undefined}
-              onChange={event => setRange(current => ({ ...current, end: event.target.value }))}
-              className="w-full min-w-0 bg-surface border border-border text-white text-xs px-3 py-2 outline-none focus:border-white transition-colors" />
-          </div>
-        )}
-      </div>
-      {rangeError && <p id="leaderboard-range-error" role="alert" className="text-danger text-xs mb-4">{rangeError}</p>}
+      <LeaderboardDateFilter filter={filter} onChange={setFilter} error={rangeError} />
 
       <div className="flex flex-wrap items-center justify-between gap-2 min-h-8 mb-3 text-[10px] tracking-widest text-muted">
         <button
@@ -167,9 +135,10 @@ export default function LeaderboardView({ groupId, players, sessions }: { groupI
         </span>
       </div>
 
-      {rangeError ? null : filteredSessions.length === 0 && period !== 'all' ? (
+      {!rangeError && emptyRange && (
         <p className="py-12 text-center text-xs text-muted tracking-widest">NO SESSIONS</p>
-      ) : view === 'table' ? (
+      )}
+      {showResults && view === 'table' && (
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-muted text-xs tracking-widest">
@@ -215,7 +184,8 @@ export default function LeaderboardView({ groupId, players, sessions }: { groupI
             ))}
           </tbody>
         </table>
-      ) : (
+      )}
+      {showResults && view === 'chart' && (
         <div className="-mx-2">
           <div className="flex justify-end px-2 mb-4">
             <div className="flex gap-3">
@@ -234,7 +204,7 @@ export default function LeaderboardView({ groupId, players, sessions }: { groupI
             <p className="text-muted text-xs tracking-widest px-2">NEED AT LEAST 2 SESSIONS TO SHOW CHART.</p>
           ) : (
             <LeaderboardChart
-              key={`${period}:${range.start}:${range.end}:${hideLowActivity}`}
+              key={`${range?.start ?? ''}:${range?.end ?? ''}:${hideLowActivity}`}
               data={chartData}
               players={chartPlayers}
               mode={chartMode}

@@ -8,7 +8,6 @@ describe('leaderboard calendar ranges', () => {
     expect(presetLeaderboardRange('last-month', now)).toEqual({ start: '2025-12-01', end: '2025-12-31' })
     expect(presetLeaderboardRange('year', now)).toEqual({ start: '2026-01-01', end: '2026-12-31' })
     expect(presetLeaderboardRange('last-month', new Date(2024, 2, 15))).toEqual({ start: '2024-02-01', end: '2024-02-29' })
-    expect(presetLeaderboardRange('all', now)).toEqual({ start: '', end: '' })
   })
 
   it('accepts single-day ranges and rejects incomplete, impossible or reversed dates', () => {
