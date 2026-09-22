@@ -59,7 +59,7 @@ export default async function SessionsPage({
           <col className="w-9 sm:w-12" />
         </colgroup>
         <TableHeader><TableRow className="border-b border-border text-muted-foreground text-[10px] sm:text-xs tracking-normal">
-          <TableHead className="text-left py-3 font-normal">DATE</TableHead><TableHead className="text-left py-3 font-normal"><span className="sm:hidden">NOTE</span><span className="hidden sm:inline">DESCRIPTION</span></TableHead><TableHead className="text-center py-3 font-normal">PLAYERS</TableHead>
+          <TableHead className="text-left py-3 font-normal">DATE</TableHead><TableHead className="text-left py-3 font-normal whitespace-normal [overflow-wrap:anywhere]">DESCRIPTION</TableHead><TableHead className="text-center py-3 font-normal">PLAYERS</TableHead>
           <TableHead className="text-center py-3 font-normal">POG</TableHead><TableHead className="text-center py-3 font-normal">RATE</TableHead>
           <TableHead className="text-center py-3 font-normal"></TableHead>
         </TableRow></TableHeader>
