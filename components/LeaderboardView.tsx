@@ -6,7 +6,7 @@ import ChipValue from '@/components/ChipValue'
 import LeaderboardChart from '@/components/LeaderboardChart'
 import { computeLeaderboardStats, filterLowActivityPlayers, type PlayerStats } from '@/lib/stats'
 import LeaderboardDateFilter from '@/components/LeaderboardDateFilter'
-import { filterLeaderboardSessions, leaderboardRangeError, type LeaderboardFilter } from '@/lib/leaderboard-range'
+import { filterLeaderboardSessions, type LeaderboardFilter } from '@/lib/leaderboard-range'
 import type { LeaderboardSessionRow, Player } from '@/lib/domain-types'
 
 function buildChartData(sessions: LeaderboardSessionRow[], stats: PlayerStats[], mode: 'chips' | 'cny'): { date: string; [player: string]: string | number }[] {
@@ -52,17 +52,16 @@ export default function LeaderboardView({ groupId, players, sessions }: { groupI
   const [hideLowActivity, setHideLowActivity] = useState(true)
   const [filter, setFilter] = useState<LeaderboardFilter>({ period: 'all' })
   const range = filter.period === 'all' ? null : filter.range
-  const rangeError = range ? leaderboardRangeError(range) : null
   const filteredSessions = useMemo(
-    () => rangeError ? [] : filterLeaderboardSessions(sessions, range),
-    [sessions, range, rangeError],
+    () => filterLeaderboardSessions(sessions, range),
+    [sessions, range],
   )
   const stats = useMemo(() => {
     const computed = computeLeaderboardStats(players, filteredSessions)
     return range ? computed.filter(stat => stat.sessions_played > 0) : computed
   }, [players, filteredSessions, range])
   const emptyRange = range !== null && filteredSessions.length === 0
-  const showResults = !rangeError && !emptyRange
+  const showResults = !emptyRange
 
   const activityFilter = useMemo(() => filterLowActivityPlayers(stats), [stats])
   const displayedStats = hideLowActivity ? activityFilter.visibleStats : stats
@@ -109,7 +108,7 @@ export default function LeaderboardView({ groupId, players, sessions }: { groupI
         <Link href={`/groups/${groupId}/sessions/new`} className="text-xs text-accent tracking-widest hover:underline">+ NEW SESSION</Link>
       </div>
 
-      <LeaderboardDateFilter filter={filter} onChange={setFilter} error={rangeError} />
+      <LeaderboardDateFilter filter={filter} onChange={setFilter} />
 
       <div className="flex flex-wrap items-center justify-between gap-2 min-h-8 mb-3 text-[10px] tracking-widest text-muted">
         <button
@@ -135,7 +134,7 @@ export default function LeaderboardView({ groupId, players, sessions }: { groupI
         </span>
       </div>
 
-      {!rangeError && emptyRange && (
+      {emptyRange && (
         <p className="py-12 text-center text-xs text-muted tracking-widest">NO SESSIONS</p>
       )}
       {showResults && view === 'table' && (
