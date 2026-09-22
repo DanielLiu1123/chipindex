@@ -131,7 +131,7 @@ export default function LiveParticipantList({
                   type="button"
                   onClick={() => onCashOut(participant)}
                   disabled={pending}
-                  className="w-[4.75rem] shrink-0 sm:w-24"
+                  className="w-[4.75rem] shrink-0 text-xs sm:w-24"
                 >
                   CASH OUT
                 </Button>
@@ -150,7 +150,8 @@ export default function LiveParticipantList({
           </div>
         )}
 
-        <CollapsibleContent className="border-t border-border px-3 py-2 bg-muted/50">
+        {/* Align with the chevron after the row padding and trigger border/padding. */}
+        <CollapsibleContent className="border-t border-border pl-[calc(1.375rem+1px)] pr-3 py-2 bg-muted/50">
           {cashedOut && (
             <div className="mb-2 flex min-w-0 items-baseline gap-2 overflow-hidden text-[10px] text-muted-foreground">
               <span className="shrink-0 tracking-normal">
@@ -181,7 +182,9 @@ export default function LiveParticipantList({
                   </span>
                   {!cashedOut && (
                     <Button
-                      variant="destructive"
+                      variant="ghost"
+                      size="icon-xs"
+                      className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                       type="button"
                       onClick={() => onRevokeBuyIn(buyIn.id)}
                       disabled={pending}

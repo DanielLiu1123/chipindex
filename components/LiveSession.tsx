@@ -113,8 +113,8 @@ export default function LiveSession({
       </div>
 
       <div className="flex items-center gap-2 mb-1">
-        <span className="inline-block w-2 h-2 rounded-full bg-accent animate-pulse" />
-        <span className="text-xs text-primary tracking-normal">LIVE</span>
+        <span className="inline-block w-2 h-2 rounded-full bg-live motion-safe:animate-pulse" />
+        <span className="text-xs text-live tracking-normal">LIVE</span>
         <span className="text-foreground">{session.date}</span>
         {session.description && (
           <span className="text-sm text-muted-foreground">

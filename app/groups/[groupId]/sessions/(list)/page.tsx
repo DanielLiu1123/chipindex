@@ -57,17 +57,17 @@ async function SessionsPage({ params, query }: {
           <Link href={`/groups/${groupId}/sessions/import`} className="text-xs text-primary tracking-normal hover:underline">IMPORT SESSION</Link>
         </div>
       </div>
-      <Table className="w-full table-fixed text-[10px] sm:text-sm [&_th]:px-0.5 [&_td]:px-0.5 sm:[&_th]:px-2 sm:[&_td]:px-2">
+      <Table className="w-full table-fixed text-sm [&_th]:px-0.5 [&_td]:px-0.5 sm:[&_th]:px-2 sm:[&_td]:px-2">
         <colgroup>
-          <col className="w-20 sm:w-28" />
-          <col />
-          <col className="w-10 sm:w-20" />
-          <col className="w-11 sm:w-32" />
-          <col className="w-8 sm:w-20" />
+          <col className="w-28" />
+          <col className="hidden sm:table-column" />
+          <col className="w-13 sm:w-20" />
+          <col className="sm:w-32" />
+          <col className="w-11 sm:w-20" />
           <col className="w-9 sm:w-12" />
         </colgroup>
-        <TableHeader><TableRow className="border-b border-border text-muted-foreground text-[10px] sm:text-xs tracking-normal">
-          <TableHead className="text-left py-3 font-normal">DATE</TableHead><TableHead className="text-left py-3 font-normal whitespace-normal [overflow-wrap:anywhere]">DESCRIPTION</TableHead><TableHead className="text-center py-3 font-normal">PLAYERS</TableHead>
+        <TableHeader><TableRow className="border-b border-border text-muted-foreground text-xs tracking-normal">
+          <TableHead className="text-left py-3 font-normal">DATE</TableHead><TableHead className="hidden sm:table-cell text-left py-3 font-normal whitespace-normal [overflow-wrap:anywhere]">DESCRIPTION</TableHead><TableHead className="text-center py-3 font-normal">PLAYERS</TableHead>
           <TableHead className="text-center py-3 font-normal">POG</TableHead><TableHead className="text-center py-3 font-normal">RATE</TableHead>
           <TableHead className="text-center py-3 font-normal"></TableHead>
         </TableRow></TableHeader>
@@ -76,13 +76,13 @@ async function SessionsPage({ params, query }: {
           {sessions.map(session => {
             const href = `/groups/${groupId}/sessions/${session.id}`
             const isOpen = session.status === 'OPEN'
-            return <TableRow key={session.id} className={`border-b border-border transition-colors ${isOpen ? 'bg-primary/5 hover:bg-primary/10' : 'hover:bg-muted'}`}>
+            return <TableRow key={session.id} className={`border-b border-border transition-colors ${isOpen ? 'bg-live/5 hover:bg-live/10' : 'hover:bg-muted'}`}>
               <TableCell className="py-4 text-left"><Link href={href} className="block">
-                <div className={`flex items-center gap-0.5 sm:gap-2 ${isOpen ? 'text-primary' : ''}`}>
-                  {isOpen && <span className="inline-block w-2 h-2 rounded-full bg-accent animate-pulse shrink-0" />}{session.date}
+                <div className={`flex items-center gap-0.5 sm:gap-2 ${isOpen ? 'text-live' : ''}`}>
+                  {isOpen && <><span aria-hidden="true" className="inline-block w-2 h-2 rounded-full bg-live motion-safe:animate-pulse shrink-0" /><span className="sr-only">Live session</span></>}{session.date}
                 </div>
               </Link></TableCell>
-              <TableCell className="py-4 text-left whitespace-normal [overflow-wrap:anywhere] text-muted-foreground"><Link href={href} className="block leading-relaxed">{session.description || '—'}</Link></TableCell>
+              <TableCell className="hidden sm:table-cell py-4 text-left whitespace-normal [overflow-wrap:anywhere] text-muted-foreground"><Link href={href} className="block leading-relaxed">{session.description || '—'}</Link></TableCell>
               <TableCell className="py-4 text-center text-muted-foreground"><Link href={href} className="block">{session.player_count}</Link></TableCell>
               <TableCell className="py-4 text-center">{!isOpen && session.winners.length > 0
                 ? <div className="flex flex-wrap justify-center gap-x-2 gap-y-1 whitespace-normal [overflow-wrap:anywhere]">{session.winners.map(winner => <Link key={winner.player_id} href={`/groups/${groupId}/players/${winner.player_id}`} className="min-w-0 text-muted-foreground hover:text-primary transition-colors">{winner.name}</Link>)}</div>
