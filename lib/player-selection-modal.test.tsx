@@ -120,8 +120,8 @@ afterEach(() => {
 })
 
 describe('player picker through real React and Radix', () => {
-  it('focuses the form instead of opening the search keyboard', () => {
-    mount('group')
+  it.each(['group', 'draft', 'join'] as const)('focuses the form instead of opening the search keyboard in %s mode', (mode) => {
+    mount(mode)
     const search = screen.getByRole('searchbox')
     expect(document.activeElement).toBe(search.closest('form'))
     search.focus()
