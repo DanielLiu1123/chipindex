@@ -1,3 +1,5 @@
+import { Suspense } from 'react'
+import Loading from './loading'
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
@@ -14,15 +16,16 @@ import {
 
 export const dynamic = 'force-dynamic'
 
-export default async function SessionsPage({
-  params,
-  searchParams,
-}: {
+interface PageProps {
   params: Promise<{ groupId: string }>
   searchParams: Promise<{ page?: string | string[]; page_size?: string | string[] }>
+}
+
+async function SessionsPage({ params, query }: {
+  params: PageProps['params']
+  query: Awaited<PageProps['searchParams']>
 }) {
   const { groupId } = await params
-  const query = await searchParams
   const requestedPage = normalizeSessionPageParam(query.page, 1)
   const requestedPageSize = normalizeSessionPageParam(
     query.page_size,
@@ -88,4 +91,12 @@ export default async function SessionsPage({
       <SessionPagination sessionsPath={sessionsPath} page={page} pageSize={pageSize} totalPages={totalPages} />
     </>
   )
+}
+
+// Reset the loading boundary for pagination as well as path changes.
+export default async function Page(props: PageProps) {
+  const query = await props.searchParams
+  return <Suspense key={JSON.stringify([query.page, query.page_size])} fallback={<Loading />}>
+    <SessionsPage params={props.params} query={query} />
+  </Suspense>
 }

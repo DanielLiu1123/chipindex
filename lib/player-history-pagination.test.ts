@@ -1,7 +1,6 @@
-import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it } from 'vitest'
+import { renderToReadableStream } from 'react-dom/server'
+import { describe, expect, it, vi } from 'vitest'
 import Page from '../app/groups/[groupId]/players/[id]/page'
-import { vi } from 'vitest'
 const captured = vi.hoisted(() => ({ count: 23, chart: undefined as unknown }))
 vi.mock('./queries', () => ({
   getPlayerDetail: async () => fixture(captured.count),
@@ -59,12 +58,17 @@ function fixture(count: number): PlayerDetail {
 async function renderPage(query: Query, count = 23) {
   captured.count = count
   captured.chart = undefined
-  const html = renderToStaticMarkup(
+  let renderError: unknown
+  const stream = await renderToReadableStream(
     await Page({
       params: Promise.resolve({ groupId: 'g1', id: 'p1' }),
       searchParams: Promise.resolve(query),
     }),
+    { onError: (error) => { renderError = error } },
   )
+  await stream.allReady
+  if (renderError) throw renderError
+  const html = (await new Response(stream).text()).replace(/<!--[\s\S]*?-->/g, '')
   return {
     html,
     chart: captured.chart as
@@ -109,10 +113,16 @@ describe('player session history pagination', () => {
     expect(html).toMatch(/aria-label="Next page"[^>]*aria-disabled="true"/)
   })
 
-  it('canonicalizes missing, invalid and out-of-range parameters like the session list', async () => {
-    await expect(renderPage({})).rejects.toThrow(
-      'redirect:/groups/g1/players/p1?page=1&page_size=10',
-    )
+  it('renders default and partially specified pagination without redirecting', async () => {
+    const { html } = await renderPage({})
+    expect(html).toContain('/sessions/s23')
+    expect(html).toContain('/sessions/s14')
+    expect(html).not.toContain('/sessions/s13')
+    expect((await renderPage({ page: '2' })).html).toContain('/sessions/s13')
+    expect((await renderPage({ page_size: '5' })).html).toContain('/sessions/s19')
+  })
+
+  it('canonicalizes invalid and out-of-range parameters', async () => {
     await expect(renderPage({ page: '-1', page_size: 'bad' })).rejects.toThrow(
       'page=1&page_size=10',
     )

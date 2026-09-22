@@ -1,3 +1,5 @@
+import { Suspense } from 'react'
+import Loading from './loading'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import PlayerStatsChart from '@/components/PlayerStatsChart'
@@ -9,12 +11,16 @@ import { computePlayerHistory } from '@/lib/stats'
 
 export const dynamic = 'force-dynamic'
 
-export default async function PlayerDetailPage({ params, searchParams }: {
+interface PageProps {
   params: Promise<{ groupId: string; id: string }>
   searchParams: Promise<{ page?: string | string[]; page_size?: string | string[] }>
+}
+
+async function PlayerDetailPage({ params, query }: {
+  params: PageProps['params']
+  query: Awaited<PageProps['searchParams']>
 }) {
   const { groupId, id } = await params
-  const query = await searchParams
   const requestedPage = normalizeSessionPageParam(query.page, 1)
   const pageSize = normalizeSessionPageParam(query.page_size, DEFAULT_SESSION_PAGE_SIZE, MAX_SESSION_PAGE_SIZE)
   const player = await getPlayerDetail(groupId, id)
@@ -23,7 +29,12 @@ export default async function PlayerDetailPage({ params, searchParams }: {
   const totalPages = Math.max(1, Math.ceil(history.length / pageSize))
   const page = Math.min(requestedPage, totalPages)
   const historyPath = `/groups/${groupId}/players/${id}`
-  if (!hasCanonicalSessionPageParams(query.page, query.page_size, page, pageSize)) {
+  if (!hasCanonicalSessionPageParams(
+    query.page ?? '1',
+    query.page_size ?? String(DEFAULT_SESSION_PAGE_SIZE),
+    page,
+    pageSize,
+  )) {
     redirect(sessionPageHref(historyPath, page, pageSize))
   }
   // Compute cumulative values over the full history before paging the table.
@@ -37,4 +48,12 @@ export default async function PlayerDetailPage({ params, searchParams }: {
     <PlayerSessionHistoryTable groupId={groupId} rows={rows} />
     <SessionPagination sessionsPath={historyPath} page={page} pageSize={pageSize} totalPages={totalPages} />
   </>
+}
+
+// Reset the loading boundary for pagination as well as path changes.
+export default async function Page(props: PageProps) {
+  const query = await props.searchParams
+  return <Suspense key={JSON.stringify([query.page, query.page_size])} fallback={<Loading />}>
+    <PlayerDetailPage params={props.params} query={query} />
+  </Suspense>
 }
