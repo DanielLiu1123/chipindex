@@ -114,10 +114,16 @@ describe('player session history pagination', () => {
     expect(html).toMatch(/aria-label="Next page"[^>]*aria-disabled="true"/)
   })
 
-  it('canonicalizes missing, invalid and out-of-range parameters like the session list', async () => {
-    await expect(renderPage({})).rejects.toThrow(
-      'redirect:/groups/g1/players/p1?page=1&page_size=10',
-    )
+  it('renders default and partially specified pagination without redirecting', async () => {
+    const { html } = await renderPage({})
+    expect(html).toContain('/sessions/s23')
+    expect(html).toContain('/sessions/s14')
+    expect(html).not.toContain('/sessions/s13')
+    expect((await renderPage({ page: '2' })).html).toContain('/sessions/s13')
+    expect((await renderPage({ page_size: '5' })).html).toContain('/sessions/s19')
+  })
+
+  it('canonicalizes invalid and out-of-range parameters', async () => {
     await expect(renderPage({ page: '-1', page_size: 'bad' })).rejects.toThrow(
       'page=1&page_size=10',
     )

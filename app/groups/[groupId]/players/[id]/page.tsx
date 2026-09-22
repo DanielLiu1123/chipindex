@@ -25,7 +25,12 @@ async function PlayerDetailPage({ params, searchParams }: {
   const totalPages = Math.max(1, Math.ceil(history.length / pageSize))
   const page = Math.min(requestedPage, totalPages)
   const historyPath = `/groups/${groupId}/players/${id}`
-  if (!hasCanonicalSessionPageParams(query.page, query.page_size, page, pageSize)) {
+  if (!hasCanonicalSessionPageParams(
+    query.page ?? '1',
+    query.page_size ?? String(DEFAULT_SESSION_PAGE_SIZE),
+    page,
+    pageSize,
+  )) {
     redirect(sessionPageHref(historyPath, page, pageSize))
   }
   // Compute cumulative values over the full history before paging the table.
