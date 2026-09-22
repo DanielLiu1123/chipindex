@@ -11,16 +11,3 @@ export function sortTooltipItems<T extends TooltipSortItem>(items: readonly T[] 
     return String(a.dataKey ?? a.name ?? '').localeCompare(String(b.dataKey ?? b.name ?? ''))
   })
 }
-
-export function prepareSortedTooltipProps<
-  TItem extends TooltipSortItem,
-  TProps extends { payload: readonly TItem[]; itemSorter?: unknown },
->(props: TProps) {
-  const { payload, itemSorter: _itemSorter, ...rest } = props
-
-  return {
-    ...rest,
-    payload: sortTooltipItems<TItem>(payload),
-    itemSorter: undefined,
-  }
-}

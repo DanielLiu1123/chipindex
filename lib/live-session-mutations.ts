@@ -1,8 +1,8 @@
 import { db } from './db'
 import { DomainError } from './domain-error'
 import { buyinSum } from './settlement'
-import { requireConservation, requireNonNegativeInteger, requirePositiveInteger } from './session-policy'
-import { ensure, now, requireActiveMembers, requireOpenSession, requireUniquePlayerIds } from './mutation-guards'
+import { requireConservation, requireNonNegativeInteger } from './session-policy'
+import { ensure, now, requireOpenSession, requireUniquePlayerIds } from './mutation-guards'
 import type { FinalEntry } from './contracts'
 
 interface ParticipantSettlementRow {
@@ -15,21 +15,6 @@ async function requireParticipantSettlementState(sessionId: string, playerId: st
   ensure(error)
   if (!data) throw new DomainError('not_found', 'Participant not found')
   return data
-}
-
-export async function addParticipant(groupId: string, sessionId: string, playerId: string) {
-  if (!playerId) throw new DomainError('invalid_input', 'player_id required')
-  await requireOpenSession(groupId, sessionId)
-  const { data: existing, error: existingError } = await db.from('session_participant').select('id, settled_at').eq('session_id', sessionId).eq('player_id', playerId).is('deleted_at', null).maybeSingle()
-  ensure(existingError)
-  if (existing && existing.settled_at !== null) throw new DomainError('conflict', 'Cashed-out participant cannot rejoin')
-  await requireActiveMembers(groupId, [playerId])
-  const { data, error } = await db.from('session_participant').upsert(
-    { session_id: sessionId, player_id: playerId, deleted_at: null, updated_at: now() },
-    { onConflict: 'session_id,player_id' },
-  ).select()
-  ensure(error)
-  return data?.[0] ?? null
 }
 
 export async function removeParticipant(groupId: string, sessionId: string, playerId: string): Promise<void> {
@@ -73,24 +58,6 @@ export async function undoParticipantCashOut(groupId: string, sessionId: string,
     .select('player_id, final_chips, settled_at').maybeSingle()
   ensure(error)
   if (!data) throw new DomainError('conflict', 'Participant has not cashed out')
-  return data
-}
-
-export async function addBuyin(groupId: string, sessionId: string, playerId: string, amount: number) {
-  if (!playerId) throw new DomainError('invalid_input', 'player_id required')
-  requirePositiveInteger(amount, 'amount')
-  await requireOpenSession(groupId, sessionId)
-  const { data: existing, error: existingError } = await db.from('session_participant').select('id, settled_at').eq('session_id', sessionId).eq('player_id', playerId).is('deleted_at', null).maybeSingle()
-  ensure(existingError)
-  if (existing && existing.settled_at !== null) throw new DomainError('conflict', 'Cashed-out participant cannot buy in')
-  if (!existing) await requireActiveMembers(groupId, [playerId])
-  const { error: participantError } = await db.from('session_participant').upsert(
-    { session_id: sessionId, player_id: playerId, deleted_at: null, updated_at: now() },
-    { onConflict: 'session_id,player_id' },
-  )
-  ensure(participantError)
-  const { data, error } = await db.from('buy_in').insert({ session_id: sessionId, player_id: playerId, amount }).select().single()
-  ensure(error)
   return data
 }
 

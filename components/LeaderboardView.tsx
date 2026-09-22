@@ -18,50 +18,12 @@ import Link from 'next/link'
 import ChipValue from '@/components/ChipValue'
 import LeaderboardChart from '@/components/LeaderboardChart'
 import {
-  computeLeaderboardStats,
-  filterLowActivityPlayers,
-  type PlayerStats,
-} from '@/lib/stats'
+  buildLeaderboard,
+  type LeaderboardSortKey as SortKey,
+} from '@/lib/leaderboard'
 import LeaderboardDateFilter from '@/components/LeaderboardDateFilter'
-import {
-  filterLeaderboardSessions,
-  type LeaderboardFilter,
-} from '@/lib/leaderboard-range'
+import type { LeaderboardFilter } from '@/lib/leaderboard-range'
 import type { LeaderboardSessionRow, Player } from '@/lib/domain-types'
-
-function buildChartData(
-  sessions: LeaderboardSessionRow[],
-  stats: PlayerStats[],
-  mode: 'chips' | 'cny',
-): { date: string; [player: string]: string | number }[] {
-  const sorted = [...sessions].sort((a, b) => a.date.localeCompare(b.date))
-  const playerIds = stats.map((s) => s.player.id)
-
-  const cumulative = new Map<string, number>()
-  playerIds.forEach((pid) => cumulative.set(pid, 0))
-
-  return sorted.map((session) => {
-    const row: { date: string; [k: string]: string | number } = {
-      date: session.date,
-    }
-    playerIds.forEach((pid) => {
-      const entry = session.session_entries.find((e) => e.player_id === pid)
-      if (entry) {
-        const delta =
-          mode === 'cny' ? entry.chips / session.exchange_rate : entry.chips
-        cumulative.set(pid, (cumulative.get(pid) ?? 0) + delta)
-      }
-      row[pid] =
-        mode === 'cny'
-          ? Math.round((cumulative.get(pid) ?? 0) * 100) / 100
-          : (cumulative.get(pid) ?? 0)
-    })
-    return row
-  })
-}
-
-type SortKey =
-  'total_yuan' | 'total_chips' | 'sessions_played' | 'win_rate' | 'pog_count'
 
 function SortHeader({
   label,
@@ -103,29 +65,26 @@ export default function LeaderboardView({
   const [hideLowActivity, setHideLowActivity] = useState(true)
   const [filter, setFilter] = useState<LeaderboardFilter>({ period: 'all' })
   const range = filter.period === 'all' ? null : filter.range
-  const filteredSessions = useMemo(
-    () => filterLeaderboardSessions(sessions, range),
-    [sessions, range],
+  const {
+    sessionCount,
+    playerCount,
+    activityFilter,
+    emptyRange,
+    sortedStats,
+    chartPlayers,
+    chartData,
+  } = useMemo(
+    () =>
+      buildLeaderboard(players, sessions, {
+        range,
+        hideLowActivity,
+        chartMode,
+        sortKey,
+        sortDir,
+      }),
+    [players, sessions, range, hideLowActivity, chartMode, sortKey, sortDir],
   )
-  const stats = useMemo(() => {
-    const computed = computeLeaderboardStats(players, filteredSessions)
-    return range
-      ? computed.filter((stat) => stat.sessions_played > 0)
-      : computed
-  }, [players, filteredSessions, range])
-  const emptyRange = range !== null && filteredSessions.length === 0
   const showResults = !emptyRange
-
-  const activityFilter = useMemo(() => filterLowActivityPlayers(stats), [stats])
-  const displayedStats = hideLowActivity ? activityFilter.visibleStats : stats
-  const chartPlayers = displayedStats.map((stat) => ({
-    id: stat.player.id,
-    name: stat.player.name,
-  }))
-  const chartData = useMemo(
-    () => buildChartData(filteredSessions, displayedStats, chartMode),
-    [filteredSessions, displayedStats, chartMode],
-  )
 
   function toggleSort(key: SortKey) {
     if (key === sortKey) {
@@ -135,15 +94,6 @@ export default function LeaderboardView({
       setSortDir('desc')
     }
   }
-
-  const sortedStats = useMemo(() => {
-    const dir = sortDir === 'desc' ? -1 : 1
-    return [...displayedStats].sort((a, b) => {
-      const diff = a[sortKey] - b[sortKey]
-      if (diff !== 0) return dir * diff
-      return a.player.id.localeCompare(b.player.id)
-    })
-  }, [displayedStats, sortKey, sortDir])
 
   return (
     <>
@@ -179,7 +129,7 @@ export default function LeaderboardView({
         <span>
           {hideLowActivity && activityFilter.hiddenCount > 0
             ? `${activityFilter.hiddenCount} HIDDEN · FEWER THAN ${activityFilter.threshold} SESSIONS`
-            : `SHOWING ALL ${stats.length} PLAYERS`}
+            : `SHOWING ALL ${playerCount} PLAYERS`}
         </span>
       </div>
 
@@ -236,7 +186,7 @@ export default function LeaderboardView({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {stats.length === 0 && (
+            {playerCount === 0 && (
               <TableRow>
                 <TableCell
                   colSpan={7}
@@ -328,7 +278,7 @@ export default function LeaderboardView({
               <ToggleGroupItem value="chips">CHIPS</ToggleGroupItem>
             </ToggleGroup>
           </div>
-          {filteredSessions.length < 2 ? (
+          {sessionCount < 2 ? (
             <p className="text-muted-foreground text-xs tracking-normal px-2">
               NEED AT LEAST 2 SESSIONS TO SHOW CHART.
             </p>

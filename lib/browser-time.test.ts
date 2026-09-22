@@ -1,14 +1,13 @@
 import { execFileSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
-import { transformSync } from 'esbuild'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { pogPlayerIds } from './session-rules'
 
 // A fresh process gives each browser-zone simulation its own Date and Intl.
 function inZone(zone: string, code: string) {
-  const time = transformSync(readFileSync(new URL('./browser-time.ts', import.meta.url), 'utf8'), { loader: 'ts', format: 'cjs' }).code
-  const activity = transformSync(readFileSync(new URL('./player-activity.ts', import.meta.url), 'utf8'), { loader: 'ts', format: 'cjs' }).code
-  return JSON.parse(execFileSync(process.execPath, ['-e', `const time = (() => { const module = {exports:{}}; ${time}; return module.exports })(); const activity = (() => { const module = {exports:{}}; ${activity}; return module.exports })(); console.log(JSON.stringify(${code}));`], { env: { ...process.env, TZ: zone }, encoding: 'utf8' }))
+  const timePath = fileURLToPath(new URL('./browser-time.ts', import.meta.url))
+  const activityPath = fileURLToPath(new URL('./player-activity.ts', import.meta.url))
+  return JSON.parse(execFileSync(process.execPath, ['--experimental-strip-types', '-e', `const time = require(${JSON.stringify(timePath)}); const activity = require(${JSON.stringify(activityPath)}); console.log(JSON.stringify(${code}));`], { env: { ...process.env, TZ: zone }, encoding: 'utf8' }))
 }
 describe('browser timezone policy', () => {
   it.each([

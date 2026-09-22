@@ -4,7 +4,8 @@ const dbMocks = vi.hoisted(() => ({ from: vi.fn(), chains: [] as Array<{ table: 
 
 vi.mock('./db', () => ({ db: { from: dbMocks.from } }))
 
-import { addBuyin, addParticipant, cashOutParticipant, removeParticipant, revokeBuyin, settleSession, undoParticipantCashOut } from './live-session-mutations'
+import { addBuyin, addParticipant } from './buy-in-mutations'
+import { cashOutParticipant, removeParticipant, revokeBuyin, settleSession, undoParticipantCashOut } from './live-session-mutations'
 
 type QueryResponse = { data: unknown; error: { message: string } | null }
 
@@ -13,7 +14,7 @@ function mockResponses(responses: Record<string, QueryResponse[]>) {
     const response = responses[table]?.shift()
     if (!response) throw new Error(`No mock response configured for ${table}`)
     const chain: Record<string, ReturnType<typeof vi.fn> | ((resolve: (value: QueryResponse) => unknown) => Promise<unknown>)> = {}
-    for (const method of ['select', 'update', 'eq', 'is', 'not', 'maybeSingle']) {
+    for (const method of ['select', 'update', 'eq', 'in', 'is', 'not', 'maybeSingle']) {
       chain[method] = vi.fn().mockReturnValue(chain)
     }
     chain.then = (resolve: (value: QueryResponse) => unknown) => Promise.resolve(response).then(resolve)
@@ -110,15 +111,15 @@ describe('participant cash out', () => {
   })
 
   it('blocks buy-in changes after cash out', async () => {
-    for (const action of [
+    for (const [index, action] of [
       () => addBuyin('g1', 's1', 'p1', 2000),
       () => addParticipant('g1', 's1', 'p1'),
       () => revokeBuyin('g1', 's1', 'b1'),
-    ]) {
+    ].entries()) {
       dbMocks.from.mockReset()
       mockResponses({
         session: [{ data: { status: 'OPEN' }, error: null }],
-        session_participant: [{ data: { id: 'part-1', settled_at: '2026-08-19T12:00:00Z' }, error: null }],
+        session_participant: [{ data: index === 2 ? { id: 'part-1', settled_at: '2026-08-19T12:00:00Z' } : [{ id: 'part-1', player_id: 'p1', settled_at: '2026-08-19T12:00:00Z' }], error: null }],
         buy_in: [{ data: { player_id: 'p1' }, error: null }],
       })
       await expect(action()).rejects.toMatchObject({ code: 'conflict' })

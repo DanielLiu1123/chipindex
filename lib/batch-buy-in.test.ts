@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 
 const mocks = vi.hoisted(() => ({ from: vi.fn(), insert: vi.fn(), upsert: vi.fn(), update: vi.fn(), not: vi.fn() }))
 vi.mock('./db', () => ({ db: { from: mocks.from } }))
-import { addBatchBuyin, addBatchParticipants } from './batch-buy-in-mutations'
+import { addBatchBuyin, addBatchParticipants, addBuyin, addParticipant } from './buy-in-mutations'
 
 const command = {
   entries: [
@@ -26,7 +26,7 @@ function setup({ participants = [{ player_id: 'p1', settled_at: null }, { player
     const response = responses[table]?.shift()
     if (!response) throw Error(`Unexpected query: ${table}`)
     const chain: Record<string, unknown> = {}
-    for (const method of ['select', 'eq', 'is', 'in', 'maybeSingle']) chain[method] = vi.fn(() => chain)
+    for (const method of ['select', 'eq', 'is', 'in', 'maybeSingle', 'single']) chain[method] = vi.fn(() => chain)
     chain.insert = (...args: unknown[]) => { mocks.insert(...args); return chain }
     chain.upsert = (...args: unknown[]) => { mocks.upsert(...args); return chain }
     chain.update = (...args: unknown[]) => { mocks.update(...args); return chain }
@@ -188,5 +188,39 @@ describe('batch buy-in persistence', () => {
   it('surfaces insert failures rather than reporting a successful batch', async () => {
     setup({ buyins: [{ data: [], error: null }, { data: null, error: { message: 'write failed' } }] })
     await expect(addBatchBuyin('g1', 's1', command)).rejects.toMatchObject({ message: 'Database operation failed' })
+  })
+})
+
+
+describe('legacy write compatibility through the shared participant preparation', () => {
+  const participant = { id: 'participant-1', session_id: 's1', player_id: 'p1', final_chips: null, settled_at: null, deleted_at: null, created_at: '2026-01-01', updated_at: '2026-01-01' }
+  it('joins without a buy-in and returns the participant row', async () => {
+    setup({ participants: [], afterJoin: [participant], members: ['p1'] })
+    await expect(addParticipant('g1', 's1', 'p1')).resolves.toEqual(participant)
+    expect(mocks.insert).not.toHaveBeenCalled()
+    expect(mocks.upsert).toHaveBeenCalledWith([{ session_id: 's1', player_id: 'p1' }], { onConflict: 'session_id,player_id', ignoreDuplicates: true })
+    expect(mocks.not).toHaveBeenCalledWith('deleted_at', 'is', null)
+  })
+  it('allows existing session players to buy in after leaving the group without overwriting participant state', async () => {
+    const buyIn = { id: 'legacy-buyin', session_id: 's1', player_id: 'p1', amount: 2000 }
+    setup({ participants: [participant], members: [], buyins: [{ data: buyIn, error: null }] })
+    await expect(addBuyin('g1', 's1', 'p1', 2000)).resolves.toEqual(buyIn)
+    expect(mocks.from.mock.calls.map(([table]) => table)).not.toContain('group_player')
+    expect(mocks.upsert).not.toHaveBeenCalled(); expect(mocks.update).not.toHaveBeenCalled()
+  })
+  it('requires membership when a legacy buy-in auto-joins a missing player', async () => {
+    setup({ participants: [], members: [] })
+    await expect(addBuyin('g1', 's1', 'p1', 2000)).rejects.toMatchObject({ code: 'rule_violation' })
+    expect(mocks.insert).not.toHaveBeenCalled(); expect(mocks.upsert).not.toHaveBeenCalled()
+  })
+  it('still requires membership for a zero-buy-in join, even for an existing participant', async () => {
+    setup({ participants: [participant], members: [] })
+    await expect(addParticipant('g1', 's1', 'p1')).rejects.toMatchObject({ code: 'rule_violation' })
+    expect(mocks.insert).not.toHaveBeenCalled()
+  })
+  it('does not overwrite a concurrent cash-out while restoring a legacy participant', async () => {
+    setup({ participants: [], afterJoin: [{ ...participant, settled_at: '2026-01-02' }], members: ['p1'] })
+    await expect(addBuyin('g1', 's1', 'p1', 2000)).rejects.toMatchObject({ code: 'conflict' })
+    expect(mocks.insert).not.toHaveBeenCalled()
   })
 })

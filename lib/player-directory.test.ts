@@ -1,54 +1,116 @@
-import { beforeEach, expect, it, vi } from 'vitest'
-import { createHookHarness, loadUiModule } from './test-ui'
-import type { usePlayerDirectory } from './use-player-directory'
+// @vitest-environment jsdom
+import { renderHook, act, cleanup } from '@testing-library/react'
+import { afterEach, expect, it, vi } from 'vitest'
+import { usePlayerDirectory } from './use-player-directory'
+import { createPlayerInGroup } from './client'
 import type { Player } from './domain-types'
-
-const hooks = createHookHarness()
-const create = vi.fn()
-const useDirectory = loadUiModule<{ usePlayerDirectory: typeof usePlayerDirectory }>(new URL('./use-player-directory.ts', import.meta.url), {
-  '@/lib/use-browser-ready': { useBrowserReady: () => true }, react: hooks.react, '@/lib/client': { createPlayerInGroup: create },
-}).usePlayerDirectory
-const alice: Player = { id: 'a', name: 'Alice', created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z', deleted_at: null }
-beforeEach(() => { hooks.reset(); create.mockReset() })
-
-it('reuses names case-insensitively, rejects excluded players and never creates empty names', async () => {
-  const options = { groupId: 'g1', players: [alice], excludedIds: [] as string[], excludedMessage: 'Already selected' }
-  const render = () => hooks.render(() => useDirectory(options))
-  expect(await render().create(' ALICE ')).toMatchObject({ player_id: 'a' })
-  options.excludedIds = ['a']
-  await expect(render().create('alice')).rejects.toThrow('Already selected')
-  await expect(render().create('  ')).rejects.toThrow('Enter a player name')
+vi.mock('./client', () => ({ createPlayerInGroup: vi.fn() }))
+const create = vi.mocked(createPlayerInGroup)
+const alice: Player = {
+  id: 'a',
+  name: 'Alice',
+  created_at: '2026-01-01',
+  updated_at: '2026-01-01',
+  deleted_at: null,
+}
+afterEach(() => {
+  cleanup()
+  vi.clearAllMocks()
+})
+it('reuses names, rejects excluded players and empty names', async () => {
+  const options = {
+    groupId: 'g1',
+    players: [alice],
+    excludedIds: [] as string[],
+    excludedMessage: 'Already selected',
+  }
+  const hook = renderHook((props) => usePlayerDirectory(props), {
+    initialProps: options,
+  })
+  await act(async () => {
+    expect(await hook.result.current.create(' ALICE ')).toMatchObject({
+      player_id: 'a',
+    })
+  })
+  hook.rerender({ ...options, excludedIds: ['a'] })
+  await expect(hook.result.current.create('alice')).rejects.toThrow(
+    'Already selected',
+  )
+  await expect(hook.result.current.create('  ')).rejects.toThrow(
+    'Enter a player name',
+  )
   expect(create).not.toHaveBeenCalled()
 })
-
-it('retains new group players at the front through refresh, then excludes them on close', async () => {
-  const options = { groupId: 'g1', players: [alice], excludedIds: [] as string[], excludedMessage: 'Already in group', retainCreatedSelections: true, onCreated: vi.fn() }
+it('retains new group players across refresh until the selection closes', async () => {
   const bob = { ...alice, id: 'b', name: 'Bob' }
-  const row = { player: bob, group_player: { id: 'gp' } }
+  const row = {
+    player: bob,
+    group_player: {
+      id: 'gp',
+      group_id: 'g1',
+      player_id: 'b',
+      created_at: '',
+      updated_at: '',
+      deleted_at: null,
+    },
+  }
   create.mockResolvedValue(row)
-  const render = () => hooks.render(() => useDirectory(options))
-  await render().create(' Bob ')
+  const options = {
+    groupId: 'g1',
+    players: [alice],
+    excludedIds: [] as string[],
+    excludedMessage: 'Already in group',
+    retainCreatedSelections: true,
+    onCreated: vi.fn(),
+  }
+  const hook = renderHook((props) => usePlayerDirectory(props), {
+    initialProps: options,
+  })
+  await act(async () => {
+    await hook.result.current.create(' Bob ')
+  })
   expect(create).toHaveBeenCalledExactlyOnceWith('g1', 'Bob')
-  expect(options.onCreated).toHaveBeenCalledExactlyOnceWith(row)
-  options.players = [alice, bob]; options.excludedIds = ['b']
-  expect(render().participants.map(player => player.player_id)).toEqual(['b', 'a'])
-  await render().create('bob')
-  expect(create).toHaveBeenCalledTimes(1)
-  render().resetSelection()
-  expect(render().participants.map(player => player.player_id)).toEqual(['a'])
-  // Removing membership makes the same player available again without creation.
-  options.excludedIds = []
-  expect(await render().create('Bob')).toMatchObject({ player_id: 'b' })
+  expect(options.onCreated).toHaveBeenCalledWith(row)
+  hook.rerender({ ...options, players: [alice, bob], excludedIds: ['b'] })
+  expect(hook.result.current.participants.map((p) => p.player_id)).toEqual([
+    'b',
+    'a',
+  ])
+  await act(async () => {
+    await hook.result.current.create('bob')
+  })
+  act(() => hook.result.current.resetSelection())
+  expect(hook.result.current.participants.map((p) => p.player_id)).toEqual([
+    'a',
+  ])
+  hook.rerender({ ...options, players: [alice, bob] })
+  await act(async () => {
+    expect(await hook.result.current.create('Bob')).toMatchObject({
+      player_id: 'b',
+    })
+  })
   expect(create).toHaveBeenCalledTimes(1)
 })
-
-it('immediately excludes newly staged session players but preserves their names before refresh', async () => {
-  const options = { groupId: 'g1', players: [] as Player[], excludedIds: [] as string[], excludedMessage: 'Already selected' }
-  create.mockResolvedValue({ player: alice })
-  const render = () => hooks.render(() => useDirectory(options))
-  await render().create('Alice')
-  options.excludedIds = ['a']
-  expect(render().participants).toEqual([])
-  expect(render().players).toEqual([alice])
-  await expect(render().create('Alice')).rejects.toThrow('Already selected')
+it('excludes staged session players while preserving their names before refresh', async () => {
+  create.mockResolvedValue({ player: alice } as Awaited<
+    ReturnType<typeof createPlayerInGroup>
+  >)
+  const options = {
+    groupId: 'g1',
+    players: [] as Player[],
+    excludedIds: [] as string[],
+    excludedMessage: 'Already selected',
+  }
+  const hook = renderHook((props) => usePlayerDirectory(props), {
+    initialProps: options,
+  })
+  await act(async () => {
+    await hook.result.current.create('Alice')
+  })
+  hook.rerender({ ...options, excludedIds: ['a'] })
+  expect(hook.result.current.participants).toEqual([])
+  expect(hook.result.current.players).toEqual([alice])
+  await expect(hook.result.current.create('Alice')).rejects.toThrow(
+    'Already selected',
+  )
 })

@@ -28,7 +28,7 @@ export default function LiveSettlementPanel({ participants, finals, pending, set
                 <span className="text-sm text-foreground tabular-nums">{(participant.final_chips ?? 0).toLocaleString()}</span>
               </div>
             ) : (
-              <Input type="number" inputMode="numeric" min="0" value={finals[participant.player_id] ?? ''}
+              <Input aria-label={`final chips for ${participant.name}`} disabled={pending} type="number" inputMode="numeric" min="0" value={finals[participant.player_id] ?? ''}
                 onChange={event => onFinalChange(participant.player_id, event.target.value)}
                 placeholder="final"
                 className="w-20 text-right sm:w-28" />
