@@ -181,7 +181,9 @@ export default function LiveParticipantList({
                   </span>
                   {!cashedOut && (
                     <Button
-                      variant="destructive"
+                      variant="ghost"
+                      size="icon-xs"
+                      className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                       type="button"
                       onClick={() => onRevokeBuyIn(buyIn.id)}
                       disabled={pending}
