@@ -38,6 +38,7 @@ export default function PlayerSelectionModal({
   const [newName, setNewName] = useState('')
   const [creating, setCreating] = useState(false)
   const [newError, setNewError] = useState('')
+  const formRef = useRef<HTMLFormElement>(null)
   const [visibleCount, setVisibleCount] = useState(PLAYER_PAGE_SIZE)
   const [query, setQuery] = useState('')
 
@@ -123,12 +124,14 @@ export default function PlayerSelectionModal({
   return (
     <Dialog
       open={open}
+      initialFocusRef={addingPlayers ? formRef : undefined}
       label={addingPlayers ? 'Add players' : 'Buy in'}
       pending={creating || pending}
       onClose={close}
     >
       {/* Receive initial dialog focus without adding a Tab stop before search. */}
       <form
+        ref={formRef}
         tabIndex={addingPlayers ? -1 : undefined}
         onSubmit={submit}
         className="outline-none"

@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, type ReactNode } from 'react'
+import { useRef, type ReactNode, type RefObject } from 'react'
 import {
   Dialog as Root,
   DialogContent,
@@ -15,6 +15,7 @@ interface Props {
   onClose: () => void
   children: ReactNode
   className?: string
+  initialFocusRef?: RefObject<HTMLElement | null>
 }
 
 // Business dialogs share pending-operation protection; Radix owns focus,
@@ -26,6 +27,7 @@ export default function Dialog({
   onClose,
   children,
   className,
+  initialFocusRef,
 }: Props) {
   const returnFocus = useRef<HTMLElement | null>(null)
   return (
@@ -36,8 +38,12 @@ export default function Dialog({
       }}
     >
       <DialogContent
-        onOpenAutoFocus={() => {
+        onOpenAutoFocus={(event) => {
           returnFocus.current = document.activeElement as HTMLElement
+          if (initialFocusRef?.current) {
+            event.preventDefault()
+            initialFocusRef.current.focus()
+          }
         }}
         onCloseAutoFocus={(event) => {
           event.preventDefault()

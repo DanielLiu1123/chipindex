@@ -120,6 +120,14 @@ afterEach(() => {
 })
 
 describe('player picker through real React and Radix', () => {
+  it('focuses the form instead of opening the search keyboard', () => {
+    mount('group')
+    const search = screen.getByRole('searchbox')
+    expect(document.activeElement).toBe(search.closest('form'))
+    search.focus()
+    expect(document.activeElement).toBe(search)
+  })
+
   it('adds group members without chip inputs or buy-in writes', async () => {
     const app = mount('group')
     expect(screen.getByRole('searchbox')).toBeTruthy()
