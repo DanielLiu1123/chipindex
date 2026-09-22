@@ -76,10 +76,10 @@ async function SessionsPage({ params, query }: {
           {sessions.map(session => {
             const href = `/groups/${groupId}/sessions/${session.id}`
             const isOpen = session.status === 'OPEN'
-            return <TableRow key={session.id} className={`border-b border-border transition-colors ${isOpen ? 'bg-primary/5 hover:bg-primary/10' : 'hover:bg-muted'}`}>
+            return <TableRow key={session.id} className={`border-b border-border transition-colors ${isOpen ? 'bg-live/5 hover:bg-live/10' : 'hover:bg-muted'}`}>
               <TableCell className="py-4 text-left"><Link href={href} className="block">
-                <div className={`flex items-center gap-0.5 sm:gap-2 ${isOpen ? 'text-primary' : ''}`}>
-                  {isOpen && <span className="inline-block w-2 h-2 rounded-full bg-accent animate-pulse shrink-0" />}{session.date}
+                <div className={`flex items-center gap-0.5 sm:gap-2 ${isOpen ? 'text-live' : ''}`}>
+                  {isOpen && <><span aria-hidden="true" className="inline-block w-2 h-2 rounded-full bg-live motion-safe:animate-pulse shrink-0" /><span className="sr-only">Live session</span></>}{session.date}
                 </div>
               </Link></TableCell>
               <TableCell className="py-4 text-left whitespace-normal [overflow-wrap:anywhere] text-muted-foreground"><Link href={href} className="block leading-relaxed">{session.description || '—'}</Link></TableCell>

@@ -8,6 +8,7 @@
   --font-heading: var(--font-geist);
   --font-sans: var(--font-geist);
   --font-mono: "Geist Mono", monospace;
+  --color-live: var(--live);
   --color-profit: var(--profit);
   --color-loss: var(--loss);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -54,6 +55,7 @@
   --chart-8: oklch(0.5 0.12 110);
   --chart-7: oklch(0.55 0.2 350);
   --chart-6: oklch(0.5 0.12 210);
+  --live: oklch(0.448 0.119 151.328);
   --profit: oklch(0.448 0.119 151.328);
   --loss: oklch(0.505 0.213 27.518);
   --background: oklch(1 0 0);
@@ -94,6 +96,7 @@
   --chart-8: oklch(0.75 0.12 110);
   --chart-7: oklch(0.75 0.2 350);
   --chart-6: oklch(0.75 0.12 210);
+  --live: oklch(0.792 0.209 151.711);
   --profit: oklch(0.792 0.209 151.711);
   --loss: oklch(0.808 0.114 19.571);
   --background: oklch(0.145 0 0);

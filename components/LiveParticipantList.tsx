@@ -131,7 +131,7 @@ export default function LiveParticipantList({
                   type="button"
                   onClick={() => onCashOut(participant)}
                   disabled={pending}
-                  className="w-[4.75rem] shrink-0 sm:w-24"
+                  className="w-[4.75rem] shrink-0 text-xs sm:w-24"
                 >
                   CASH OUT
                 </Button>
