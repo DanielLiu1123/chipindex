@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
@@ -51,11 +52,11 @@ export default async function SessionsPage({
       </div>
       <Table className="w-full table-fixed text-xs sm:text-sm [&_th]:px-0.5 [&_td]:px-0.5 sm:[&_th]:px-2 sm:[&_td]:px-2">
         <colgroup>
-          <col className="w-24 sm:w-[32%]" />
-          <col className="w-12 sm:w-[14%]" />
+          <col className="w-24 sm:w-1/4" />
+          <col className="w-12 sm:w-1/6" />
           <col />
-          <col className="w-11 sm:w-[14%]" />
-          <col className="w-9 sm:w-24" />
+          <col className="w-11 sm:w-1/6" />
+          <col className="w-9 sm:w-12" />
         </colgroup>
         <TableHeader><TableRow className="border-b border-border text-muted-foreground text-xs tracking-normal">
           <TableHead className="text-center py-3 font-normal">DATE</TableHead><TableHead className="text-center py-3 font-normal">PLAYERS</TableHead>
@@ -67,12 +68,11 @@ export default async function SessionsPage({
           {sessions.map(session => {
             const href = `/groups/${groupId}/sessions/${session.id}`
             const isOpen = session.status === 'OPEN'
-            return <TableRow key={session.id} className={`border-b border-border transition-colors ${isOpen ? 'bg-primary/5 hover:bg-primary/10' : 'hover:bg-muted'}`}>
+            return <Fragment key={session.id}><TableRow className={`border-b border-border transition-colors ${session.description ? 'border-b-0 [&_td]:pb-2' : ''} ${isOpen ? 'bg-primary/5 hover:bg-primary/10' : 'hover:bg-muted'}`}>
               <TableCell className="py-4 text-center"><Link href={href} className="block">
                 <div className={`flex items-center justify-center gap-1 sm:gap-2 ${isOpen ? 'text-primary' : ''}`}>
                   {isOpen && <span className="inline-block w-2 h-2 rounded-full bg-accent animate-pulse shrink-0" />}{session.date}
                 </div>
-                {session.description && <div className="text-xs text-muted-foreground mt-0.5 whitespace-normal [overflow-wrap:anywhere]">{session.description}</div>}
               </Link></TableCell>
               <TableCell className="py-4 text-center text-muted-foreground"><Link href={href} className="block">{session.player_count}</Link></TableCell>
               <TableCell className="py-4 text-center">{!isOpen && session.winners.length > 0
@@ -81,6 +81,12 @@ export default async function SessionsPage({
               <TableCell className="py-4 text-center text-muted-foreground"><Link href={href} className="block">{session.exchange_rate ? `${session.exchange_rate}:1` : '—'}</Link></TableCell>
               <TableCell className="py-4 text-center"><DeleteSessionButton groupId={groupId} sessionId={session.id} /></TableCell>
             </TableRow>
+              {session.description && <TableRow className={isOpen ? 'bg-primary/5 hover:bg-primary/10' : ''}>
+                <TableCell colSpan={5} className="pt-0 pb-4 text-center whitespace-normal">
+                  <Link href={href} className="mx-auto block max-w-xl px-3 text-xs leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">{session.description}</Link>
+                </TableCell>
+              </TableRow>}
+            </Fragment>
           })}
         </TableBody>
       </Table>

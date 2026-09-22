@@ -27,13 +27,12 @@ export default function DeleteSessionButton({ groupId, sessionId }: { groupId: s
         onConfirm={handleDelete}
         onCancel={() => setOpen(false)}
       />
-      <Button variant="destructive" type="button"
+      <Button variant="ghost" type="button"
         onClick={e => { e.stopPropagation(); setOpen(true) }}
         aria-label="Delete session"
-        className="size-8 p-0 sm:w-auto sm:px-3"
+        className="size-8 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
       >
-        <Trash2 className="size-4 sm:hidden" />
-        <span className="hidden sm:inline">DELETE</span>
+        <Trash2 className="size-4" />
       </Button>
     </>
   )
