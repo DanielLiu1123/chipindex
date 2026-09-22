@@ -12,7 +12,6 @@ import {
   SelectItem,
   SelectSeparator,
 } from '@/components/ui/select'
-import NavigationHint from '@/components/NavigationHint'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { errorMessage } from '@/lib/error-message'
 import { useEffect, useRef, useState } from 'react'
@@ -131,26 +130,23 @@ export default function Nav() {
               <Link
                 href={home}
                 aria-current={homeActive ? 'page' : undefined}
-                className={`relative text-xs tracking-normal transition-colors ${homeActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`text-xs tracking-normal transition-colors ${homeActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 LEADERBOARD
-                <NavigationHint />
               </Link>
               <Link
                 href={sessions}
                 aria-current={sessionsActive ? 'page' : undefined}
-                className={`relative text-xs tracking-normal transition-colors ${sessionsActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`text-xs tracking-normal transition-colors ${sessionsActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 SESSIONS
-                <NavigationHint />
               </Link>
               <Link
                 href={manage}
                 aria-current={manageActive ? 'page' : undefined}
-                className={`relative text-xs tracking-normal transition-colors ${manageActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`text-xs tracking-normal transition-colors ${manageActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 MANAGE
-                <NavigationHint />
               </Link>
             </>
           )}

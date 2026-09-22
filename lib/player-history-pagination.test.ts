@@ -1,4 +1,4 @@
-import { renderToStaticMarkup } from 'react-dom/server'
+import { renderToReadableStream } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import Page from '../app/groups/[groupId]/players/[id]/page'
 import { vi } from 'vitest'
@@ -59,12 +59,17 @@ function fixture(count: number): PlayerDetail {
 async function renderPage(query: Query, count = 23) {
   captured.count = count
   captured.chart = undefined
-  const html = renderToStaticMarkup(
+  let renderError: unknown
+  const stream = await renderToReadableStream(
     await Page({
       params: Promise.resolve({ groupId: 'g1', id: 'p1' }),
       searchParams: Promise.resolve(query),
     }),
+    { onError: (error) => { renderError = error } },
   )
+  await stream.allReady
+  if (renderError) throw renderError
+  const html = (await new Response(stream).text()).replace(/<!--[\s\S]*?-->/g, '')
   return {
     html,
     chart: captured.chart as

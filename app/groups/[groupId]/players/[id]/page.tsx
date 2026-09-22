@@ -1,3 +1,5 @@
+import { Suspense } from 'react'
+import Loading from './loading'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import PlayerStatsChart from '@/components/PlayerStatsChart'
@@ -9,7 +11,7 @@ import { computePlayerHistory } from '@/lib/stats'
 
 export const dynamic = 'force-dynamic'
 
-export default async function PlayerDetailPage({ params, searchParams }: {
+async function PlayerDetailPage({ params, searchParams }: {
   params: Promise<{ groupId: string; id: string }>
   searchParams: Promise<{ page?: string | string[]; page_size?: string | string[] }>
 }) {
@@ -37,4 +39,12 @@ export default async function PlayerDetailPage({ params, searchParams }: {
     <PlayerSessionHistoryTable groupId={groupId} rows={rows} />
     <SessionPagination sessionsPath={historyPath} page={page} pageSize={pageSize} totalPages={totalPages} />
   </>
+}
+
+// Reset the loading boundary for pagination as well as path changes.
+export default async function Page(props: Parameters<typeof PlayerDetailPage>[0]) {
+  const query = await props.searchParams
+  return <Suspense key={JSON.stringify(query)} fallback={<Loading />}>
+    <PlayerDetailPage {...props} />
+  </Suspense>
 }

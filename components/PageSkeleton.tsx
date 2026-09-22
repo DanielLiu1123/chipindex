@@ -35,3 +35,33 @@ export function SettingsSkeleton() {
     <span className="sr-only">Loading settings</span>
   </div>
 }
+
+export function PlayerSkeleton() {
+  return <div role="status" aria-label="Loading player profile" className="space-y-6">
+    <div aria-hidden="true" className="space-y-6">
+      <Skeleton className="h-4 w-28" />
+      <Skeleton className="h-8 w-40" />
+      <div className="grid grid-cols-3 gap-4 sm:grid-cols-5">
+        {Array.from({ length: 5 }, (_, i) => <Skeleton key={i} className="h-14" />)}
+      </div>
+      <Skeleton className="h-64 w-full" />
+      {Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+    </div>
+    <span className="sr-only">Loading player profile</span>
+  </div>
+}
+
+export function SessionFormSkeleton() {
+  return <div role="status" aria-label="Loading session form" className="space-y-6">
+    <div aria-hidden="true" className="space-y-6">
+      <Skeleton className="h-4 w-28" />
+      <Skeleton className="h-5 w-36" />
+      <div className="grid gap-4 sm:grid-cols-2">
+        {Array.from({ length: 4 }, (_, i) => <div key={i} className="space-y-2"><Skeleton className="h-3 w-20" /><Skeleton className="h-9 w-full" /></div>)}
+      </div>
+      <Skeleton className="h-24 w-full" />
+      <Skeleton className="h-9 w-28" />
+    </div>
+    <span className="sr-only">Loading session form</span>
+  </div>
+}
