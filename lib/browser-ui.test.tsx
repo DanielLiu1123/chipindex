@@ -169,7 +169,7 @@ it('hydrates local time without a server/browser mismatch', async () => {
 })
 
 it('preserves sorting button identity and keyboard focus through a sort', () => {
-  render(<LeaderboardView groupId="g1" stats={players.map(player => ({ player, total_chips: 0, total_yuan: 0, sessions_played: 1, wins: 0, win_rate: 0, pog_count: 0 }))} sessions={[]} />)
+  render(<LeaderboardView groupId="g1" players={players} sessions={[]} />)
   const button = screen.getByRole('button', { name: /^POG/ }); button.focus()
   fireEvent.click(button)
   expect(screen.getByRole('button', { name: /^POG/ })).toBe(button)

@@ -4,9 +4,10 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import ChipValue from '@/components/ChipValue'
 import LeaderboardChart from '@/components/LeaderboardChart'
-import { filterLowActivityPlayers } from '@/lib/stats'
-import type { PlayerStats } from '@/lib/stats'
-import type { LeaderboardSessionRow } from '@/lib/domain-types'
+import { computeLeaderboardStats, filterLowActivityPlayers, type PlayerStats } from '@/lib/stats'
+import LeaderboardDateFilter from '@/components/LeaderboardDateFilter'
+import { filterLeaderboardSessions, type LeaderboardFilter } from '@/lib/leaderboard-range'
+import type { LeaderboardSessionRow, Player } from '@/lib/domain-types'
 
 function buildChartData(sessions: LeaderboardSessionRow[], stats: PlayerStats[], mode: 'chips' | 'cny'): { date: string; [player: string]: string | number }[] {
   const sorted = [...sessions].sort((a, b) => a.date.localeCompare(b.date))
@@ -43,18 +44,31 @@ function SortHeader({ label, sortKey: key, currentKey, sortDir, onSort }: { labe
   )
 }
 
-export default function LeaderboardView({ groupId, stats, sessions }: { groupId: string; stats: PlayerStats[]; sessions: LeaderboardSessionRow[] }) {
+export default function LeaderboardView({ groupId, players, sessions }: { groupId: string; players: Player[]; sessions: LeaderboardSessionRow[] }) {
   const [view, setView] = useState<'table' | 'chart'>('table')
   const [chartMode, setChartMode] = useState<'chips' | 'cny'>('cny')
   const [sortKey, setSortKey] = useState<SortKey>('total_yuan')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [hideLowActivity, setHideLowActivity] = useState(true)
+  const [filter, setFilter] = useState<LeaderboardFilter>({ period: 'all' })
+  const range = filter.period === 'all' ? null : filter.range
+  const filteredSessions = useMemo(
+    () => filterLeaderboardSessions(sessions, range),
+    [sessions, range],
+  )
+  const stats = useMemo(() => {
+    const computed = computeLeaderboardStats(players, filteredSessions)
+    return range ? computed.filter(stat => stat.sessions_played > 0) : computed
+  }, [players, filteredSessions, range])
+  const emptyRange = range !== null && filteredSessions.length === 0
+  const showResults = !emptyRange
+
   const activityFilter = useMemo(() => filterLowActivityPlayers(stats), [stats])
   const displayedStats = hideLowActivity ? activityFilter.visibleStats : stats
   const chartPlayers = displayedStats.map(stat => ({ id: stat.player.id, name: stat.player.name }))
   const chartData = useMemo(
-    () => buildChartData(sessions, displayedStats, chartMode),
-    [sessions, displayedStats, chartMode],
+    () => buildChartData(filteredSessions, displayedStats, chartMode),
+    [filteredSessions, displayedStats, chartMode],
   )
 
   function toggleSort(key: SortKey) {
@@ -77,7 +91,7 @@ export default function LeaderboardView({ groupId, stats, sessions }: { groupId:
 
   return (
     <>
-      <div className={`flex items-baseline justify-between ${activityFilter.hiddenCount > 0 ? 'mb-3' : 'mb-6'}`}>
+      <div className="flex items-baseline justify-between mb-3">
         <div className="flex items-baseline gap-4">
           <div className="flex gap-3">
             <button onClick={() => setView('table')}
@@ -94,33 +108,36 @@ export default function LeaderboardView({ groupId, stats, sessions }: { groupId:
         <Link href={`/groups/${groupId}/sessions/new`} className="text-xs text-accent tracking-widest hover:underline">+ NEW SESSION</Link>
       </div>
 
-      {activityFilter.hiddenCount > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-2 min-h-8 mb-3 text-[10px] tracking-widest text-muted">
-          <button
-            type="button"
-            aria-pressed={hideLowActivity}
-            onClick={() => setHideLowActivity(hidden => !hidden)}
-            className="flex items-center gap-2 text-[#aaaaaa] transition-colors hover:text-white"
+      <LeaderboardDateFilter filter={filter} onChange={setFilter} />
+
+      <div className="flex flex-wrap items-center justify-between gap-2 min-h-8 mb-3 text-[10px] tracking-widest text-muted">
+        <button
+          type="button"
+          aria-pressed={hideLowActivity}
+          onClick={() => setHideLowActivity(hidden => !hidden)}
+          className="flex items-center gap-2 text-[#aaaaaa] transition-colors hover:text-white"
+        >
+          <span
+            aria-hidden="true"
+            className={`relative inline-flex h-4 w-7 shrink-0 border transition-colors ${hideLowActivity ? 'border-accent' : 'border-muted'}`}
           >
             <span
-              aria-hidden="true"
-              className={`relative inline-flex h-4 w-7 shrink-0 border transition-colors ${hideLowActivity ? 'border-accent' : 'border-muted'}`}
-            >
-              <span
-                className={`absolute left-0.5 top-0.5 h-2.5 w-2.5 transition-all ${hideLowActivity ? 'translate-x-3 bg-accent' : 'bg-muted'}`}
-              />
-            </span>
-            HIDE LOW-ACTIVITY PLAYERS
-          </button>
-          <span>
-            {hideLowActivity
-              ? `${activityFilter.hiddenCount} HIDDEN · FEWER THAN ${activityFilter.threshold} SESSIONS`
-              : `SHOWING ALL ${stats.length} PLAYERS`}
+              className={`absolute left-0.5 top-0.5 h-2.5 w-2.5 transition-all ${hideLowActivity ? 'translate-x-3 bg-accent' : 'bg-muted'}`}
+            />
           </span>
-        </div>
-      )}
+          HIDE LOW-ACTIVITY PLAYERS
+        </button>
+        <span>
+          {hideLowActivity && activityFilter.hiddenCount > 0
+            ? `${activityFilter.hiddenCount} HIDDEN · FEWER THAN ${activityFilter.threshold} SESSIONS`
+            : `SHOWING ALL ${stats.length} PLAYERS`}
+        </span>
+      </div>
 
-      {view === 'table' ? (
+      {emptyRange && (
+        <p className="py-12 text-center text-xs text-muted tracking-widest">NO SESSIONS</p>
+      )}
+      {showResults && view === 'table' && (
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-muted text-xs tracking-widest">
@@ -166,7 +183,8 @@ export default function LeaderboardView({ groupId, stats, sessions }: { groupId:
             ))}
           </tbody>
         </table>
-      ) : (
+      )}
+      {showResults && view === 'chart' && (
         <div className="-mx-2">
           <div className="flex justify-end px-2 mb-4">
             <div className="flex gap-3">
@@ -181,11 +199,11 @@ export default function LeaderboardView({ groupId, stats, sessions }: { groupId:
               </button>
             </div>
           </div>
-          {sessions.length < 2 ? (
+          {filteredSessions.length < 2 ? (
             <p className="text-muted text-xs tracking-widest px-2">NEED AT LEAST 2 SESSIONS TO SHOW CHART.</p>
           ) : (
             <LeaderboardChart
-              key={hideLowActivity ? 'low-activity-hidden' : 'all-players'}
+              key={`${range?.start ?? ''}:${range?.end ?? ''}:${hideLowActivity}`}
               data={chartData}
               players={chartPlayers}
               mode={chartMode}

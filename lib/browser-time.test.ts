@@ -39,3 +39,11 @@ it('uses one POG policy for ties, empty sessions and reordered input', () => {
   expect(pogPlayerIds([...entries].reverse())).toEqual(['a', 'b'])
   expect(pogPlayerIds([])).toEqual([])
 })
+
+it.each([
+  ['Asia/Shanghai', '2026-09-08 00:30'],
+  ['America/Los_Angeles', '2026-09-07 09:30'],
+  ['UTC', '2026-09-07 16:30'],
+])('displays yyyy-MM-dd HH:mm in %s', (zone, expected) => {
+  expect(inZone(zone, "time.localDateTime('2026-09-07T16:30:00Z')")).toBe(expected)
+})

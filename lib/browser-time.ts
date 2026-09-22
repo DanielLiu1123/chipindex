@@ -17,6 +17,6 @@ export function localTime(value: string): string {
   return new Date(value).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 }
 export function localDateTime(value: string): string {
-  return new Intl.DateTimeFormat('en-GB', { year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(value)).replace(',', '')
+  const date = new Date(value)
+  return `${localDate(date)} ${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
