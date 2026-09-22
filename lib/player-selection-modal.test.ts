@@ -54,9 +54,9 @@ function mount(mode: 'buy-in' | 'join' | 'draft' | 'group' = 'buy-in') {
   })
   function choose(name: string) {
     const label = nodes(render()).find(n => n.type === 'label' && text(n).startsWith(name))!
-    const checkbox = nodes(label).find(n => n.props.type === 'checkbox')!
+    const checkbox = nodes(label).find(n => 'onCheckedChange' in n.props)!
     expect(checkbox.props.disabled).toBe(false)
-    checkbox.props.onChange!({ target: { value: '' } })
+    ;(checkbox.props as { onCheckedChange: () => void }).onCheckedChange()
   }
   const change = (id: string, value: string) => nodes(render()).find(n => n.props.id?.endsWith(id.endsWith('amount') ? '-amount' : id.endsWith('search') ? '-search' : '-name'))!.props.onChange!({ target: { value } })
   const submit = () => nodes(render()).find(n => n.type === 'form')!.props.onSubmit!({ preventDefault() {} })
@@ -110,7 +110,7 @@ describe('PlayerSelectionModal interactions', () => {
     app.props.participants = Array.from({ length: 25 }, (_, i) => ({
       ...app.props.participants[0], player_id: `player-${i}`, name: `Player ${i}`, settled_at: null,
     }))
-    const checkboxes = () => nodes(app.render()).filter(n => n.props.type === 'checkbox')
+    const checkboxes = () => nodes(app.render()).filter(n => 'onCheckedChange' in n.props)
     const more = () => nodes(app.render()).find(n => n.type === 'button' && text(n) === '…')
     app.choose('Player 0'); more()!.props.onClick!()
     app.change('join-player-search', ' PLAYER 24 ')
@@ -134,7 +134,7 @@ describe('PlayerSelectionModal interactions', () => {
     app.props.participants = Array.from({ length: 25 }, (_, i) => ({
       ...app.props.participants[0], player_id: `player-${i}`, name: `Player ${i}`, settled_at: null,
     }))
-    const checkboxes = () => nodes(app.render()).filter(n => n.props.type === 'checkbox')
+    const checkboxes = () => nodes(app.render()).filter(n => 'onCheckedChange' in n.props)
     const more = () => nodes(app.render()).find(n => n.type === 'button' && text(n) === '…')
     expect(checkboxes()).toHaveLength(10)
     app.choose('Player 0'); more()!.props.onClick!()
@@ -150,7 +150,7 @@ describe('PlayerSelectionModal interactions', () => {
   it('continues showing all existing-session players in the buy-in picker', () => {
     const app = mount()
     app.props.participants = Array.from({ length: 15 }, (_, i) => ({ ...app.props.participants[0], player_id: String(i), name: `P${i}` }))
-    expect(nodes(app.render()).filter(n => n.props.type === 'checkbox')).toHaveLength(15)
+    expect(nodes(app.render()).filter(n => 'onCheckedChange' in n.props)).toHaveLength(15)
     expect(nodes(app.render()).find(n => n.type === 'button' && text(n) === '…')).toBeUndefined()
   })
   it('creates a player inline, selects them, and preserves the existing selection and amount', async () => {
@@ -165,7 +165,7 @@ describe('PlayerSelectionModal interactions', () => {
     app.change('join-new-player-name', ' Dave ')
     expect(nodes(app.render()).find(n => n.props.type === 'submit')!.props.disabled).toBe(true)
     nodes(app.render()).find(n => n.type === 'button' && text(n) === 'CREATE')!.props.onClick!()
-    await vi.waitFor(() => expect(nodes(app.render()).filter(n => n.props.type === 'checkbox' && n.props.checked)).toHaveLength(2))
+    await vi.waitFor(() => expect(nodes(app.render()).filter(n => 'onCheckedChange' in n.props && n.props.checked)).toHaveLength(2))
     expect(app.props.onCreatePlayer).toHaveBeenCalledExactlyOnceWith('Dave')
     expect(app.props.onClose).not.toHaveBeenCalled()
     expect(join).not.toHaveBeenCalled()
@@ -179,7 +179,7 @@ describe('PlayerSelectionModal interactions', () => {
     app.change('join-new-player-name', 'Draft')
     nodes(app.render()).find(n => n.type === 'button' && text(n) === 'CANCEL')!.props.onClick!()
     expect(app.props.onCreatePlayer).not.toHaveBeenCalled()
-    expect(nodes(app.render()).filter(n => n.props.type === 'checkbox' && n.props.checked)).toHaveLength(1)
+    expect(nodes(app.render()).filter(n => 'onCheckedChange' in n.props && n.props.checked)).toHaveLength(1)
     expect(nodes(app.render()).find(n => n.props.id?.endsWith('-name'))).toBeUndefined()
   })
   it('keeps inline creation errors in the dialog without joining players', async () => {
@@ -219,10 +219,10 @@ describe('PlayerSelectionModal interactions', () => {
     const app = mount()
     expect(text(app.render())).not.toContain('Carol')
     expect(text(app.render())).not.toContain('CASHED OUT')
-    expect(nodes(app.render()).filter(n => n.props.type === 'checkbox')).toHaveLength(2)
+    expect(nodes(app.render()).filter(n => 'onCheckedChange' in n.props)).toHaveLength(2)
     expect(text(app.render())).not.toContain('NEW PLAYER')
     app.choose('Alice'); app.choose('Bob')
-    expect(nodes(app.render()).filter(n => n.props.type === 'checkbox' && n.props.checked)).toHaveLength(2)
+    expect(nodes(app.render()).filter(n => 'onCheckedChange' in n.props && n.props.checked)).toHaveLength(2)
   })
   it('requires a player and a positive integer amount', () => {
     const app = mount()
@@ -245,7 +245,7 @@ describe('PlayerSelectionModal interactions', () => {
     expect(text(app.render())).not.toContain('DONE')
     expect(app.props.onSaved).toHaveBeenCalledOnce()
     expect(app.props.onClose).toHaveBeenCalledOnce()
-    expect(nodes(app.render()).filter(n => n.props.type === 'checkbox' && n.props.checked)).toHaveLength(0)
+    expect(nodes(app.render()).filter(n => 'onCheckedChange' in n.props && n.props.checked)).toHaveLength(0)
   })
   it('preserves the exact retry IDs when close is requested after an uncertain response', async () => {
     save.mockRejectedValueOnce(new TypeError('Network error')).mockResolvedValueOnce({ count: 1 })
@@ -256,7 +256,7 @@ describe('PlayerSelectionModal interactions', () => {
     await app.submit()
     expect(save.mock.calls[1][2]).toEqual(first)
     expect(app.props.onSaved).toHaveBeenCalledExactlyOnceWith(first)
-    expect(nodes(app.render()).filter(n => n.props.type === 'checkbox' && n.props.checked)).toHaveLength(0)
+    expect(nodes(app.render()).filter(n => 'onCheckedChange' in n.props && n.props.checked)).toHaveLength(0)
     expect(text(nodes(app.render()).find(n => n.props.type === 'submit'))).toBe('BUY IN')
   })
   it.each(['buy-in', 'join', 'draft'] as const)('resets %s after success so the next submission starts fresh', async mode => {
@@ -273,7 +273,7 @@ describe('PlayerSelectionModal interactions', () => {
     }
     expect(app.props.onClose).toHaveBeenCalledOnce()
     expect(nodes(app.render()).find(n => n.props.id?.endsWith('-amount'))!.props.value).toBe('2000')
-    expect(nodes(app.render()).filter(n => n.props.type === 'checkbox' && n.props.checked)).toHaveLength(0)
+    expect(nodes(app.render()).filter(n => 'onCheckedChange' in n.props && n.props.checked)).toHaveLength(0)
     app.choose('Bob'); await app.submit()
     expect(app.props.onClose).toHaveBeenCalledTimes(2)
     if (mode === 'draft') {
@@ -289,7 +289,7 @@ describe('PlayerSelectionModal interactions', () => {
     const app = mount(); app.choose('Alice'); await app.submit()
     expect(text(app.render())).toContain('Participant no longer in session')
     app.choose('Bob')
-    expect(nodes(app.render()).filter(n => n.props.type === 'checkbox' && n.props.checked)).toHaveLength(2)
+    expect(nodes(app.render()).filter(n => 'onCheckedChange' in n.props && n.props.checked)).toHaveLength(2)
   })
   it('retains request IDs and closes successfully when candidates disappear during a retry', async () => {
     join.mockRejectedValueOnce(new TypeError('Lost response')).mockResolvedValueOnce({ count: 1 })

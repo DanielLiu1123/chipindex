@@ -1,42 +1,56 @@
 'use client'
 
-import { Fragment, useId, useState } from 'react'
-import { leaderboardRangeError, type LeaderboardRange } from '@/lib/leaderboard-range'
+import { useState } from 'react'
+import type { DateRange } from 'react-day-picker'
+import { Calendar } from '@/components/ui/calendar'
+import { Button } from '@/components/ui/button'
+import { localDate } from '@/lib/browser-time'
+import type { LeaderboardRange } from '@/lib/leaderboard-range'
 
-interface Props {
+export default function LeaderboardCustomRangeForm({
+  initialRange,
+  onBack,
+  onApply,
+}: {
   initialRange: LeaderboardRange
   onBack: () => void
   onApply: (range: LeaderboardRange) => void
-}
-
-// The draft exists only while this editor is mounted. Dismissal and Back discard
-// it automatically; only a valid submission can change the applied filter.
-export default function LeaderboardCustomRangeForm({ initialRange, onBack, onApply }: Props) {
-  const [draft, setDraft] = useState(initialRange)
-  const error = leaderboardRangeError(draft)
-  const errorId = useId()
-
+}) {
+  const [draft, setDraft] = useState<DateRange | undefined>({
+    from: new Date(`${initialRange.start}T12:00:00`),
+    to: new Date(`${initialRange.end}T12:00:00`),
+  })
   return (
-    <form onSubmit={event => {
-      event.preventDefault()
-      if (!error) onApply(draft)
-    }}>
-      <p className="mb-3 text-xs text-muted tracking-widest">CUSTOM RANGE</p>
-      <div className="flex items-center gap-2">
-        {(['start', 'end'] as const).map((field, index) => (
-          <Fragment key={field}>
-            {index > 0 && <span aria-hidden="true" className="text-xs text-muted">–</span>}
-            <input type="date" aria-label={field === 'start' ? 'Start date' : 'End date'} value={draft[field]}
-              aria-invalid={Boolean(error)} aria-describedby={error ? errorId : undefined}
-              onChange={event => setDraft(current => ({ ...current, [field]: event.target.value }))}
-              className="w-full min-w-0 border border-border bg-bg px-2 py-2 text-xs text-white outline-none transition-colors focus:border-white" />
-          </Fragment>
-        ))}
-      </div>
-      {error && <p id={errorId} role="alert" className="mt-3 text-xs text-danger">{error}</p>}
-      <div className="mt-4 flex items-center justify-between">
-        <button type="button" onClick={onBack} className="text-xs tracking-widest text-muted hover:text-white">BACK</button>
-        <button type="submit" disabled={Boolean(error)} className="border border-accent/60 bg-accent/10 px-3 py-1.5 text-xs tracking-widest text-accent disabled:opacity-40">APPLY</button>
+    <form
+      onSubmit={(event) => {
+        event.preventDefault()
+        if (draft?.from && draft.to)
+          onApply({ start: localDate(draft.from), end: localDate(draft.to) })
+      }}
+    >
+      <Calendar
+        mode="range"
+        resetOnSelect
+        selected={draft}
+        onSelect={setDraft}
+        defaultMonth={draft?.from}
+        autoFocus
+        captionLayout="dropdown"
+        aria-label="Date range calendar"
+      />
+      <div className="space-y-3 border-t p-3">
+        <p aria-live="polite" className="text-xs text-muted-foreground">
+          {draft?.from ? localDate(draft.from) : 'Start date'} –{' '}
+          {draft?.to ? localDate(draft.to) : 'End date'}
+        </p>
+        <div className="flex justify-between gap-2">
+          <Button type="button" variant="ghost" onClick={onBack}>
+            BACK
+          </Button>
+          <Button type="submit" disabled={!draft?.from || !draft.to}>
+            APPLY
+          </Button>
+        </div>
       </div>
     </form>
   )

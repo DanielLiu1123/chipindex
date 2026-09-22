@@ -1,5 +1,7 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ConfirmModal from '@/components/ConfirmModal'
@@ -24,12 +26,12 @@ export default function DeleteSessionButton({ groupId, sessionId }: { groupId: s
         onConfirm={handleDelete}
         onCancel={() => setOpen(false)}
       />
-      <button
+      <Button variant="destructive" type="button"
         onClick={e => { e.stopPropagation(); setOpen(true) }}
-        className="text-xs font-medium tracking-widest text-red-500 hover:text-red-400 border border-red-500/40 hover:border-red-400 px-2.5 py-1 transition-colors"
+
       >
         DELETE
-      </button>
+      </Button>
     </>
   )
 }

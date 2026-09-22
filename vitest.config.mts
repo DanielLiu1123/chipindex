@@ -6,6 +6,7 @@ export default defineConfig({
     alias: { '@': path.resolve(import.meta.dirname) },
   },
   test: {
+    setupFiles: ['./lib/test-browser-setup.ts'],
     include: ['lib/**/*.test.ts', 'lib/**/*.test.tsx'],
   },
 })

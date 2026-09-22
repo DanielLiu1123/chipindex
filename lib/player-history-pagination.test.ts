@@ -48,7 +48,7 @@ describe('player session history pagination', () => {
     const { html } = await renderPage({ page: '5', page_size: '5' })
     expect((html.match(/<tbody>[\s\S]*?<\/tbody>/)?.[0].match(/<tr /g) ?? [])).toHaveLength(3)
     expect(html).toContain('/players/p1?page=4&amp;page_size=5')
-    expect(html).not.toContain('aria-label="Next page"')
+    expect(html).toContain('aria-label="Next page" aria-disabled="true"')
   })
 
   it('canonicalizes missing, invalid and out-of-range parameters like the session list', async () => {

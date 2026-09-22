@@ -1,5 +1,11 @@
 'use client'
 
+import { Alert, AlertDescription } from '@/components/ui/alert'
+
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+
 import { errorMessage } from '@/lib/error-message'
 import { DEFAULT_EXCHANGE_RATE, BUY_IN_UNIT } from '@/lib/session-rules'
 import { useEffect, useRef, useState } from 'react'
@@ -69,9 +75,9 @@ export default function NewSessionForm({ groupId, initialPlayers }: { groupId: s
           ...ids.filter(id => !current.some(row => row.playerId === id)).map(playerId => ({ playerId, buyin: String(amount) })),
         ]) }} />
       <div className="mb-6">
-        <Link href={`/groups/${groupId}/sessions`} className="text-muted text-xs hover:text-white tracking-widest">← SESSIONS</Link>
+        <Link href={`/groups/${groupId}/sessions`} className="text-muted-foreground text-xs hover:text-foreground tracking-normal">← SESSIONS</Link>
       </div>
-      <h1 className="text-xs text-muted tracking-widest mb-6">NEW SESSION</h1>
+      <h1 className="text-xs text-muted-foreground tracking-normal mb-6">NEW SESSION</h1>
       <form onSubmit={handleStart} className="flex flex-col gap-6 max-w-lg">
         <SessionMetaFields disabled={starting}
           date={date} setDate={setDate}
@@ -79,34 +85,34 @@ export default function NewSessionForm({ groupId, initialPlayers }: { groupId: s
           description={description} setDescription={setDescription}
         />
         <div>
-          <label className="text-xs text-muted tracking-widest block mb-3">PLAYERS <span className="text-muted">(buy-in)</span></label>
+          <Label className="text-xs text-muted-foreground tracking-normal block mb-3">PLAYERS <span className="text-muted-foreground">(buy-in)</span></Label>
           <div className="flex flex-col gap-1.5">
             {rows.map(row => {
               const playerName = directory.players.find(player => player.id === row.playerId)?.name
               const accessibleName = playerName ?? row.playerId
               return <div key={row.playerId}
-                className="group flex gap-2 items-center border border-border bg-surface/30 px-3 py-1.5 transition-colors hover:border-white/30">
-                  <span className="flex-1 min-w-0 text-white text-sm px-1 truncate">
+                className="group flex gap-2 items-center border border-border bg-muted/30 px-3 py-1.5 transition-colors hover:border-ring/30">
+                  <span className="flex-1 min-w-0 text-foreground text-sm px-1 truncate">
                     {playerName ?? row.playerId}
                   </span>
-                <input type="number" value={row.buyin} disabled={starting} onChange={e => updateBuyIn(row.playerId, e.target.value)}
+                <Input type="number" value={row.buyin} disabled={starting} onChange={e => updateBuyIn(row.playerId, e.target.value)}
                   aria-label={`buy-in for ${accessibleName}`}
                   placeholder="buy-in" min="1" max={MAX_BUY_IN_AMOUNT} step="1"
-                  className="w-28 shrink-0 bg-bg/40 border border-border text-white text-sm px-3 py-1.5 outline-none focus:border-white transition-colors placeholder:text-muted text-right" />
-                <button type="button" disabled={starting} onClick={() => removeRow(row.playerId)}
+                  className="w-28 shrink-0 text-right" />
+                <Button variant="destructive" type="button" disabled={starting} onClick={() => removeRow(row.playerId)}
                   aria-label={`remove ${accessibleName}`}
-                  className="w-8 h-8 shrink-0 flex items-center justify-center border border-transparent text-muted hover:text-danger hover:border-danger/40 hover:bg-danger/10 text-lg leading-none transition-colors">×</button>
+                  className="w-8 shrink-0 justify-center">×</Button>
               </div>
             })}
             <PlayerActionButton action="add-player" disabled={starting} onClick={() => setAddPlayersOpen(true)} />
           </div>
         </div>
-        {error && <p className="text-danger text-xs">{error}</p>}
-        <button type="submit" disabled={starting || validRows.length === 0 || validRows.length !== rows.length}
-          className="flex items-center justify-center gap-2 bg-white text-bg text-xs font-medium tracking-widest py-3 hover:bg-accent transition-colors disabled:opacity-40">
+        {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
+        <Button variant="default" type="submit" disabled={starting || validRows.length === 0 || validRows.length !== rows.length}
+          className="justify-center">
           <span className="inline-block w-2 h-2 rounded-full bg-accent" />
           {starting ? 'STARTING...' : 'START'}
-        </button>
+        </Button>
       </form>
     </>
   )

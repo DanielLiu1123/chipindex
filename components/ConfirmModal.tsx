@@ -1,7 +1,19 @@
 'use client'
 
+import { Alert, AlertDescription } from '@/components/ui/alert'
+
+import { Button } from '@/components/ui/button'
+
 import { useRef, useState } from 'react'
-import Dialog from './Dialog'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog'
 import { errorMessage } from '@/lib/error-message'
 
 interface ConfirmModalProps {
@@ -18,30 +30,75 @@ export default function ConfirmModal(props: ConfirmModalProps) {
   return <Confirmation {...props} />
 }
 
-function Confirmation({ title, description, confirmLabel = 'DELETE', onConfirm, onCancel }: ConfirmModalProps) {
+function Confirmation({
+  title,
+  description,
+  confirmLabel = 'DELETE',
+  onConfirm,
+  onCancel,
+}: ConfirmModalProps) {
+  const returnFocus = useRef<HTMLElement | null>(null)
   const busy = useRef(false)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
   async function confirm() {
     if (busy.current) return
-    busy.current = true; setPending(true); setError('')
+    busy.current = true
+    setPending(true)
+    setError('')
     try {
       await onConfirm()
     } catch (reason) {
       setError(errorMessage(reason))
     } finally {
-      busy.current = false; setPending(false)
+      busy.current = false
+      setPending(false)
     }
   }
-  return <Dialog open label={title} pending={pending} onClose={onCancel} className="max-w-sm p-6">
-    <div className="flex flex-col gap-6">
-      <div><p className="text-sm font-medium">{title}</p>
-        {description && <p className="mt-1 text-xs text-muted">{description}</p>}</div>
-      {error && <p role="alert" className="text-xs text-danger">{error}</p>}
-      <div className="flex justify-end gap-2">
-        <button type="button" autoFocus disabled={pending} onClick={onCancel} className="border border-border px-4 py-2 text-xs font-medium tracking-widest text-muted hover:border-white hover:text-white transition-colors disabled:opacity-40">CANCEL</button>
-        <button type="button" disabled={pending} onClick={() => { void confirm() }} className="border border-red-500/40 px-4 py-2 text-xs font-medium tracking-widest text-red-500 hover:border-red-400 transition-colors disabled:opacity-40">{pending ? 'SAVING...' : confirmLabel}</button>
-      </div>
-    </div>
-  </Dialog>
+  return (
+    <AlertDialog
+      open
+      onOpenChange={(next) => {
+        if (!next && !pending) onCancel()
+      }}
+    >
+      <AlertDialogContent
+        onOpenAutoFocus={() => {
+          returnFocus.current = document.activeElement as HTMLElement
+        }}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault()
+          returnFocus.current?.focus()
+        }}
+        aria-busy={pending}
+        onEscapeKeyDown={(event) => {
+          if (pending) event.preventDefault()
+        }}
+      >
+        <AlertDialogHeader>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          {description && (
+            <AlertDialogDescription>{description}</AlertDialogDescription>
+          )}
+        </AlertDialogHeader>
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={pending}>CANCEL</AlertDialogCancel>
+          <Button
+            variant="destructive"
+            disabled={pending}
+            onClick={() => {
+              void confirm()
+            }}
+          >
+            {pending ? 'SAVING...' : confirmLabel}
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
 }

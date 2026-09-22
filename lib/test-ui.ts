@@ -1,4 +1,5 @@
 // Lightweight render harness for handler/state tests (not browser/layout tests).
+import { shadcnTestModules } from './test-shadcn'
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -32,7 +33,7 @@ export function loadUiModule<T>(url: URL, mocks: Record<string, unknown>): T {
   const cache = new Map<string, { exports: unknown }>()
   const normalize = (name: string, parent: string) => name.startsWith('@/') ? resolve(root, name.slice(2))
     : name.startsWith('.') ? resolve(dirname(parent), name) : name
-  const replacements = new Map(Object.entries({ 'react/jsx-runtime': jsx, ...mocks }).map(([key, value]) => [normalize(key, root), value]))
+  const replacements = new Map(Object.entries({ 'react/jsx-runtime': jsx, ...shadcnTestModules, ...mocks }).map(([key, value]) => [normalize(key, root), value]))
   function load(path: string): unknown {
     if (replacements.has(path)) return replacements.get(path)
     const file = [path, `${path}.ts`, `${path}.tsx`].find(candidate => existsSync(candidate))

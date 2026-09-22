@@ -30,10 +30,10 @@ export default async function PlayerDetailPage({ params, searchParams }: {
   // The chart and headline statistics continue to describe all sessions.
   const rows = [...history].reverse().slice((page - 1) * pageSize, page * pageSize)
   return <>
-    <div className="mb-6"><Link href={`/groups/${groupId}`} className="text-muted text-xs hover:text-white tracking-widest">← LEADERBOARD</Link></div>
+    <div className="mb-6"><Link href={`/groups/${groupId}`} className="text-muted-foreground text-xs hover:text-foreground tracking-normal">← LEADERBOARD</Link></div>
     <PlayerStatsChart groupId={groupId} id={id} initialName={player.name} data={history} totalCny={totalCny}
       totalChips={totalChips} sessions={history.length} wins={wins} pogCount={pogCount} />
-    <p className="text-xs text-muted tracking-widest mb-4">SESSION HISTORY</p>
+    <p className="text-xs text-muted-foreground tracking-normal mb-4">SESSION HISTORY</p>
     <PlayerSessionHistoryTable groupId={groupId} rows={rows} />
     <SessionPagination sessionsPath={historyPath} page={page} pageSize={pageSize} totalPages={totalPages} />
   </>

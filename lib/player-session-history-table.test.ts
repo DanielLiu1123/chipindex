@@ -1,3 +1,4 @@
+import { shadcnTestModules } from './test-shadcn'
 import { readFileSync } from 'node:fs'
 import { transformSync } from 'esbuild'
 import { createElement, type ReactNode } from 'react'
@@ -29,6 +30,7 @@ function loadPlayerSessionHistoryTable(): PlayerSessionHistoryTableComponent {
   }).code
   const module = { exports: {} as Record<string, unknown> }
   const mocks: Record<string, unknown> = {
+    ...shadcnTestModules,
     'react/jsx-runtime': ReactJsxRuntime,
     'next/link': {
       __esModule: true,

@@ -1,5 +1,11 @@
 'use client'
 
+import { Alert, AlertDescription } from '@/components/ui/alert'
+
+import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+
 import { errorMessage } from '@/lib/error-message'
 import { DEFAULT_EXCHANGE_RATE, BUY_IN_UNIT } from '@/lib/session-rules'
 import { toDateTimeLocal, toIsoTimestamp } from '@/lib/browser-time'
@@ -147,9 +153,9 @@ function EditSessionEditor({ groupId, sessionId, session, initialPlayers }: {
       />
 
       <div className="mb-6">
-        <Link href={`/groups/${groupId}/sessions/${sessionId}`} className="text-muted text-xs hover:text-white tracking-widest">← SESSION</Link>
+        <Link href={`/groups/${groupId}/sessions/${sessionId}`} className="text-muted-foreground text-xs hover:text-foreground tracking-normal">← SESSION</Link>
       </div>
-      <h1 className="text-xs text-muted tracking-widest mb-6">EDIT SESSION</h1>
+      <h1 className="text-xs text-muted-foreground tracking-normal mb-6">EDIT SESSION</h1>
 
       <div className="flex flex-col gap-6 max-w-lg">
         <SessionMetaFields disabled={submitting}
@@ -159,7 +165,7 @@ function EditSessionEditor({ groupId, sessionId, session, initialPlayers }: {
         />
 
         <div>
-          <label className="text-xs text-muted tracking-widest block mb-3">PLAYERS <span className="text-muted">(buy-in · final · net)</span></label>
+          <Label className="text-xs text-muted-foreground tracking-normal block mb-3">PLAYERS <span className="text-muted-foreground">(buy-in · final · net)</span></Label>
           <div className="flex flex-col gap-2">
             {rows.map(row => {
               const total = buyinTotal(row)
@@ -167,36 +173,36 @@ function EditSessionEditor({ groupId, sessionId, session, initialPlayers }: {
               return (
                 <div key={row.playerId} className="border border-border">
                   <div className="flex items-center gap-2 px-3 py-2.5">
-                    <button type="button" onClick={() => toggle(row.playerId)} className="flex-1 text-left flex items-baseline gap-2 min-w-0">
-                      <span className="text-white truncate">{row.name}</span>
-                      <span className="text-xs text-muted">buy-in {total.toLocaleString()} · {row.buyins.length}×</span>
-                    </button>
-                    <input type="number" value={row.final} disabled={submitting} aria-label={`final chips for ${row.name}`} onChange={e => updateRow(row.playerId, { final: e.target.value })}
+                    <Button variant="ghost" type="button" onClick={() => toggle(row.playerId)} className="flex-1 text-left min-w-0">
+                      <span className="text-foreground truncate">{row.name}</span>
+                      <span className="text-xs text-muted-foreground">buy-in {total.toLocaleString()} · {row.buyins.length}×</span>
+                    </Button>
+                    <Input type="number" value={row.final} disabled={submitting} aria-label={`final chips for ${row.name}`} onChange={e => updateRow(row.playerId, { final: e.target.value })}
                       placeholder="final" min="0"
-                      className="w-24 bg-surface border border-border text-white text-sm px-3 py-2 outline-none focus:border-white transition-colors placeholder:text-muted text-right" />
+                      className="w-24 text-right" />
                     <span className="w-20 text-right text-sm"><ChipValue chips={net} /></span>
-                    <button type="button" disabled={submitting} onClick={() => setConfirmRemove(row)} className="text-muted hover:text-danger text-sm px-1 transition-colors" aria-label={`remove ${row.name}`}>✕</button>
+                    <Button variant="destructive" type="button" disabled={submitting} onClick={() => setConfirmRemove(row)}  aria-label={`remove ${row.name}`}>✕</Button>
                   </div>
 
                   {expanded.has(row.playerId) && (
-                    <div className="border-t border-border px-3 py-2 bg-surface/50">
-                      <p className="text-xs text-muted tracking-widest mb-2">BUY-INS</p>
+                    <div className="border-t border-border px-3 py-2 bg-muted/50">
+                      <p className="text-xs text-muted-foreground tracking-normal mb-2">BUY-INS</p>
                       <div className="flex flex-col gap-1">
                         {row.buyins.map((b, i) => (
                           <div key={i} className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                            <input disabled={submitting} type="datetime-local" step="1" value={b.created_at}
+                            <Input disabled={submitting} type="datetime-local" step="1" value={b.created_at}
                               aria-label={`buy-in time for ${row.name}`}
                               onChange={e => updateRow(row.playerId, { buyins: row.buyins.map((x, j) => j === i ? { ...x, created_at: e.target.value } : x) })}
-                              className="w-full bg-surface border border-border text-white text-xs px-3 py-2 outline-none focus:border-white transition-colors sm:w-52" />
-                            <input disabled={submitting} type="number" value={b.amount} min="1"
+                              className="w-full sm:w-52" />
+                            <Input disabled={submitting} type="number" value={b.amount} min="1"
                               onChange={e => updateRow(row.playerId, { buyins: row.buyins.map((x, j) => j === i ? { ...x, amount: e.target.value } : x) })}
-                              className="flex-1 bg-surface border border-border text-white text-xs px-3 py-2 outline-none focus:border-white transition-colors text-right" />
-                            <button disabled={submitting} type="button" onClick={() => updateRow(row.playerId, { buyins: row.buyins.filter((_, j) => j !== i) })}
-                              className="text-muted hover:text-danger text-xs px-1 transition-colors">✕</button>
+                              className="flex-1 text-right" />
+                            <Button variant="destructive" disabled={submitting} type="button" onClick={() => updateRow(row.playerId, { buyins: row.buyins.filter((_, j) => j !== i) })}
+                              >✕</Button>
                           </div>
                         ))}
-                        <button disabled={submitting} type="button" onClick={() => updateRow(row.playerId, { buyins: [...row.buyins, { amount: String(unit), created_at: defaultEventTime }] })}
-                          className="text-xs text-muted hover:text-white tracking-widest text-left py-1.5 transition-colors">+ ADD BUY-IN</button>
+                        <Button variant="ghost" disabled={submitting} type="button" onClick={() => updateRow(row.playerId, { buyins: [...row.buyins, { amount: String(unit), created_at: defaultEventTime }] })}
+                          className="text-left">+ ADD BUY-IN</Button>
                       </div>
                     </div>
                   )}
@@ -207,9 +213,9 @@ function EditSessionEditor({ groupId, sessionId, session, initialPlayers }: {
           </div>
         </div>
 
-        <div className="flex items-center justify-between text-xs tracking-widest border-t border-border pt-3">
-          <span className="text-muted">Σ FINAL / Σ BUY-IN</span>
-          <span className={diff === 0 ? 'text-accent' : 'text-amber-400'}>
+        <div className="flex items-center justify-between text-xs tracking-normal border-t border-border pt-3">
+          <span className="text-muted-foreground">Σ FINAL / Σ BUY-IN</span>
+          <span className={diff === 0 ? 'text-primary' : 'text-amber-700 dark:text-amber-400'}>
             {totalFinal.toLocaleString()} / {totalBuyin.toLocaleString()}
             {diff !== 0 && (
               <span className="ml-2">diff {diff > 0 ? '+' : ''}{diff.toLocaleString()}
@@ -219,20 +225,20 @@ function EditSessionEditor({ groupId, sessionId, session, initialPlayers }: {
           </span>
         </div>
 
-        {error && <p className="text-danger text-xs">{error}</p>}
+        {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
         {saveError && (
-          <div className="text-xs text-amber-400">
+          <div className="text-xs text-amber-700 dark:text-amber-400">
             Not balanced — diff {saveError.diff > 0 ? '+' : ''}{saveError.diff.toLocaleString()}.
             Double-check buy-ins and final chips; if correct, you can force save (this session will keep an unbalanced record).
-            <button onClick={() => save(true)} disabled={submitting}
-              className="block mt-2 text-danger tracking-widest hover:underline disabled:opacity-40">FORCE SAVE →</button>
+            <Button variant="destructive" type="button" onClick={() => save(true)} disabled={submitting}
+              className="mt-2">FORCE SAVE →</Button>
           </div>
         )}
 
-        <button onClick={() => save(false)} disabled={submitting}
-          className="bg-white text-bg text-xs font-medium tracking-widest py-3 hover:bg-accent transition-colors disabled:opacity-40">
+        <Button variant="default" type="button" onClick={() => save(false)} disabled={submitting}
+          >
           {submitting ? 'SAVING...' : 'SAVE CHANGES'}
-        </button>
+        </Button>
       </div>
     </>
   )
@@ -240,5 +246,5 @@ function EditSessionEditor({ groupId, sessionId, session, initialPlayers }: {
 
 export default function EditSessionForm(props: Parameters<typeof EditSessionEditor>[0]) {
   const ready = useBrowserReady()
-  return ready ? <EditSessionEditor {...props} /> : <p className="text-xs text-muted">LOADING...</p>
+  return ready ? <EditSessionEditor {...props} /> : <p className="text-xs text-muted-foreground">LOADING...</p>
 }

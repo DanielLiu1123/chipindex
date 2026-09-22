@@ -1,7 +1,14 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { ThemeProvider } from '@/components/ThemeProvider'
+import { ThemeToggle } from '@/components/ThemeToggle'
+import { Toaster } from '@/components/ui/sonner'
 import Nav from '@/components/Nav'
 import { isAuthenticated } from '@/lib/auth'
+import { Geist } from 'next/font/google'
+import { cn } from '@/lib/utils'
+
+const geist = Geist({ subsets: ['latin'], variable: '--font-geist' })
 
 export const metadata: Metadata = {
   title: 'ChipIndex',
@@ -11,18 +18,30 @@ export const metadata: Metadata = {
   },
 }
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   const authed = await isAuthenticated()
   return (
-    <html lang="zh-CN" suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet" />
-      </head>
-      <body className="min-h-screen bg-bg font-mono">
-        {authed && <Nav />}
-        <main className="max-w-4xl mx-auto px-6 py-8">{children}</main>
+    <html
+      lang="zh-CN"
+      suppressHydrationWarning
+      className={cn('font-sans', geist.variable)}
+    >
+      <body className="min-h-screen bg-background font-sans">
+        <ThemeProvider>
+          {authed ? (
+            <Nav />
+          ) : (
+            <div className="flex justify-end p-4">
+              <ThemeToggle />
+            </div>
+          )}
+          <main className="max-w-4xl mx-auto px-6 py-8">{children}</main>
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   )

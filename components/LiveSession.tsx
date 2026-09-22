@@ -1,5 +1,9 @@
 'use client'
 
+import { Alert, AlertDescription } from '@/components/ui/alert'
+
+import { Button } from '@/components/ui/button'
+
 import { errorMessage } from '@/lib/error-message'
 import { useState } from 'react'
 import Link from 'next/link'
@@ -145,29 +149,29 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
         onCancel={() => { setCashOut(null); setCashOutError('') }}
       />
       <div className="mb-6">
-        <Link href={`/groups/${groupId}/sessions`} className="text-muted text-xs hover:text-white tracking-widest">← SESSIONS</Link>
+        <Link href={`/groups/${groupId}/sessions`} className="text-muted-foreground text-xs hover:text-foreground tracking-normal">← SESSIONS</Link>
       </div>
 
       <div className="flex items-center gap-2 mb-1">
         <span className="inline-block w-2 h-2 rounded-full bg-accent animate-pulse" />
-        <span className="text-xs text-accent tracking-widest">LIVE</span>
-        <span className="text-white">{session.date}</span>
-        {session.description && <span className="text-sm text-muted">· {session.description}</span>}
+        <span className="text-xs text-primary tracking-normal">LIVE</span>
+        <span className="text-foreground">{session.date}</span>
+        {session.description && <span className="text-sm text-muted-foreground">· {session.description}</span>}
       </div>
       <div className="mb-6 flex items-baseline gap-2">
-        <span className="text-xs text-muted tracking-widest">TOTAL BUY-IN</span>
-        <span className="text-accent text-lg">{pot.toLocaleString()}</span>
-        <span className="text-xs text-muted">chips</span>
+        <span className="text-xs text-muted-foreground tracking-normal">TOTAL BUY-IN</span>
+        <span className="text-primary text-lg">{pot.toLocaleString()}</span>
+        <span className="text-xs text-muted-foreground">chips</span>
       </div>
       {cashedOutTotal > 0 && (
         <div className="-mt-5 mb-6 flex items-baseline gap-2">
-          <span className="text-xs text-muted tracking-widest">CASHED OUT</span>
-          <span className="text-white text-sm">{cashedOutTotal.toLocaleString()}</span>
-          <span className="text-xs text-muted">chips</span>
+          <span className="text-xs text-muted-foreground tracking-normal">CASHED OUT</span>
+          <span className="text-foreground text-sm">{cashedOutTotal.toLocaleString()}</span>
+          <span className="text-xs text-muted-foreground">chips</span>
         </div>
       )}
 
-      {error && <p className="text-danger text-xs mb-4">{error}</p>}
+      {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
 
       {!settling && (
         <div className="mb-5 grid grid-cols-2 gap-2">
@@ -196,10 +200,10 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
 
       {/* settle */}
       {!settling ? (
-        <button onClick={() => setSettling(true)} disabled={pending || session.participants.length === 0}
-          className="w-full bg-white text-bg text-xs font-medium tracking-widest py-3 hover:bg-accent transition-colors disabled:opacity-40">
+        <Button variant="default" type="button" onClick={() => setSettling(true)} disabled={pending || session.participants.length === 0}
+          className="w-full">
           SETTLE SESSION
-        </button>
+        </Button>
       ) : (
         <LiveSettlementPanel
           participants={session.participants}

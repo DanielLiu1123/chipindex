@@ -20,9 +20,9 @@ interface PlayerCandleShapeProps extends BarShapeProps {
 }
 
 const COLORS = {
-  up: '#00ff88',
-  down: '#ff4444',
-  flat: '#888888',
+  up: 'var(--profit)',
+  down: 'var(--loss)',
+  flat: 'var(--muted-foreground)',
 } as const
 
 interface ShapePayload {
@@ -130,9 +130,9 @@ export default function PlayerCandleShape(props: PlayerCandleShapeProps) {
         x: geometry.centerX,
         y: bodyTop - 10,
         textAnchor: labelAnchor,
-        fill: '#00ff88',
+        fill: 'var(--profit)',
         fontSize: 9,
-        fontFamily: 'JetBrains Mono',
+        fontFamily: 'var(--font-sans)',
       }, 'BEST')
     : null
 
@@ -141,9 +141,9 @@ export default function PlayerCandleShape(props: PlayerCandleShapeProps) {
         x: geometry.centerX,
         y: bodyTop + bodyHeight + 14,
         textAnchor: labelAnchor,
-        fill: '#ff4444',
+        fill: 'var(--loss)',
         fontSize: 9,
-        fontFamily: 'JetBrains Mono',
+        fontFamily: 'var(--font-sans)',
       }, 'WORST')
     : null
 

@@ -1,3 +1,4 @@
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import DeleteSessionButton from '@/components/DeleteSessionButton'
@@ -42,40 +43,40 @@ export default async function SessionsPage({
   return (
     <>
       <div className="flex items-baseline justify-between mb-6">
-        <span className="text-xs text-muted tracking-widest">{total} SESSIONS</span>
+        <span className="text-xs text-muted-foreground tracking-normal">{total} SESSIONS</span>
         <div className="flex items-center gap-4">
-          <Link href={`/groups/${groupId}/sessions/new`} className="text-xs text-accent tracking-widest hover:underline">+ NEW SESSION</Link>
-          <Link href={`/groups/${groupId}/sessions/import`} className="text-xs text-accent tracking-widest hover:underline">IMPORT SESSION</Link>
+          <Link href={`/groups/${groupId}/sessions/new`} className="text-xs text-primary tracking-normal hover:underline">+ NEW SESSION</Link>
+          <Link href={`/groups/${groupId}/sessions/import`} className="text-xs text-primary tracking-normal hover:underline">IMPORT SESSION</Link>
         </div>
       </div>
-      <table className="w-full text-sm">
-        <thead><tr className="border-b border-border text-muted text-xs tracking-widest">
-          <th className="text-left py-3 font-normal">DATE</th><th className="text-right py-3 font-normal">PLAYERS</th>
-          <th className="text-right py-3 font-normal">POG</th><th className="text-right py-3 font-normal">RATE</th>
-          <th className="text-right py-3 font-normal"></th>
-        </tr></thead>
-        <tbody>
-          {sessions.length === 0 && <tr><td colSpan={5} className="py-12 text-center text-xs text-muted tracking-widest">NO SESSIONS YET</td></tr>}
+      <Table className="w-full text-sm">
+        <TableHeader><TableRow className="border-b border-border text-muted-foreground text-xs tracking-normal">
+          <TableHead className="text-left py-3 font-normal">DATE</TableHead><TableHead className="text-right py-3 font-normal">PLAYERS</TableHead>
+          <TableHead className="text-right py-3 font-normal">POG</TableHead><TableHead className="text-right py-3 font-normal">RATE</TableHead>
+          <TableHead className="text-right py-3 font-normal"></TableHead>
+        </TableRow></TableHeader>
+        <TableBody>
+          {sessions.length === 0 && <TableRow><TableCell colSpan={5} className="py-12 text-center text-xs text-muted-foreground tracking-normal">NO SESSIONS YET</TableCell></TableRow>}
           {sessions.map(session => {
             const href = `/groups/${groupId}/sessions/${session.id}`
             const isOpen = session.status === 'OPEN'
-            return <tr key={session.id} className={`border-b border-border transition-colors ${isOpen ? 'bg-accent/5 hover:bg-accent/10' : 'hover:bg-surface'}`}>
-              <td className="py-4"><Link href={href} className="block">
-                <div className={`flex items-center gap-2 ${isOpen ? 'text-accent' : ''}`}>
+            return <TableRow key={session.id} className={`border-b border-border transition-colors ${isOpen ? 'bg-primary/5 hover:bg-primary/10' : 'hover:bg-muted'}`}>
+              <TableCell className="py-4"><Link href={href} className="block">
+                <div className={`flex items-center gap-2 ${isOpen ? 'text-primary' : ''}`}>
                   {isOpen && <span className="inline-block w-2 h-2 rounded-full bg-accent animate-pulse shrink-0" />}{session.date}
                 </div>
-                {session.description && <div className="text-xs text-muted mt-0.5">{session.description}</div>}
-              </Link></td>
-              <td className="py-4 text-right text-muted"><Link href={href} className="block">{session.player_count}</Link></td>
-              <td className="py-4 text-right">{!isOpen && session.winners.length > 0
-                ? <div className="flex flex-wrap justify-end gap-x-2 gap-y-1">{session.winners.map(winner => <Link key={winner.player_id} href={`/groups/${groupId}/players/${winner.player_id}`} className="text-muted hover:text-accent transition-colors">{winner.name}</Link>)}</div>
-                : <span className="text-muted">—</span>}</td>
-              <td className="py-4 text-right text-muted"><Link href={href} className="block">{session.exchange_rate ? `${session.exchange_rate}:1` : '—'}</Link></td>
-              <td className="py-4 text-right"><DeleteSessionButton groupId={groupId} sessionId={session.id} /></td>
-            </tr>
+                {session.description && <div className="text-xs text-muted-foreground mt-0.5">{session.description}</div>}
+              </Link></TableCell>
+              <TableCell className="py-4 text-right text-muted-foreground"><Link href={href} className="block">{session.player_count}</Link></TableCell>
+              <TableCell className="py-4 text-right">{!isOpen && session.winners.length > 0
+                ? <div className="flex flex-wrap justify-end gap-x-2 gap-y-1">{session.winners.map(winner => <Link key={winner.player_id} href={`/groups/${groupId}/players/${winner.player_id}`} className="text-muted-foreground hover:text-primary transition-colors">{winner.name}</Link>)}</div>
+                : <span className="text-muted-foreground">—</span>}</TableCell>
+              <TableCell className="py-4 text-right text-muted-foreground"><Link href={href} className="block">{session.exchange_rate ? `${session.exchange_rate}:1` : '—'}</Link></TableCell>
+              <TableCell className="py-4 text-right"><DeleteSessionButton groupId={groupId} sessionId={session.id} /></TableCell>
+            </TableRow>
           })}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
       <SessionPagination sessionsPath={sessionsPath} page={page} pageSize={pageSize} totalPages={totalPages} />
     </>
   )

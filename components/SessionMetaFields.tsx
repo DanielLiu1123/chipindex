@@ -1,5 +1,9 @@
 'use client'
 
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+
+import DatePicker from '@/components/DatePicker'
 import { DEFAULT_EXCHANGE_RATE } from '@/lib/session-rules'
 
 // Date / exchange rate / description fields shared by all session forms.
@@ -21,20 +25,19 @@ export default function SessionMetaFields({
     <>
       <div className="flex gap-4">
         <div className="flex-1">
-          <label className="text-xs text-muted tracking-widest block mb-2">DATE</label>
-          <input disabled={disabled} type="date" value={date} onChange={e => setDate(e.target.value)} required
-            className="w-full bg-surface border border-border text-white text-sm px-4 py-3 outline-none focus:border-white transition-colors" />
+          <Label className="text-xs text-muted-foreground tracking-normal block mb-2">DATE</Label>
+          <DatePicker disabled={disabled} value={date} onChange={setDate} />
         </div>
         <div className="w-32">
-          <label className="text-xs text-muted tracking-widest block mb-2">RATE <span className="text-muted">(opt)</span></label>
-          <input disabled={disabled} type="number" value={exchangeRate} onChange={e => setExchangeRate(e.target.value)} placeholder={String(DEFAULT_EXCHANGE_RATE)} min="1"
-            className="w-full bg-surface border border-border text-white text-sm px-4 py-3 outline-none focus:border-white transition-colors placeholder:text-muted" />
+          <Label className="text-xs text-muted-foreground tracking-normal block mb-2">RATE <span className="text-muted-foreground">(opt)</span></Label>
+          <Input disabled={disabled} type="number" value={exchangeRate} onChange={e => setExchangeRate(e.target.value)} placeholder={String(DEFAULT_EXCHANGE_RATE)} min="1"
+            className="w-full" />
         </div>
       </div>
       <div>
-        <label className="text-xs text-muted tracking-widest block mb-2">DESCRIPTION <span className="text-muted">(opt)</span></label>
-        <input disabled={disabled} type="text" value={description} onChange={e => setDescription(e.target.value)} placeholder="e.g. Friday game"
-          className="w-full bg-surface border border-border text-white text-sm px-4 py-3 outline-none focus:border-white transition-colors placeholder:text-muted" />
+        <Label className="text-xs text-muted-foreground tracking-normal block mb-2">DESCRIPTION <span className="text-muted-foreground">(opt)</span></Label>
+        <Input disabled={disabled} type="text" value={description} onChange={e => setDescription(e.target.value)} placeholder="e.g. Friday game"
+          className="w-full" />
       </div>
     </>
   )

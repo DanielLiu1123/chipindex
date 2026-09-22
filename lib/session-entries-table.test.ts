@@ -1,3 +1,5 @@
+import { ChevronRight } from 'lucide-react'
+import { shadcnTestModules } from './test-shadcn'
 import { readFileSync } from 'node:fs'
 import { transformSync } from 'esbuild'
 import { createElement, Fragment, type ReactNode } from 'react'
@@ -34,6 +36,8 @@ function loadSessionEntriesTable(): SessionEntriesTableComponent {
   }).code
   const module = { exports: {} as Record<string, unknown> }
   const mocks: Record<string, unknown> = {
+    ...shadcnTestModules,
+    'lucide-react': { ChevronRight },
     react: {
       Fragment,
       useState: () => [new Set(['part-1']), () => undefined],

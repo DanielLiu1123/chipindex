@@ -1,3 +1,10 @@
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from '@/components/ui/collapsible'
+import { ChevronRight } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import BrowserTime from '@/components/BrowserTime'
 import ChipValue from '@/components/ChipValue'
 import type { LiveParticipant } from '@/lib/domain-types'
@@ -27,52 +34,90 @@ export default function LiveParticipantList({
   onRemove,
 }: Props) {
   if (participants.length === 0) {
-    return <p className="text-muted text-xs tracking-widest py-6 text-center">NO PLAYERS YET — USE + PLAYER</p>
+    return (
+      <p className="text-muted-foreground text-xs tracking-normal py-6 text-center">
+        NO PLAYERS YET — USE + PLAYER
+      </p>
+    )
   }
 
-  return participants.map(participant => {
+  return participants.map((participant) => {
     const cashedOut = isCashedOut(participant)
     const finalChips = participant.final_chips ?? 0
     const netChips = finalChips - participant.total_buyin
     const isExpanded = interactive && expanded.has(participant.player_id)
     const detailsToggle = (
-      <button type="button" onClick={() => onToggle(participant.player_id)} disabled={!interactive}
-        aria-label={`${participant.name} buy-in history`} aria-expanded={isExpanded}
-        title={participant.name}
-        className="group flex min-w-0 flex-1 self-stretch items-center gap-2 text-left">
-        {interactive && <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"
-          className={`h-3 w-3 shrink-0 text-muted transition-transform group-hover:text-white motion-reduce:transition-none ${isExpanded ? 'rotate-90' : ''}`}>
-          <path d="m6 3 5 5-5 5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>}
-        <span className="min-w-0 flex-1 truncate text-sm leading-snug text-white sm:text-base">{participant.name}</span>
-        {cashedOut ? (
-          <span className="shrink-0 whitespace-nowrap text-[10px] tracking-widest text-muted sm:text-xs">
-            NET <ChipValue chips={netChips} className="tracking-normal tabular-nums" />
+      <CollapsibleTrigger asChild>
+        <Button
+          variant="ghost"
+          type="button"
+          disabled={!interactive}
+          aria-label={`${participant.name} buy-in history`}
+          aria-expanded={isExpanded}
+          title={participant.name}
+          className="min-w-0 flex-1 self-stretch text-left"
+        >
+          {interactive && (
+            <ChevronRight
+              aria-hidden="true"
+              className={`size-3 shrink-0 text-muted-foreground transition-transform motion-reduce:transition-none ${isExpanded ? 'rotate-90' : ''}`}
+            />
+          )}
+          <span className="min-w-0 flex-1 truncate text-sm leading-snug text-foreground sm:text-base">
+            {participant.name}
           </span>
-        ) : (
-          <span className="shrink-0 whitespace-nowrap text-[11px] text-muted tabular-nums group-hover:text-white sm:text-xs">
-            {participant.buy_ins.length}× <span className="text-white">{participant.total_buyin.toLocaleString()}</span>
-          </span>
-        )}
-      </button>
+          {cashedOut ? (
+            <span className="shrink-0 whitespace-nowrap text-[10px] tracking-normal text-muted-foreground sm:text-xs">
+              NET{' '}
+              <ChipValue
+                chips={netChips}
+                className="tracking-normal tabular-nums"
+              />
+            </span>
+          ) : (
+            <span className="shrink-0 whitespace-nowrap text-[11px] text-muted-foreground tabular-nums group-hover:text-foreground sm:text-xs">
+              {participant.buy_ins.length}×{' '}
+              <span className="text-foreground">
+                {participant.total_buyin.toLocaleString()}
+              </span>
+            </span>
+          )}
+        </Button>
+      </CollapsibleTrigger>
     )
 
     return (
-      <div key={participant.player_id} className="border border-border">
+      <Collapsible
+        key={participant.player_id}
+        open={isExpanded}
+        onOpenChange={() => onToggle(participant.player_id)}
+        className="rounded-lg border border-border"
+      >
         {cashedOut ? (
           <div className="flex flex-nowrap items-center gap-1.5 px-3 py-1.5 sm:gap-2">
             {detailsToggle}
             {interactive && (
               <div className="contents">
-                <button onClick={() => onUndoCashOut(participant.player_id)} disabled={pending}
-                  className="w-[4.75rem] shrink-0 border border-sky-400/40 px-1.5 py-1.5 text-[10px] tracking-wide text-sky-400 transition-colors hover:border-sky-400 disabled:opacity-40 sm:w-24 sm:px-2 sm:py-1 sm:text-xs sm:tracking-widest"
-                  aria-label={`undo ${participant.name} cash out`}>
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() => onUndoCashOut(participant.player_id)}
+                  disabled={pending}
+                  className="w-[4.75rem] shrink-0 sm:w-24"
+                  aria-label={`undo ${participant.name} cash out`}
+                >
                   UNDO
-                </button>
-                <button onClick={() => onRemove(participant)} disabled={pending}
-                  className="shrink-0 px-0.5 text-xs text-muted transition-colors hover:text-danger disabled:opacity-40 sm:px-1 sm:text-sm" aria-label="remove player">
+                </Button>
+                <Button
+                  variant="destructive"
+                  type="button"
+                  onClick={() => onRemove(participant)}
+                  disabled={pending}
+                  className="shrink-0"
+                  aria-label="remove player"
+                >
                   ✕
-                </button>
+                </Button>
               </div>
             )}
           </div>
@@ -81,48 +126,75 @@ export default function LiveParticipantList({
             {detailsToggle}
             {interactive && (
               <div className="contents">
-                <button onClick={() => onCashOut(participant)} disabled={pending}
-                  className="w-[4.75rem] shrink-0 border border-amber-400/40 px-1.5 py-1.5 text-[10px] tracking-wide text-amber-400 transition-colors hover:border-amber-400 disabled:opacity-40 sm:w-24 sm:px-2 sm:py-1 sm:text-xs sm:tracking-widest">
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() => onCashOut(participant)}
+                  disabled={pending}
+                  className="w-[4.75rem] shrink-0 sm:w-24"
+                >
                   CASH OUT
-                </button>
-                <button onClick={() => onRemove(participant)} disabled={pending}
-                  className="shrink-0 px-0.5 text-xs text-muted transition-colors hover:text-danger disabled:opacity-40 sm:px-1 sm:text-sm" aria-label="remove player">
+                </Button>
+                <Button
+                  variant="destructive"
+                  type="button"
+                  onClick={() => onRemove(participant)}
+                  disabled={pending}
+                  className="shrink-0"
+                  aria-label="remove player"
+                >
                   ✕
-                </button>
+                </Button>
               </div>
             )}
           </div>
         )}
 
-        {interactive && expanded.has(participant.player_id) && (
-          <div className="border-t border-border px-3 py-2 bg-surface/50">
-            {cashedOut && (
-              <div className="mb-2 flex min-w-0 items-baseline gap-2 overflow-hidden text-[10px] text-muted">
-                <span className="shrink-0 tracking-widest">
-                  CASHED OUT <BrowserTime value={participant.settled_at!} />
+        <CollapsibleContent className="border-t border-border px-3 py-2 bg-muted/50">
+          {cashedOut && (
+            <div className="mb-2 flex min-w-0 items-baseline gap-2 overflow-hidden text-[10px] text-muted-foreground">
+              <span className="shrink-0 tracking-normal">
+                CASHED OUT <BrowserTime value={participant.settled_at!} />
+              </span>
+              <span className="min-w-0 truncate">
+                · BUY-IN{' '}
+                <span className="text-foreground tabular-nums">
+                  {participant.total_buyin.toLocaleString()}
                 </span>
-                <span className="min-w-0 truncate">
-                  · BUY-IN <span className="text-white tabular-nums">{participant.total_buyin.toLocaleString()}</span>
-                  {' · '}FINAL <span className="text-white tabular-nums">{finalChips.toLocaleString()}</span>
+                {' · '}FINAL{' '}
+                <span className="text-foreground tabular-nums">
+                  {finalChips.toLocaleString()}
                 </span>
-              </div>
-            )}
-            {participant.buy_ins.length > 0 && (
-              <div className="flex flex-col gap-1 mb-2">
-                {participant.buy_ins.map(buyIn => (
-                  <div key={buyIn.id} className="flex items-center justify-between text-xs text-muted">
-                    <span><BrowserTime value={buyIn.created_at} /> · +{buyIn.amount.toLocaleString()}</span>
-                    {!cashedOut && (
-                      <button onClick={() => onRevokeBuyIn(buyIn.id)} disabled={pending}
-                        className="hover:text-danger transition-colors px-1">✕</button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+              </span>
+            </div>
+          )}
+          {participant.buy_ins.length > 0 && (
+            <div className="flex flex-col gap-1 mb-2">
+              {participant.buy_ins.map((buyIn) => (
+                <div
+                  key={buyIn.id}
+                  className="flex items-center justify-between text-xs text-muted-foreground"
+                >
+                  <span>
+                    <BrowserTime value={buyIn.created_at} /> · +
+                    {buyIn.amount.toLocaleString()}
+                  </span>
+                  {!cashedOut && (
+                    <Button
+                      variant="destructive"
+                      type="button"
+                      onClick={() => onRevokeBuyIn(buyIn.id)}
+                      disabled={pending}
+                    >
+                      ✕
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CollapsibleContent>
+      </Collapsible>
     )
   })
 }
