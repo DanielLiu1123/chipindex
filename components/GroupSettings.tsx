@@ -1,5 +1,11 @@
 'use client'
 
+import { Alert, AlertDescription } from '@/components/ui/alert'
+
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+
 import { errorMessage } from '@/lib/error-message'
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
@@ -90,15 +96,15 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
 
   return <>
     <div className="max-w-3xl">
-      <section aria-label="Group name" className="mb-8 border border-border bg-surface/60 p-4 sm:p-5">
+      <section aria-label="Group name" className="mb-8 border border-border bg-muted/60 p-4 sm:p-5">
         <form onSubmit={event => { event.preventDefault(); if (!pending && name.trim() && name.trim() !== savedName) void rename() }}
           className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
-          <label htmlFor="group-name" className="shrink-0 text-[10px] tracking-widest text-white/50">GROUP NAME</label>
+          <Label htmlFor="group-name" className="shrink-0 text-[10px] tracking-normal text-foreground/50">GROUP NAME</Label>
           <div className="flex min-w-0 flex-1 gap-2">
-            <input id="group-name" value={name} disabled={pending} onChange={event => setName(event.target.value)}
-              className="min-w-0 flex-1 border border-border bg-bg px-3 py-2 text-sm text-white outline-none transition-colors focus:border-white/60 disabled:opacity-50" />
-            <button type="submit" disabled={pending || !name.trim() || name.trim() === savedName}
-              className="shrink-0 border border-white/20 bg-white/5 px-4 py-2 text-[10px] tracking-widest text-white transition-colors hover:enabled:border-white/50 hover:enabled:bg-white/10 disabled:opacity-30">SAVE</button>
+            <Input id="group-name" value={name} disabled={pending} onChange={event => setName(event.target.value)}
+              className="min-w-0 flex-1" />
+            <Button variant="default" type="submit" disabled={pending || !name.trim() || name.trim() === savedName}
+              className="shrink-0">SAVE</Button>
           </div>
         </form>
       </section>
@@ -106,37 +112,37 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
       <section aria-labelledby="group-players-heading">
         <div className="mb-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
-            <h2 id="group-players-heading" className="text-xs tracking-widest text-white">PLAYERS</h2>
-            <span className="border border-border bg-surface px-2 py-0.5 text-[10px] tabular-nums text-white/50">{groupPlayers.length}</span>
+            <h2 id="group-players-heading" className="text-xs tracking-normal text-foreground">PLAYERS</h2>
+            <span className="border border-border bg-muted px-2 py-0.5 text-[10px] tabular-nums text-foreground/50">{groupPlayers.length}</span>
           </div>
           <PlayerActionButton action="add-player" compact disabled={pending} onClick={() => setAddPlayersOpen(true)} />
         </div>
 
         <div className="border border-border">
-          <div aria-hidden="true" className="hidden grid-cols-[minmax(0,1fr)_11rem_5rem] gap-4 border-b border-border bg-surface/60 px-4 py-2.5 text-[10px] tracking-widest text-white/40 sm:grid">
+          <div aria-hidden="true" className="hidden grid-cols-[minmax(0,1fr)_11rem_5rem] gap-4 border-b border-border bg-muted/60 px-4 py-2.5 text-[10px] tracking-normal text-foreground/40 sm:grid">
             <span>PLAYER</span><span>JOINED AT</span><span />
           </div>
           <ul className="divide-y divide-border">
             {groupPlayers.map(row => <li key={row.group_player.id}
-              className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 px-4 py-2.5 transition-colors hover:bg-white/[0.025] sm:grid-cols-[minmax(0,1fr)_11rem_5rem] sm:py-2">
+              className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 px-4 py-2.5 transition-colors hover:bg-foreground/[0.025] sm:grid-cols-[minmax(0,1fr)_11rem_5rem] sm:py-2">
               <Link href={`/groups/${group.id}/players/${row.player.id}`} title={row.player.name}
-                className="min-w-0 truncate text-sm text-white transition-colors hover:text-accent focus-visible:outline-accent">
+                className="min-w-0 truncate text-sm text-foreground transition-colors hover:text-primary focus-visible:outline-accent">
                 {row.player.name}
               </Link>
               <span aria-label={`Joined time for ${row.player.name}`}
-                className="col-start-1 row-start-2 mt-1 text-[10px] tabular-nums text-white/40 sm:col-start-auto sm:row-start-auto sm:mt-0 sm:text-xs">
+                className="col-start-1 row-start-2 mt-1 text-[10px] tabular-nums text-foreground/40 sm:col-start-auto sm:row-start-auto sm:mt-0 sm:text-xs">
                 <BrowserTime value={row.group_player.created_at} includeDate />
               </span>
-              <button type="button" onClick={() => setPlayerToDelete(row)} disabled={pending} aria-label={`Remove ${row.player.name} from group`}
-                className="col-start-2 row-span-2 row-start-1 min-h-9 bg-[#211517] px-2 text-[10px] tracking-widest text-[#C58B91] transition-colors hover:enabled:bg-[#301C20] focus-visible:bg-[#301C20] focus-visible:outline-[#C58B91] disabled:opacity-40 sm:col-start-3 sm:row-span-1">
+              <Button variant="ghost" type="button" onClick={() => setPlayerToDelete(row)} disabled={pending} aria-label={`Remove ${row.player.name} from group`}
+                >
                 REMOVE
-              </button>
+              </Button>
             </li>)}
           </ul>
-          {groupPlayers.length === 0 && <p className="px-4 py-8 text-center text-xs text-white/40">No players yet.</p>}
+          {groupPlayers.length === 0 && <p className="px-4 py-8 text-center text-xs text-foreground/40">No players yet.</p>}
         </div>
       </section>
-      {error && <p role="alert" className="mt-4 text-xs text-danger">{error}</p>}
+      {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
     </div>
     <PlayerSelectionModal open={addPlayersOpen} participants={directory.participants}
       onCreatePlayer={directory.create} action={{ kind: 'players', submit: addPlayers }}

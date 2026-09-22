@@ -1,5 +1,11 @@
 'use client'
 
+import { Alert, AlertDescription } from '@/components/ui/alert'
+
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+
 import { FormEvent, useEffect, useState } from 'react'
 import Dialog from './Dialog'
 import ChipValue from '@/components/ChipValue'
@@ -34,16 +40,16 @@ export default function CashOutModal({ participant, pending, error, onConfirm, o
   return (
     <Dialog open label={`Cash out ${participant.name}`} pending={pending} onClose={onCancel} className="max-w-xs p-4">
       <form className="w-full" onSubmit={submit} onClick={event => event.stopPropagation()}>
-        <p className="mb-4 text-sm font-medium text-white">{participant.name}</p>
+        <p className="mb-4 text-sm font-medium text-foreground">{participant.name}</p>
 
         <div className="mb-3 flex items-center justify-between text-xs">
-          <span className="text-muted tracking-widest">BUY-IN</span>
-          <span className="text-white tabular-nums">{participant.total_buyin.toLocaleString()}</span>
+          <span className="text-muted-foreground tracking-normal">BUY-IN</span>
+          <span className="text-foreground tabular-nums">{participant.total_buyin.toLocaleString()}</span>
         </div>
 
         <div className="flex items-center gap-3">
-          <label className="shrink-0 text-xs tracking-widest text-muted" htmlFor="cash-out-final-chips">CHIPS</label>
-          <input
+          <Label className="shrink-0 text-xs tracking-normal text-muted-foreground" htmlFor="cash-out-final-chips">CHIPS</Label>
+          <Input
             id="cash-out-final-chips"
             type="number"
             inputMode="numeric"
@@ -53,27 +59,27 @@ export default function CashOutModal({ participant, pending, error, onConfirm, o
             value={value}
             onChange={event => setValue(event.target.value)}
             disabled={pending}
-            className="min-w-0 flex-1 border border-border bg-bg px-3 py-2 text-right text-white outline-none transition-colors focus:border-white disabled:opacity-50"
+            className="min-w-0 flex-1 text-right"
           />
         </div>
-        {value && !valid && <p className="text-danger text-xs mt-2">Enter a non-negative whole number.</p>}
+        {value && !valid && <Alert variant="destructive"><AlertDescription>Enter a non-negative whole number.</AlertDescription></Alert>}
 
         <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-xs">
-          <span className="text-muted tracking-widest">NET</span>
-          {valid ? <ChipValue chips={netChips(finalChips, participant.total_buyin)} /> : <span className="text-muted">—</span>}
+          <span className="text-muted-foreground tracking-normal">NET</span>
+          {valid ? <ChipValue chips={netChips(finalChips, participant.total_buyin)} /> : <span className="text-muted-foreground">—</span>}
         </div>
 
-        {error && <p role="alert" className="text-danger text-xs mt-3">{error}</p>}
+        {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
 
         <div className="mt-4 flex justify-end gap-2">
-          <button type="button" onClick={onCancel} disabled={pending}
-            className="text-xs font-medium tracking-widest text-muted hover:text-white border border-border hover:border-white px-4 py-2 transition-colors disabled:opacity-40">
+          <Button variant="outline" type="button" onClick={onCancel} disabled={pending}
+            >
             CANCEL
-          </button>
-          <button type="submit" disabled={!valid || pending}
-            className="text-xs font-medium tracking-widest text-bg bg-white hover:bg-accent px-4 py-2 transition-colors disabled:opacity-40">
+          </Button>
+          <Button variant="default" type="submit" disabled={!valid || pending}
+            >
             {pending ? 'SAVING...' : 'CASH OUT'}
-          </button>
+          </Button>
         </div>
       </form>
     </Dialog>

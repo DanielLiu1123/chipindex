@@ -1,5 +1,10 @@
 'use client'
 
+import { Alert, AlertDescription } from '@/components/ui/alert'
+
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+
 import { errorMessage } from '@/lib/error-message'
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -56,22 +61,22 @@ export default function PlayerNameEditor({ groupId, id, initialName }: { groupId
 
   if (editing) {
     return (
-      <div><input
+      <div><Input
         ref={inputRef}
         value={name}
         onChange={e => setName(e.target.value)}
         onBlur={save}
         onKeyDown={handleKeyDown}
         disabled={saving}
-        className="text-white text-lg bg-transparent border-b border-white outline-none w-48 disabled:opacity-50"
-      />{error && <p role="alert" className="text-xs text-danger">{error}</p>}</div>
+        className="w-48"
+      />{error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}</div>
     )
   }
 
   return (
-    <button onClick={() => setEditing(true)}
-      className="text-white text-lg hover:text-accent transition-colors">
+    <Button variant="ghost" type="button" onClick={() => setEditing(true)}
+      >
       {name}
-    </button>
+    </Button>
   )
 }

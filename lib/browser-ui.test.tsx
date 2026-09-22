@@ -2,7 +2,7 @@
 import { act, createElement, type ReactNode } from 'react'
 import { renderToString } from 'react-dom/server'
 import { hydrateRoot } from 'react-dom/client'
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import userEvent from '@testing-library/user-event'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import ConfirmModal from '../components/ConfirmModal'
@@ -25,15 +25,6 @@ vi.mock('next/link', () => ({ default: ({ children, ...props }: { children: Reac
 vi.mock('next/image', () => ({ default: () => null }))
 vi.mock('../components/LeaderboardChart', () => ({ default: () => null }))
 
-// jsdom has no top-layer implementation. Only these native platform methods
-// are adapted; hooks, effects, DOM events and component rendering are real React.
-beforeAll(() => {
-  HTMLDialogElement.prototype.showModal = function () {
-    this.setAttribute('open', '')
-    this.querySelector<HTMLElement>('[autofocus], input, button')?.focus()
-  }
-  HTMLDialogElement.prototype.close = function () { this.removeAttribute('open') }
-})
 beforeEach(() => {
   Object.values(client).forEach(mock => mock.mockReset())
   client.listGroups.mockResolvedValue([])
@@ -105,10 +96,10 @@ describe('real React session forms', () => {
   })
   it('initializes both new/import dates in the browser local zone', () => {
     const first = render(<NewSessionForm groupId="g1" initialPlayers={players} />)
-    expect((first.container.querySelector('input[type=date]') as HTMLInputElement).value).toBe(localDate())
+    expect(screen.getByRole('button', { name: /^Date$/ }).textContent).toBe(localDate())
     first.unmount()
-    const second = render(<SessionForm groupId="g1" initialPlayers={players} />)
-    expect((second.container.querySelector('input[type=date]') as HTMLInputElement).value).toBe(localDate())
+    render(<SessionForm groupId="g1" initialPlayers={players} />)
+    expect(screen.getByRole('button', { name: /^Date$/ }).textContent).toBe(localDate())
   })
 })
 
@@ -119,17 +110,17 @@ describe('shared dialog and failures', () => {
     const confirm = vi.fn(() => new Promise<void>((_, no) => { reject = no }))
     const cancel = vi.fn()
     const view = render(<ConfirmModal open title="Delete?" onConfirm={confirm} onCancel={cancel} />)
-    const dialog = screen.getByRole('dialog', { name: 'Delete?' })
+    const dialog = screen.getByRole('alertdialog', { name: 'Delete?' })
     await userEvent.click(screen.getByRole('button', { name: 'DELETE' }))
     await userEvent.click(screen.getByRole('button', { name: 'SAVING...' }))
-    fireEvent(dialog, new Event('cancel', { bubbles: false, cancelable: true }))
+    fireEvent.keyDown(dialog, { key: 'Escape' })
     expect(confirm).toHaveBeenCalledTimes(1); expect(cancel).not.toHaveBeenCalled()
     await act(async () => reject(new Error('Delete failed.')))
     expect(screen.getByRole('alert').textContent).toBe('Delete failed.')
-    fireEvent(dialog, new Event('cancel', { bubbles: false, cancelable: true }))
+    fireEvent.keyDown(dialog, { key: 'Escape' })
     expect(cancel).toHaveBeenCalledTimes(1)
     view.rerender(<ConfirmModal open={false} title="Delete?" onConfirm={confirm} onCancel={cancel} />)
-    expect(document.activeElement).toBe(trigger); trigger.remove()
+    await waitFor(() => expect(document.activeElement).toBe(trigger)); trigger.remove()
   })
   it('does not navigate when logout fails', async () => {
     render(<Nav />)
@@ -142,7 +133,7 @@ describe('shared dialog and failures', () => {
     client.deleteSession.mockRejectedValue(new Error('Delete unavailable.'))
     const view = render(<DeleteSessionButton groupId="g1" sessionId="s1" />)
     fireEvent.click(screen.getByRole('button', { name: 'DELETE' }))
-    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'DELETE' }))
+    fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'DELETE' }))
     await screen.findByText('Delete unavailable.')
     expect(client.refresh).not.toHaveBeenCalled()
     view.unmount()

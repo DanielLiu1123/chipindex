@@ -7,6 +7,7 @@ import {
 } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { ChartContainer } from '@/components/ui/chart'
 import PlayerCandleShape from '@/components/PlayerCandleShape'
 import PlayerChart from '@/components/PlayerChart'
 import type { HistoryPoint } from './stats'
@@ -41,6 +42,7 @@ vi.mock('recharts', async () => {
       return passThrough(props)
     },
     ReferenceLine: () => null,
+    Legend: () => null,
     ResponsiveContainer: passThrough,
     Tooltip: capture(captured.tooltips),
     XAxis: capture(captured.xAxes),
@@ -90,7 +92,7 @@ type CandleElementProps = {
 type TooltipProps = {
   content: (props: {
     active: boolean
-    payload: Array<{ payload: HistoryPoint }>
+    payload: Array<{ payload: HistoryPoint; name: string; value: number; dataKey: string }>
   }) => ReactNode
 }
 
@@ -134,8 +136,8 @@ function asCandleElement(value: ReactNode): ReactElement<CandleElementProps> {
 function renderTooltip(payload: HistoryPoint): string {
   expect(captured.tooltips).toHaveLength(1)
   const tooltip = captured.tooltips[0] as unknown as TooltipProps
-  const content = tooltip.content({ active: true, payload: [{ payload }] })
-  return renderToStaticMarkup(createElement(Fragment, null, content))
+  const content = tooltip.content({ active: true, payload: [{ payload, name: 'chips', value: payload.chips, dataKey: 'chips' }] })
+  return renderToStaticMarkup(createElement(ChartContainer, { config: {}, children: createElement(Fragment, null, content) }))
 }
 
 beforeEach(resetCaptured)
@@ -274,7 +276,7 @@ describe('PlayerChart', () => {
       cny: 0,
       cumulative_cny: 0,
     })
-    expect(html).toContain('session: <span style="color:#ff4444">+¥0</span>')
+    expect(html).toContain('session: <span style="color:var(--loss)">+¥0</span>')
   })
 
   it('uses gray for a truly flat session result', () => {
@@ -286,6 +288,6 @@ describe('PlayerChart', () => {
       cny: 0,
       cumulative_cny: 0,
     })
-    expect(html).toContain('session: <span style="color:#888888">+¥0</span>')
+    expect(html).toContain('session: <span style="color:var(--muted-foreground)">+¥0</span>')
   })
 })

@@ -1,5 +1,7 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+
 import { useEffect, useRef, useState } from 'react'
 import { buildSessionSummary, type SessionSummaryData } from '@/lib/session-summary'
 
@@ -52,13 +54,8 @@ export default function CopySessionSummaryButton({ summary }: { summary: Session
   }
 
   const label = state === 'copied' ? 'COPIED' : state === 'error' ? 'COPY FAILED' : 'COPY SUMMARY'
-  const stateClasses = state === 'error'
-    ? 'text-danger border-danger/50'
-    : state === 'copied'
-      ? 'text-accent border-accent/50 bg-accent/5'
-      : 'text-sky-400 border-sky-400/50 hover:border-sky-400 hover:bg-sky-400/10'
-  return <button type="button" onClick={copySummary}
-    className={`text-xs tracking-widest border px-2.5 py-1 transition-colors ${stateClasses}`}>
+  return <Button variant={state === 'error' ? 'destructive' : 'outline'} type="button" onClick={copySummary}
+    >
     {label}
-  </button>
+  </Button>
 }

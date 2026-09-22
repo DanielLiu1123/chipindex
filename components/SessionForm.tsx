@@ -1,5 +1,10 @@
 'use client'
 
+import { Alert, AlertDescription } from '@/components/ui/alert'
+
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -55,8 +60,8 @@ export default function SessionForm({ groupId, initialPlayers }: { groupId: stri
   return <>
     <PlayerSelectionModal open={pickerOpen} participants={directory.participants}
       action={{ kind: 'players', submit: selectPlayers }} onCreatePlayer={directory.create} onClose={() => setPickerOpen(false)} />
-    <div className="mb-6"><Link href={`/groups/${groupId}/sessions`} className="text-xs tracking-widest text-muted hover:text-white">← SESSIONS</Link></div>
-    <h1 className="mb-6 text-xs tracking-widest text-muted">IMPORT SESSION</h1>
+    <div className="mb-6"><Link href={`/groups/${groupId}/sessions`} className="text-xs tracking-normal text-muted-foreground hover:text-foreground">← SESSIONS</Link></div>
+    <h1 className="mb-6 text-xs tracking-normal text-muted-foreground">IMPORT SESSION</h1>
     <form onSubmit={handleSubmit} className="flex max-w-lg flex-col gap-6">
       <SessionMetaFields date={date} setDate={setDate} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate}
         description={description} setDescription={setDescription} disabled={submitting} />
@@ -64,19 +69,19 @@ export default function SessionForm({ groupId, initialPlayers }: { groupId: stri
         {rows.map(row => {
           const name = directory.players.find(player => player.id === row.playerId)?.name ?? row.playerId
           return <div key={row.playerId} className="flex items-center gap-2">
-            <span className="min-w-0 flex-1 truncate text-sm text-white">{name}</span>
-            <input aria-label={`net chips for ${name}`} type="number" step="1" required value={row.chips} disabled={submitting}
+            <span className="min-w-0 flex-1 truncate text-sm text-foreground">{name}</span>
+            <Input aria-label={`net chips for ${name}`} type="number" step="1" required value={row.chips} disabled={submitting}
               onChange={event => setRows(current => current.map(item => item.playerId === row.playerId ? { ...item, chips: event.target.value } : item))}
-              placeholder="chips (±)" className="w-28 border border-border bg-surface px-3 py-2.5 text-sm text-white" />
-            <button type="button" aria-label={`remove ${name}`} disabled={submitting}
+              placeholder="chips (±)" className="w-28" />
+            <Button variant="destructive" type="button" aria-label={`remove ${name}`} disabled={submitting}
               onClick={() => setRows(current => current.filter(item => item.playerId !== row.playerId))}
-              className="px-2 py-2.5 text-xs text-muted hover:text-danger">✕</button>
+              >✕</Button>
           </div>
         })}
         <PlayerActionButton action="add-player" disabled={submitting} onClick={() => setPickerOpen(true)} />
       </div>
-      {error && <p role="alert" className="text-xs text-danger">{error}</p>}
-      <button type="submit" disabled={submitting || !date} className="bg-white py-3 text-xs tracking-widest text-bg hover:bg-accent disabled:opacity-40">{submitting ? 'IMPORTING...' : 'IMPORT'}</button>
+      {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
+      <Button variant="default" type="submit" disabled={submitting || !date} >{submitting ? 'IMPORTING...' : 'IMPORT'}</Button>
     </form>
   </>
 }

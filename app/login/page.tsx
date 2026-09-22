@@ -1,5 +1,11 @@
 'use client'
 
+import { Alert, AlertDescription } from '@/components/ui/alert'
+
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
@@ -30,28 +36,31 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen bg-bg flex flex-col items-center justify-center">
-      <div className="w-full max-w-xs">
-        <p className="text-accent tracking-widest text-sm mb-8">CHIPINDEX</p>
+    <div className="flex min-h-[70vh] items-center justify-center px-6">
+      <Card className="w-full max-w-sm">
+        <CardHeader><CardTitle>ChipIndex</CardTitle><CardDescription>Enter your group password to continue.</CardDescription></CardHeader>
+        <CardContent>
+
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <input
-            type="password"
+          <Input
+            type="password" aria-label="Password"
             value={password}
             onChange={e => { setPassword(e.target.value); setError('') }}
             placeholder="password"
             autoFocus
-            className={`bg-surface border ${error ? 'border-danger' : 'border-border'} text-white text-sm px-4 py-3 w-full outline-none focus:border-white transition-colors placeholder:text-muted`}
+
           />
-          {error && <p className="text-danger text-xs" role="alert">{error}</p>}
-          <button
+          {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
+          <Button variant="default"
             type="submit"
             disabled={loading}
-            className="bg-white text-bg text-xs font-medium tracking-widest py-3 hover:bg-accent transition-colors disabled:opacity-40"
+
           >
             {loading ? '...' : 'ENTER'}
-          </button>
+          </Button>
         </form>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

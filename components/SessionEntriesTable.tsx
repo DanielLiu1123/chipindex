@@ -1,5 +1,17 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+import { ChevronRight } from 'lucide-react'
+import {
+  TableFooter,
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from '@/components/ui/table'
+
 import BrowserTime from '@/components/BrowserTime'
 import { Fragment, useState } from 'react'
 import Link from 'next/link'
@@ -16,7 +28,12 @@ interface Entry {
   players?: { name: string } | null
 }
 
-export default function SessionEntriesTable({ groupId, entries, exchangeRate, total }: {
+export default function SessionEntriesTable({
+  groupId,
+  entries,
+  exchangeRate,
+  total,
+}: {
   groupId: string
   entries: Entry[]
   exchangeRate: number
@@ -25,7 +42,7 @@ export default function SessionEntriesTable({ groupId, entries, exchangeRate, to
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
   function toggle(id: string) {
-    setExpanded(s => {
+    setExpanded((s) => {
       const next = new Set(s)
       if (next.has(id)) next.delete(id)
       else next.add(id)
@@ -34,76 +51,101 @@ export default function SessionEntriesTable({ groupId, entries, exchangeRate, to
   }
 
   return (
-    <table className="w-full text-sm">
-      <thead>
-        <tr className="border-b border-border text-muted text-xs tracking-widest">
-          <th className="text-left py-3 font-normal">PLAYER</th>
-          <th className="text-right py-3 font-normal">CNY</th>
-          <th className="text-right py-3 font-normal">CHIPS</th>
-        </tr>
-      </thead>
-      <tbody>
-        {entries.map(e => {
+    <Table className="w-full text-sm">
+      <TableHeader>
+        <TableRow className="border-b border-border text-muted-foreground text-xs tracking-normal">
+          <TableHead className="text-left py-3 font-normal">PLAYER</TableHead>
+          <TableHead className="text-right py-3 font-normal">CNY</TableHead>
+          <TableHead className="text-right py-3 font-normal">CHIPS</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {entries.map((e) => {
           const open = expanded.has(e.id)
           return (
             <Fragment key={e.id}>
-              <tr onClick={() => toggle(e.id)} className="border-b border-border hover:bg-surface transition-colors cursor-pointer">
-                <td className="py-4">
+              <TableRow
+                onClick={() => toggle(e.id)}
+                className="border-b border-border hover:bg-muted transition-colors cursor-pointer"
+              >
+                <TableCell className="py-4">
                   <span className="flex items-center gap-2">
-                    <svg className={`w-2.5 h-2.5 text-muted transition-transform ${open ? 'rotate-90' : ''}`} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <path d="M4 2l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    <Link href={`/groups/${groupId}/players/${e.player_id}`} onClick={ev => ev.stopPropagation()} className="hover:text-accent transition-colors">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`${e.players?.name ?? e.player_id} buy-in history`}
+                      aria-expanded={open}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        toggle(e.id)
+                      }}
+                    >
+                      <ChevronRight
+                        className={`size-3 text-muted-foreground transition-transform ${open ? 'rotate-90' : ''}`}
+                      />
+                    </Button>
+                    <Link
+                      href={`/groups/${groupId}/players/${e.player_id}`}
+                      onClick={(ev) => ev.stopPropagation()}
+                      className="hover:text-primary transition-colors"
+                    >
                       {e.players?.name ?? e.player_id}
                     </Link>
                   </span>
-                </td>
-                <td className="py-4 text-right text-muted">
+                </TableCell>
+                <TableCell className="py-4 text-right text-muted-foreground">
                   <ChipValue chips={toCny(e.chips, exchangeRate)} prefix="¥" />
-                </td>
-                <td className="py-4 text-right">
+                </TableCell>
+                <TableCell className="py-4 text-right">
                   <ChipValue chips={e.chips} />
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
               {open && (
-                <tr className="border-b border-border bg-surface/40">
-                  <td colSpan={3} className="py-3 px-1">
-                    <div className="text-xs text-muted">
-                      <p className="tracking-widest mb-2">BUY-INS</p>
+                <TableRow className="border-b border-border bg-muted/40">
+                  <TableCell colSpan={3} className="py-3 px-1">
+                    <div className="text-xs text-muted-foreground">
+                      <p className="tracking-normal mb-2">BUY-INS</p>
                       {e.buy_ins.length > 0 ? (
                         <div className="flex flex-col gap-1">
                           {e.buy_ins.map((buyIn, index) => (
                             <div key={`${buyIn.created_at}-${index}`}>
-                              <BrowserTime value={buyIn.created_at} /> · +{buyIn.amount.toLocaleString()}
+                              <BrowserTime value={buyIn.created_at} /> · +
+                              {buyIn.amount.toLocaleString()}
                             </div>
                           ))}
                         </div>
-                      ) : '—'}
+                      ) : (
+                        '—'
+                      )}
                     </div>
-                    <div className="flex flex-wrap items-baseline gap-x-8 gap-y-1 mt-3 text-xs text-muted">
+                    <div className="flex flex-wrap items-baseline gap-x-8 gap-y-1 mt-3 text-xs text-muted-foreground">
                       <span>
-                        <span className="tracking-widest mr-2">TOTAL</span>
+                        <span className="tracking-normal mr-2">TOTAL</span>
                         {e.total_buyin.toLocaleString()}
                       </span>
                       <span>
-                        <span className="tracking-widest mr-2">FINAL</span>
-                        {e.final_chips != null ? e.final_chips.toLocaleString() : '—'}
+                        <span className="tracking-normal mr-2">FINAL</span>
+                        {e.final_chips != null
+                          ? e.final_chips.toLocaleString()
+                          : '—'}
                       </span>
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               )}
             </Fragment>
           )
         })}
-      </tbody>
-      <tfoot>
-        <tr className="text-muted text-xs">
-          <td className="pt-4">SUM</td>
-          <td />
-          <td className="pt-4 text-right"><ChipValue chips={total} /></td>
-        </tr>
-      </tfoot>
-    </table>
+      </TableBody>
+      <TableFooter>
+        <TableRow className="text-muted-foreground text-xs">
+          <TableCell className="pt-4">SUM</TableCell>
+          <TableCell />
+          <TableCell className="pt-4 text-right">
+            <ChipValue chips={total} />
+          </TableCell>
+        </TableRow>
+      </TableFooter>
+    </Table>
   )
 }

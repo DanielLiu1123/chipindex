@@ -68,7 +68,7 @@ describe('PlayerCandleShape', () => {
     expect(html).toContain('aria-label="2026-07-25 session"')
     expect(html).toContain('cursor:pointer')
     expect(html).toContain('pointer-events="all"')
-    expect(html).toContain('#00ff88')
+    expect(html).toContain('var(--profit)')
     expect(html).not.toContain('fill-opacity')
     expect(html).toContain('BEST')
     expect(html).not.toContain('WORST')
@@ -167,9 +167,9 @@ describe('PlayerCandleShape', () => {
       showBest: false,
     })
 
-    expect(html).toContain('#ff4444')
-    expect(html).toContain('<line x1="14.5" x2="25.5" y1="40" y2="40" stroke="#ff4444"')
-    expect(html).not.toContain('#00ff88')
+    expect(html).toContain('var(--loss)')
+    expect(html).toContain('<line x1="14.5" x2="25.5" y1="40" y2="40" stroke="var(--loss)"')
+    expect(html).not.toContain('var(--profit)')
     expect(html).not.toContain('fill-opacity="0.22"')
   })
 
@@ -179,16 +179,16 @@ describe('PlayerCandleShape', () => {
       showBest: false,
     })
 
-    expect(html).toContain('#888888')
-    expect(html).not.toContain('#00ff88')
-    expect(html).not.toContain('#ff4444')
+    expect(html).toContain('var(--muted-foreground)')
+    expect(html).not.toContain('var(--profit)')
+    expect(html).not.toContain('var(--loss)')
   })
 
   it('renders WORST independently below the candle body', () => {
     const html = render({ showBest: false, showWorst: true })
 
     expect(html).toContain('y="54"')
-    expect(html).toContain('#ff4444')
+    expect(html).toContain('var(--loss)')
     expect(html).toContain('WORST')
     expect(html).not.toContain('BEST')
   })

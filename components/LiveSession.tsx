@@ -1,9 +1,11 @@
 'use client'
 
-import { errorMessage } from '@/lib/error-message'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+
+import { Button } from '@/components/ui/button'
+
 import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import ConfirmModal from '@/components/ConfirmModal'
 import CashOutModal from '@/components/CashOutModal'
 import BuyInModal from '@/components/BuyInModal'
@@ -11,87 +13,43 @@ import BuyInNotice from '@/components/BuyInNotice'
 import PlayerActionButton from '@/components/PlayerActionButton'
 import LiveParticipantList from '@/components/LiveParticipantList'
 import LiveSettlementPanel from '@/components/LiveSettlementPanel'
-import type { BatchBuyInCommand } from '@/lib/contracts'
 import type { Player } from '@/lib/domain-types'
-import type { LiveSessionData, LiveParticipant } from '@/lib/domain-types'
-import { activeFinalEntries, summarizeLiveSession } from '@/lib/live-session'
+import type { LiveSessionData } from '@/lib/domain-types'
+import { summarizeLiveSession } from '@/lib/live-session'
 import { usePlayerDirectory } from '@/lib/use-player-directory'
-import {
-  ApiClientError,
-  cashOutSessionParticipant,
-  removeSessionParticipant,
-  revokeBuyIn,
-  settleSession,
-  undoSessionParticipantCashOut,
-} from '@/lib/client'
+import { useLiveSession } from '@/lib/use-live-session'
 
-export default function LiveSession({ groupId, session, allPlayers }: { groupId: string; session: LiveSessionData; allPlayers: Player[] }) {
-  const router = useRouter()
-  const [pending, setPending] = useState(false)
+export default function LiveSession({
+  groupId,
+  session,
+  allPlayers,
+}: {
+  groupId: string
+  session: LiveSessionData
+  allPlayers: Player[]
+}) {
+  const flow = useLiveSession(groupId, session)
+  const { panel, finals, pending, error } = flow
+  const settling = panel.kind === 'settle'
+  const confirmRemove = panel.kind === 'remove' ? panel.participant : null
+  const cashOut = panel.kind === 'cash-out' ? panel.participant : null
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
-  const [buyInOpen, setBuyInOpen] = useState(false)
-  const [addPlayersOpen, setAddPlayersOpen] = useState(false)
-  const [settling, setSettling] = useState(false)
-  const [finals, setFinals] = useState<Record<string, string>>({})
-  const [settleError, setSettleError] = useState<{ diff: number } | null>(null)
-  const [confirmRemove, setConfirmRemove] = useState<LiveParticipant | null>(null)
-  const [cashOut, setCashOut] = useState<LiveParticipant | null>(null)
-  const [cashOutError, setCashOutError] = useState('')
-  const [error, setError] = useState('')
-  const [buyInNotice, setBuyInNotice] = useState<BatchBuyInCommand | null>(null)
 
   const unit = session.buy_in_unit
-  const { pot, cashedOutTotal } = summarizeLiveSession(session.participants, finals)
-  const directory = usePlayerDirectory({ groupId, players: allPlayers,
-    excludedIds: session.participants.map(player => player.player_id),
-    excludedMessage: 'This player is already in the session.', onCreated: () => router.refresh() })
-
-  // Runs a mutation against the API, refreshing the page data on success and
-  // surfacing the error message on failure.
-  async function act(fn: () => Promise<unknown>) {
-    setPending(true)
-    setError('')
-    try {
-      await fn()
-      router.refresh()
-    } catch (e) {
-      setError(errorMessage(e))
-    } finally {
-      setPending(false)
-    }
-  }
-
-  const undoBuyIn = (buyinId: string) =>
-    act(() => revokeBuyIn(groupId, session.id, buyinId))
-
-  async function doRemove() {
-    if (!confirmRemove) return
-    const pid = confirmRemove.player_id
-    await removeSessionParticipant(groupId, session.id, pid)
-    setConfirmRemove(null)
-    router.refresh()
-  }
-
-  async function doCashOut(finalChips: number) {
-    if (!cashOut) return
-    setPending(true)
-    setCashOutError('')
-    try {
-      await cashOutSessionParticipant(groupId, session.id, { player_id: cashOut.player_id, final_chips: finalChips })
-      setCashOut(null)
-      router.refresh()
-    } catch (e) {
-      setCashOutError(errorMessage(e))
-    } finally {
-      setPending(false)
-    }
-  }
-
-  const undoCashOut = (playerId: string) =>
-    act(() => undoSessionParticipantCashOut(groupId, session.id, playerId))
+  const { pot, cashedOutTotal } = summarizeLiveSession(
+    session.participants,
+    finals,
+  )
+  const directory = usePlayerDirectory({
+    groupId,
+    players: allPlayers,
+    excludedIds: session.participants.map((player) => player.player_id),
+    excludedMessage: 'This player is already in the session.',
+    onCreated: flow.refresh,
+  })
 
   function toggleExpand(player_id: string) {
-    setExpanded(s => {
+    setExpanded((s) => {
       const next = new Set(s)
       if (next.has(player_id)) next.delete(player_id)
       else next.add(player_id)
@@ -99,81 +57,111 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
     })
   }
 
-  async function submitSettle(force: boolean) {
-    setPending(true)
-    setError('')
-    setSettleError(null)
-    try {
-      await settleSession(groupId, session.id, {
-        finals: activeFinalEntries(session.participants, finals),
-        force,
-      })
-      router.push(`/groups/${groupId}/sessions/${session.id}`)
-    } catch (e) {
-      if (e instanceof ApiClientError && e.payload.code === 'unbalanced' && typeof e.payload.diff === 'number') {
-        setSettleError({ diff: Number(e.payload.diff) })
-      } else {
-        setError(errorMessage(e))
-      }
-      setPending(false)
-    }
-  }
-
   return (
     <>
-      <BuyInNotice command={buyInNotice} participants={session.participants} onDismiss={() => setBuyInNotice(null)} />
-      <BuyInModal open={buyInOpen} groupId={groupId} sessionId={session.id}
-        participants={session.participants} unit={unit}
-        onClose={() => setBuyInOpen(false)} onSaved={command => { setBuyInNotice(command); router.refresh() }} />
-      <BuyInModal open={addPlayersOpen} groupId={groupId} sessionId={session.id} mode="join"
+      <BuyInNotice
+        command={flow.receipt}
+        participants={session.participants}
+        onDismiss={flow.dismissReceipt}
+      />
+      <BuyInModal
+        open={panel.kind === 'buy-in'}
+        groupId={groupId}
+        sessionId={session.id}
+        participants={session.participants}
+        unit={unit}
+        onClose={flow.close}
+        onSaved={flow.buyInSaved}
+      />
+      <BuyInModal
+        open={panel.kind === 'add-players'}
+        groupId={groupId}
+        sessionId={session.id}
+        mode="join"
         participants={directory.participants}
-        unit={unit} onClose={() => setAddPlayersOpen(false)} onSaved={() => router.refresh()}
-        onCreatePlayer={directory.create} />
+        unit={unit}
+        onClose={flow.close}
+        onSaved={flow.refresh}
+        onCreatePlayer={directory.create}
+      />
       <ConfirmModal
         open={confirmRemove !== null}
         title={confirmRemove ? `Remove ${confirmRemove.name}?` : ''}
-        description={confirmRemove ? `This will delete ${confirmRemove.settled_at !== null ? `their ${confirmRemove.final_chips?.toLocaleString() ?? 0}-chip cash-out result and ` : ''}${confirmRemove.buy_ins.length} buy-in(s) (${confirmRemove.total_buyin.toLocaleString()} chips).` : undefined}
+        description={
+          confirmRemove
+            ? `This will delete ${confirmRemove.settled_at !== null ? `their ${confirmRemove.final_chips?.toLocaleString() ?? 0}-chip cash-out result and ` : ''}${confirmRemove.buy_ins.length} buy-in(s) (${confirmRemove.total_buyin.toLocaleString()} chips).`
+            : undefined
+        }
         confirmLabel="REMOVE"
-        onConfirm={doRemove}
-        onCancel={() => setConfirmRemove(null)}
+        onConfirm={flow.confirmRemove}
+        onCancel={flow.close}
       />
       <CashOutModal
         participant={cashOut}
         pending={pending}
-        error={cashOutError}
-        onConfirm={doCashOut}
-        onCancel={() => { setCashOut(null); setCashOutError('') }}
+        error={error}
+        onConfirm={flow.confirmCashOut}
+        onCancel={flow.close}
       />
       <div className="mb-6">
-        <Link href={`/groups/${groupId}/sessions`} className="text-muted text-xs hover:text-white tracking-widest">← SESSIONS</Link>
+        <Link
+          href={`/groups/${groupId}/sessions`}
+          className="text-muted-foreground text-xs hover:text-foreground tracking-normal"
+        >
+          ← SESSIONS
+        </Link>
       </div>
 
       <div className="flex items-center gap-2 mb-1">
         <span className="inline-block w-2 h-2 rounded-full bg-accent animate-pulse" />
-        <span className="text-xs text-accent tracking-widest">LIVE</span>
-        <span className="text-white">{session.date}</span>
-        {session.description && <span className="text-sm text-muted">· {session.description}</span>}
+        <span className="text-xs text-primary tracking-normal">LIVE</span>
+        <span className="text-foreground">{session.date}</span>
+        {session.description && (
+          <span className="text-sm text-muted-foreground">
+            · {session.description}
+          </span>
+        )}
       </div>
       <div className="mb-6 flex items-baseline gap-2">
-        <span className="text-xs text-muted tracking-widest">TOTAL BUY-IN</span>
-        <span className="text-accent text-lg">{pot.toLocaleString()}</span>
-        <span className="text-xs text-muted">chips</span>
+        <span className="text-xs text-muted-foreground tracking-normal">
+          TOTAL BUY-IN
+        </span>
+        <span className="text-primary text-lg">{pot.toLocaleString()}</span>
+        <span className="text-xs text-muted-foreground">chips</span>
       </div>
       {cashedOutTotal > 0 && (
         <div className="-mt-5 mb-6 flex items-baseline gap-2">
-          <span className="text-xs text-muted tracking-widest">CASHED OUT</span>
-          <span className="text-white text-sm">{cashedOutTotal.toLocaleString()}</span>
-          <span className="text-xs text-muted">chips</span>
+          <span className="text-xs text-muted-foreground tracking-normal">
+            CASHED OUT
+          </span>
+          <span className="text-foreground text-sm">
+            {cashedOutTotal.toLocaleString()}
+          </span>
+          <span className="text-xs text-muted-foreground">chips</span>
         </div>
       )}
 
-      {error && <p className="text-danger text-xs mb-4">{error}</p>}
+      {error && panel.kind !== 'cash-out' && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
       {!settling && (
         <div className="mb-5 grid grid-cols-2 gap-2">
-          <PlayerActionButton action="add-player" onClick={() => setAddPlayersOpen(true)} disabled={pending} />
-          <PlayerActionButton action="buy-in" onClick={() => setBuyInOpen(true)}
-            disabled={pending || !session.participants.some(p => p.settled_at === null)} />
+          <PlayerActionButton
+            action="add-player"
+            onClick={flow.openAddPlayers}
+            disabled={pending}
+          />
+          <PlayerActionButton
+            action="buy-in"
+            onClick={flow.openBuyIn}
+            disabled={
+              pending ||
+              !session.participants.some((p) => p.settled_at === null)
+            }
+          />
         </div>
       )}
 
@@ -186,29 +174,44 @@ export default function LiveSession({ groupId, session, allPlayers }: { groupId:
             pending={pending}
             interactive
             onToggle={toggleExpand}
-            onRevokeBuyIn={buyInId => { void undoBuyIn(buyInId) }}
-            onCashOut={participant => { setCashOutError(''); setCashOut(participant) }}
-            onUndoCashOut={playerId => { void undoCashOut(playerId) }}
-            onRemove={setConfirmRemove}
+            onRevokeBuyIn={(buyInId) => {
+              void flow.revokeBuyIn(buyInId)
+            }}
+            onCashOut={flow.openCashOut}
+            onUndoCashOut={(playerId) => {
+              void flow.undoCashOut(playerId)
+            }}
+            onRemove={flow.openRemove}
           />
         </div>
       )}
 
       {/* settle */}
       {!settling ? (
-        <button onClick={() => setSettling(true)} disabled={pending || session.participants.length === 0}
-          className="w-full bg-white text-bg text-xs font-medium tracking-widest py-3 hover:bg-accent transition-colors disabled:opacity-40">
+        <Button
+          variant="default"
+          type="button"
+          onClick={flow.openSettlement}
+          disabled={pending || session.participants.length === 0}
+          className="w-full"
+        >
           SETTLE SESSION
-        </button>
+        </Button>
       ) : (
         <LiveSettlementPanel
           participants={session.participants}
           finals={finals}
           pending={pending}
-          settleError={settleError}
-          onFinalChange={(playerId, value) => setFinals(current => ({ ...current, [playerId]: value }))}
-          onSubmit={force => { void submitSettle(force) }}
-          onCancel={() => { setSettling(false); setSettleError(null) }}
+          settleError={
+            panel.kind === 'settle' && panel.difference !== null
+              ? { diff: panel.difference }
+              : null
+          }
+          onFinalChange={flow.changeFinal}
+          onSubmit={(force) => {
+            void flow.confirmSettlement(force)
+          }}
+          onCancel={flow.close}
         />
       )}
     </>

@@ -1,5 +1,7 @@
 'use client'
 
+
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { useState } from 'react'
 import ChipValue from '@/components/ChipValue'
 import PlayerChart from '@/components/PlayerChart'
@@ -33,7 +35,7 @@ export default function PlayerStatsChart({
     <>
       <div className="flex items-baseline justify-between mb-8">
         <PlayerNameEditor groupId={groupId} id={id} initialName={initialName} />
-        <div className="flex gap-6 text-xs text-muted items-baseline">
+        <div className="flex gap-6 text-xs text-muted-foreground items-baseline">
           <span>{sessions} sessions</span>
           <span>{wins} wins</span>
           <span>{pogCount} pog</span>
@@ -48,29 +50,14 @@ export default function PlayerStatsChart({
       {data.length > 0 && (
         <div className="mb-10 -mx-2">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4 mx-2">
-            <p className="text-xs text-muted tracking-widest">
+            <p className="text-xs text-muted-foreground tracking-normal">
               {mode === 'cny' ? 'CUMULATIVE CNY' : 'CUMULATIVE CHIPS'}
             </p>
             <div className="flex flex-wrap items-center gap-4">
-              <div role="group" aria-label="Value unit" className="flex gap-3">
-                <button
-                  type="button"
-                  aria-pressed={mode === 'cny'}
-                  onClick={() => setMode('cny')}
-                  className={`text-xs tracking-widest transition-colors ${mode === 'cny' ? 'text-white' : 'text-muted hover:text-white'}`}
-                >
-                  CNY
-                </button>
-                <span aria-hidden="true" className="text-muted text-xs">/</span>
-                <button
-                  type="button"
-                  aria-pressed={mode === 'chips'}
-                  onClick={() => setMode('chips')}
-                  className={`text-xs tracking-widest transition-colors ${mode === 'chips' ? 'text-white' : 'text-muted hover:text-white'}`}
-                >
-                  CHIPS
-                </button>
-              </div>
+              <ToggleGroup type="single" value={mode} onValueChange={value => { if (value === 'cny' || value === 'chips') setMode(value) }} aria-label="Value unit" variant="outline">
+                <ToggleGroupItem value="cny">CNY</ToggleGroupItem>
+                <ToggleGroupItem value="chips">CHIPS</ToggleGroupItem>
+              </ToggleGroup>
             </div>
           </div>
           <PlayerChart groupId={groupId} data={data} mode={mode} />

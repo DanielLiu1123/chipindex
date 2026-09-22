@@ -1,56 +1,7 @@
-import { readFileSync } from 'node:fs'
-import { transformSync } from 'esbuild'
-import { createElement, type ReactNode } from 'react'
-import * as ReactJsxRuntime from 'react/jsx-runtime'
+import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-
-interface HistoryRow {
-  date: string
-  cny: number
-  chips: number
-  cumulative_cny: number
-  cumulative: number
-  session_id: string
-}
-
-type PlayerSessionHistoryTableComponent = (props: { rows: HistoryRow[] }) => ReactNode
-
-function loadPlayerSessionHistoryTable(): PlayerSessionHistoryTableComponent {
-  const source = readFileSync(
-    new URL('../components/PlayerSessionHistoryTable.tsx', import.meta.url),
-    'utf8',
-  )
-  const output = transformSync(source, {
-    format: 'cjs',
-    jsx: 'automatic',
-    loader: 'tsx',
-    target: 'es2020',
-  }).code
-  const module = { exports: {} as Record<string, unknown> }
-  const mocks: Record<string, unknown> = {
-    'react/jsx-runtime': ReactJsxRuntime,
-    'next/link': {
-      __esModule: true,
-      default: ({ children, ...props }: { children: ReactNode }) =>
-        createElement('a', props, children),
-    },
-    '@/components/ChipValue': {
-      __esModule: true,
-      default: ({ chips, prefix = '' }: { chips: number, prefix?: string }) =>
-        createElement('span', null, `${prefix}${chips}`),
-    },
-  }
-  const requireMock = (specifier: string) => {
-    if (!(specifier in mocks)) throw new Error(`Unexpected import: ${specifier}`)
-    return mocks[specifier]
-  }
-
-  Function('require', 'module', 'exports', output)(requireMock, module, module.exports)
-  return module.exports.default as PlayerSessionHistoryTableComponent
-}
-
-const PlayerSessionHistoryTable = loadPlayerSessionHistoryTable()
+import PlayerSessionHistoryTable from '../components/PlayerSessionHistoryTable'
 
 const row = {
   date: '2026-07-25',
@@ -63,12 +14,12 @@ const row = {
 
 function renderTable(): string {
   return renderToStaticMarkup(
-    createElement(PlayerSessionHistoryTable, { rows: [row] }),
+    createElement(PlayerSessionHistoryTable, { groupId: 'g1', rows: [row] }),
   )
 }
 
 function classTokensFor(markup: string, tag: 'th' | 'td'): string[][] {
-  return [...markup.matchAll(new RegExp(`<${tag} class="([^"]*)"`, 'g'))]
+  return [...markup.matchAll(new RegExp(`<${tag}\\b[^>]* class="([^"]*)"`, 'g'))]
     .map(match => match[1].split(/\s+/))
 }
 

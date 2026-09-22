@@ -1,5 +1,10 @@
 'use client'
 
+import { Alert, AlertDescription } from '@/components/ui/alert'
+
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+
 import { errorMessage } from '@/lib/error-message'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -25,12 +30,12 @@ export default function NewGroupForm() {
   }
 
   return <form onSubmit={submit} className="max-w-md flex flex-col gap-4">
-    <h1 className="text-xs text-muted tracking-widest">NEW GROUP</h1>
-    <input value={name} onChange={event => setName(event.target.value)} autoFocus placeholder="group name"
-      className="bg-surface border border-border text-white text-sm px-4 py-2.5 outline-none focus:border-white" />
-    {error && <p className="text-xs text-danger">{error}</p>}
-    <button disabled={saving || !name.trim()} className="bg-white text-bg text-xs tracking-widest py-3 disabled:opacity-40">
+    <h1 className="text-xs text-muted-foreground tracking-normal">NEW GROUP</h1>
+    <Input value={name} onChange={event => setName(event.target.value)} autoFocus placeholder="group name"
+       />
+    {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
+    <Button variant="default" type="submit" disabled={saving || !name.trim()} >
       {saving ? 'CREATING...' : 'CREATE GROUP'}
-    </button>
+    </Button>
   </form>
 }
