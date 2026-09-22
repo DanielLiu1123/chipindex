@@ -49,13 +49,13 @@ export default async function SessionsPage({
           <Link href={`/groups/${groupId}/sessions/import`} className="text-xs text-primary tracking-normal hover:underline">IMPORT SESSION</Link>
         </div>
       </div>
-      <Table className="w-full table-fixed text-xs sm:table-auto sm:text-sm [&_th]:px-0.5 [&_td]:px-0.5 sm:[&_th]:px-2 sm:[&_td]:px-2">
+      <Table className="w-full table-fixed text-xs sm:text-sm [&_th]:px-0.5 [&_td]:px-0.5 sm:[&_th]:px-2 sm:[&_td]:px-2">
         <colgroup>
-          <col className="w-24 sm:w-auto" />
-          <col className="w-12 sm:w-auto" />
+          <col className="w-24 sm:w-[32%]" />
+          <col className="w-12 sm:w-[14%]" />
           <col />
-          <col className="w-11 sm:w-auto" />
-          <col className="w-9 sm:w-auto" />
+          <col className="w-11 sm:w-[14%]" />
+          <col className="w-9 sm:w-24" />
         </colgroup>
         <TableHeader><TableRow className="border-b border-border text-muted-foreground text-xs tracking-normal">
           <TableHead className="text-center py-3 font-normal">DATE</TableHead><TableHead className="text-center py-3 font-normal">PLAYERS</TableHead>
@@ -72,7 +72,7 @@ export default async function SessionsPage({
                 <div className={`flex items-center justify-center gap-1 sm:gap-2 ${isOpen ? 'text-primary' : ''}`}>
                   {isOpen && <span className="inline-block w-2 h-2 rounded-full bg-accent animate-pulse shrink-0" />}{session.date}
                 </div>
-                {session.description && <div className="text-xs text-muted-foreground mt-0.5 whitespace-normal [overflow-wrap:anywhere] sm:whitespace-nowrap">{session.description}</div>}
+                {session.description && <div className="text-xs text-muted-foreground mt-0.5 whitespace-normal [overflow-wrap:anywhere]">{session.description}</div>}
               </Link></TableCell>
               <TableCell className="py-4 text-center text-muted-foreground"><Link href={href} className="block">{session.player_count}</Link></TableCell>
               <TableCell className="py-4 text-center">{!isOpen && session.winners.length > 0
