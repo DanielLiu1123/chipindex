@@ -216,6 +216,7 @@ export default function PlayerChart({
         },
       }),
       createElement(Bar, {
+        name: 'Session',
         dataKey: candleRange,
         shape: renderCandle,
         activeBar: false,

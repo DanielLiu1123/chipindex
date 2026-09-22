@@ -71,6 +71,7 @@ type ChartProps = {
 }
 
 type BarProps = {
+  name?: string
   activeBar: boolean
   dataKey: (value: HistoryPoint) => [number, number]
   isAnimationActive: boolean
@@ -92,7 +93,7 @@ type CandleElementProps = {
 type TooltipProps = {
   content: (props: {
     active: boolean
-    payload: Array<{ payload: HistoryPoint; name: string; value: number; dataKey: string }>
+    payload: Array<{ payload: HistoryPoint; name: string | undefined; value: [number, number]; dataKey: BarProps['dataKey'] }>
   }) => ReactNode
 }
 
@@ -136,7 +137,9 @@ function asCandleElement(value: ReactNode): ReactElement<CandleElementProps> {
 function renderTooltip(payload: HistoryPoint): string {
   expect(captured.tooltips).toHaveLength(1)
   const tooltip = captured.tooltips[0] as unknown as TooltipProps
-  const content = tooltip.content({ active: true, payload: [{ payload, name: 'chips', value: payload.chips, dataKey: 'chips' }] })
+  const bar = asBarProps()
+  // Recharts cannot infer a series name from a function dataKey.
+  const content = tooltip.content({ active: true, payload: [{ payload, name: bar.name, value: bar.dataKey(payload), dataKey: bar.dataKey }] })
   return renderToStaticMarkup(createElement(ChartContainer, { config: {}, children: createElement(Fragment, null, content) }))
 }
 
