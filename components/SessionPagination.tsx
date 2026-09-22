@@ -30,7 +30,7 @@ export default function SessionPagination({
   return (
     <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
       <Pagination aria-label="Sessions pagination" className="mx-0 w-auto">
-        <PaginationContent>
+        <PaginationContent className="flex-wrap justify-center">
           <PaginationItem>
             <PaginationPrevious
               href={page > 1 ? href(page - 1) : undefined}

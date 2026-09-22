@@ -132,7 +132,7 @@ describe('shared dialog and failures', () => {
   it('keeps a failed deletion open and a failed rename editable with an error', async () => {
     client.deleteSession.mockRejectedValue(new Error('Delete unavailable.'))
     const view = render(<DeleteSessionButton groupId="g1" sessionId="s1" />)
-    fireEvent.click(screen.getByRole('button', { name: 'DELETE' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete session' }))
     fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'DELETE' }))
     await screen.findByText('Delete unavailable.')
     expect(client.refresh).not.toHaveBeenCalled()
