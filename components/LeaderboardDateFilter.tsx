@@ -59,7 +59,11 @@ export default function LeaderboardDateFilter({ filter, onChange }: Props) {
 
   return (
     <div ref={root} className="relative mb-4"
-      onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setPanel(null) }}
+      onBlur={event => {
+        // WebKit touch can blur with no next focus target before click. Only
+        // close for a known outside focus target; outside taps use pointerdown.
+        if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) setPanel(null)
+      }}
       onKeyDown={event => {
         if (event.key === 'Escape' && panel) { event.preventDefault(); event.stopPropagation(); close() }
       }}>

@@ -132,3 +132,38 @@ it('discards drafts on Back and keyboard dismissal without moving focus back fro
   openCustom()
   expect((screen.getByLabelText('Start date') as HTMLInputElement).value).toBe(originalStart)
 })
+
+// Replay WebKit's touch order: the focused control blurs with no relatedTarget
+// before click; tapping the next button does not first move focus to it.
+function tapWithoutFocus(button: HTMLElement) {
+  fireEvent.pointerDown(button, { pointerType: 'touch' })
+  fireEvent.mouseDown(button)
+  if (document.activeElement instanceof HTMLElement) {
+    fireEvent.blur(document.activeElement, { relatedTarget: null })
+  }
+  fireEvent.pointerUp(button, { pointerType: 'touch' })
+  fireEvent.mouseUp(button)
+  fireEvent.click(button)
+}
+
+it('applies presets and custom ranges when touch blurs the current control before click', () => {
+  render(<LeaderboardView groupId="g1" players={players} sessions={[]} />)
+  openOptions()
+  tapWithoutFocus(screen.getByRole('button', { name: 'THIS MONTH' }))
+  expect(screen.getByRole('button', { name: 'Date range: THIS MONTH' })).toBeTruthy()
+  expect(screen.queryByRole('dialog')).toBeNull()
+
+  openOptions()
+  tapWithoutFocus(screen.getByRole('button', { name: 'CUSTOM…' }))
+  fireEvent.change(screen.getByLabelText('Start date'), { target: { value: '2026-01-01' } })
+  fireEvent.change(screen.getByLabelText('End date'), { target: { value: '2026-01-31' } })
+  tapWithoutFocus(screen.getByRole('button', { name: 'APPLY' }))
+  expect(screen.getByRole('button', { name: 'Date range: 2026-01-01–01-31' })).toBeTruthy()
+  expect(screen.queryByRole('dialog')).toBeNull()
+
+  openCustom()
+  tapWithoutFocus(screen.getByRole('button', { name: 'BACK' }))
+  expect(screen.getByRole('button', { name: 'ALL TIME' })).toBeTruthy()
+  tapWithoutFocus(screen.getByRole('button', { name: 'ALL TIME' }))
+  expect(screen.getByRole('button', { name: 'Date range: ALL TIME' })).toBeTruthy()
+})
