@@ -39,7 +39,12 @@ async function SessionsPage({ params, query }: {
   if (!group) notFound()
   const { sessions, page, page_size: pageSize, total, total_pages: totalPages } = sessionsPage
   const sessionsPath = `/groups/${groupId}/sessions`
-  if (!hasCanonicalSessionPageParams(query.page, query.page_size, page, pageSize)) {
+  if (!hasCanonicalSessionPageParams(
+    query.page ?? '1',
+    query.page_size ?? String(DEFAULT_SESSION_PAGE_SIZE),
+    page,
+    pageSize,
+  )) {
     redirect(sessionPageHref(sessionsPath, page, pageSize))
   }
 
