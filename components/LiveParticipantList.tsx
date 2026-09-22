@@ -150,7 +150,8 @@ export default function LiveParticipantList({
           </div>
         )}
 
-        <CollapsibleContent className="border-t border-border px-3 py-2 bg-muted/50">
+        {/* Align with the name after the row padding, trigger border/padding, chevron, and gap. */}
+        <CollapsibleContent className="border-t border-border pl-[calc(2.5rem+1px)] pr-3 py-2 bg-muted/50">
           {cashedOut && (
             <div className="mb-2 flex min-w-0 items-baseline gap-2 overflow-hidden text-[10px] text-muted-foreground">
               <span className="shrink-0 tracking-normal">
