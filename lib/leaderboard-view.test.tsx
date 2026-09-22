@@ -2,6 +2,7 @@
 import { createElement, type ReactNode } from 'react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import LeaderboardView from '../components/LeaderboardView'
 import type { Player } from './domain-types'
 
@@ -58,7 +59,6 @@ it('shares the date range between rankings and rebased CNY/chip curves, and vali
   expect(JSON.parse(screen.getByTestId('leaderboard-chart').textContent!).data).toHaveLength(4)
 })
 
-
 it('switches presets atomically and keeps the activity toggle visible without hidden players', () => {
   vi.useFakeTimers()
   vi.setSystemTime(new Date(2026, 0, 15))
@@ -93,7 +93,6 @@ it('switches presets atomically and keeps the activity toggle visible without hi
   expect(screen.getByText('SHOWING ALL 3 PLAYERS')).toBeTruthy()
 })
 
-
 it('discards drafts on outside click and Escape, and displays same-year and cross-year dates', () => {
   render(<LeaderboardView groupId="g1" players={players} sessions={[]} />)
   openCustom()
@@ -113,4 +112,23 @@ it('discards drafts on outside click and Escape, and displays same-year and cros
   fireEvent.change(screen.getByLabelText('Start date'), { target: { value: '2026-01-01' } })
   fireEvent.click(screen.getByRole('button', { name: 'APPLY' }))
   expect(screen.getByRole('button', { name: 'Date range: 2026-01-01–01-31' })).toBeTruthy()
+})
+
+it('discards drafts on Back and keyboard dismissal without moving focus back from the next control', async () => {
+  const user = userEvent.setup()
+  render(<LeaderboardView groupId="g1" players={players} sessions={[]} />)
+  openCustom()
+  const originalStart = (screen.getByLabelText('Start date') as HTMLInputElement).value
+  fireEvent.change(screen.getByLabelText('Start date'), { target: { value: '2020-01-01' } })
+  fireEvent.click(screen.getByRole('button', { name: 'BACK' }))
+  fireEvent.click(screen.getByRole('button', { name: 'CUSTOM…' }))
+  expect((screen.getByLabelText('Start date') as HTMLInputElement).value).toBe(originalStart)
+  fireEvent.change(screen.getByLabelText('Start date'), { target: { value: '2020-01-01' } })
+  screen.getByRole('button', { name: 'APPLY' }).focus()
+  await user.tab()
+  expect(screen.queryByRole('dialog')).toBeNull()
+  expect(document.activeElement).toBe(screen.getByRole('button', { name: 'HIDE LOW-ACTIVITY PLAYERS' }))
+  expect(screen.getByRole('button', { name: 'Date range: ALL TIME' })).toBeTruthy()
+  openCustom()
+  expect((screen.getByLabelText('Start date') as HTMLInputElement).value).toBe(originalStart)
 })
