@@ -31,8 +31,10 @@ function SortHeader({
   currentKey,
   sortDir,
   onSort,
+  align = 'right',
 }: {
   label: string
+  align?: 'right' | 'center'
   sortKey: SortKey
   currentKey: SortKey
   sortDir: 'asc' | 'desc'
@@ -40,7 +42,7 @@ function SortHeader({
 }) {
   const active = currentKey === key
   return (
-    <TableHead className="text-right py-3 font-normal">
+    <TableHead className={`py-3 font-normal ${align === 'center' ? 'text-center' : 'text-right'}`}>
       <Button variant="ghost" type="button" onClick={() => onSort(key)}>
         {label}
         {active ? (sortDir === 'desc' ? ' ↓' : ' ↑') : ''}
@@ -139,7 +141,7 @@ export default function LeaderboardView({
         </p>
       )}
       {showResults && view === 'table' && (
-        <Table className="w-full text-sm">
+        <Table className="w-full text-sm tabular-nums">
           <TableHeader>
             <TableRow className="border-b border-border text-muted-foreground text-xs tracking-normal">
               <TableHead className="text-left py-3 font-normal w-8">
@@ -167,6 +169,7 @@ export default function LeaderboardView({
                 sortDir={sortDir}
                 onSort={toggleSort}
                 label="SESSIONS"
+                align="center"
                 sortKey="sessions_played"
               />
               <SortHeader
@@ -174,6 +177,7 @@ export default function LeaderboardView({
                 sortDir={sortDir}
                 onSort={toggleSort}
                 label="WIN%"
+                align="center"
                 sortKey="win_rate"
               />
               <SortHeader
@@ -181,6 +185,7 @@ export default function LeaderboardView({
                 sortDir={sortDir}
                 onSort={toggleSort}
                 label="POG"
+                align="center"
                 sortKey="pog_count"
               />
             </TableRow>
@@ -233,7 +238,7 @@ export default function LeaderboardView({
                     <ChipValue chips={s.total_chips} />
                   </Link>
                 </TableCell>
-                <TableCell className="py-4 text-right text-muted-foreground">
+                <TableCell className="py-4 text-center text-muted-foreground">
                   <Link
                     href={`/groups/${groupId}/players/${s.player.id}`}
                     className="block"
@@ -241,7 +246,7 @@ export default function LeaderboardView({
                     {s.sessions_played}
                   </Link>
                 </TableCell>
-                <TableCell className="py-4 text-right text-muted-foreground">
+                <TableCell className="py-4 text-center text-muted-foreground">
                   <Link
                     href={`/groups/${groupId}/players/${s.player.id}`}
                     className="block"
@@ -249,7 +254,7 @@ export default function LeaderboardView({
                     {(s.win_rate * 100).toFixed(0)}%
                   </Link>
                 </TableCell>
-                <TableCell className="py-4 text-right text-muted-foreground">
+                <TableCell className="py-4 text-center text-muted-foreground">
                   <Link
                     href={`/groups/${groupId}/players/${s.player.id}`}
                     className="block"

@@ -1,47 +1,26 @@
 'use client'
 
-import { Monitor, Moon, Sun } from 'lucide-react'
+import { Moon, Sun } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { useBrowserReady } from '@/lib/use-browser-ready'
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme()
   const ready = useBrowserReady()
+  const dark = ready && theme === 'dark'
+  const label = dark ? 'Switch to light mode' : 'Switch to dark mode'
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Theme">
-          <Sun className="dark:hidden" />
-          <Moon className="hidden dark:block" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuRadioGroup
-          value={ready ? theme : 'system'}
-          onValueChange={setTheme}
-        >
-          <DropdownMenuRadioItem value="light">
-            <Sun />
-            Light
-          </DropdownMenuRadioItem>
-          <DropdownMenuRadioItem value="dark">
-            <Moon />
-            Dark
-          </DropdownMenuRadioItem>
-          <DropdownMenuRadioItem value="system">
-            <Monitor />
-            System
-          </DropdownMenuRadioItem>
-        </DropdownMenuRadioGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Button
+      variant="ghost"
+      size="icon"
+      aria-label={label}
+      title={label}
+      onClick={() => setTheme(dark ? 'light' : 'dark')}
+    >
+      <Moon className="dark:hidden" />
+      <Sun className="hidden dark:block" />
+    </Button>
   )
 }
