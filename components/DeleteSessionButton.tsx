@@ -1,5 +1,6 @@
 'use client'
 
+import { Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 import { useState } from 'react'
@@ -28,9 +29,11 @@ export default function DeleteSessionButton({ groupId, sessionId }: { groupId: s
       />
       <Button variant="destructive" type="button"
         onClick={e => { e.stopPropagation(); setOpen(true) }}
-
+        aria-label="Delete session"
+        className="size-8 p-0 sm:w-auto sm:px-3"
       >
-        DELETE
+        <Trash2 className="size-4 sm:hidden" />
+        <span className="hidden sm:inline">DELETE</span>
       </Button>
     </>
   )
