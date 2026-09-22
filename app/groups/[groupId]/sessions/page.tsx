@@ -1,4 +1,3 @@
-import { Fragment } from 'react'
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
@@ -50,30 +49,32 @@ export default async function SessionsPage({
           <Link href={`/groups/${groupId}/sessions/import`} className="text-xs text-primary tracking-normal hover:underline">IMPORT SESSION</Link>
         </div>
       </div>
-      <Table className="w-full table-fixed text-xs sm:text-sm [&_th]:px-0.5 [&_td]:px-0.5 sm:[&_th]:px-2 sm:[&_td]:px-2">
+      <Table className="w-full table-fixed text-[10px] sm:text-sm [&_th]:px-0.5 [&_td]:px-0.5 sm:[&_th]:px-2 sm:[&_td]:px-2">
         <colgroup>
-          <col className="w-24 sm:w-1/4" />
-          <col className="w-12 sm:w-1/6" />
+          <col className="w-20 sm:w-28" />
           <col />
-          <col className="w-11 sm:w-1/6" />
+          <col className="w-10 sm:w-20" />
+          <col className="w-11 sm:w-32" />
+          <col className="w-8 sm:w-20" />
           <col className="w-9 sm:w-12" />
         </colgroup>
-        <TableHeader><TableRow className="border-b border-border text-muted-foreground text-xs tracking-normal">
-          <TableHead className="text-center py-3 font-normal">DATE</TableHead><TableHead className="text-center py-3 font-normal">PLAYERS</TableHead>
+        <TableHeader><TableRow className="border-b border-border text-muted-foreground text-[10px] sm:text-xs tracking-normal">
+          <TableHead className="text-left py-3 font-normal">DATE</TableHead><TableHead className="text-left py-3 font-normal"><span className="sm:hidden">NOTE</span><span className="hidden sm:inline">DESCRIPTION</span></TableHead><TableHead className="text-center py-3 font-normal">PLAYERS</TableHead>
           <TableHead className="text-center py-3 font-normal">POG</TableHead><TableHead className="text-center py-3 font-normal">RATE</TableHead>
           <TableHead className="text-center py-3 font-normal"></TableHead>
         </TableRow></TableHeader>
         <TableBody>
-          {sessions.length === 0 && <TableRow><TableCell colSpan={5} className="py-12 text-center text-xs text-muted-foreground tracking-normal">NO SESSIONS YET</TableCell></TableRow>}
+          {sessions.length === 0 && <TableRow><TableCell colSpan={6} className="py-12 text-center text-xs text-muted-foreground tracking-normal">NO SESSIONS YET</TableCell></TableRow>}
           {sessions.map(session => {
             const href = `/groups/${groupId}/sessions/${session.id}`
             const isOpen = session.status === 'OPEN'
-            return <Fragment key={session.id}><TableRow className={`border-b border-border transition-colors ${session.description ? 'border-b-0 [&_td]:pb-2' : ''} ${isOpen ? 'bg-primary/5 hover:bg-primary/10' : 'hover:bg-muted'}`}>
-              <TableCell className="py-4 text-center"><Link href={href} className="block">
-                <div className={`flex items-center justify-center gap-1 sm:gap-2 ${isOpen ? 'text-primary' : ''}`}>
+            return <TableRow key={session.id} className={`border-b border-border transition-colors ${isOpen ? 'bg-primary/5 hover:bg-primary/10' : 'hover:bg-muted'}`}>
+              <TableCell className="py-4 text-left"><Link href={href} className="block">
+                <div className={`flex items-center gap-0.5 sm:gap-2 ${isOpen ? 'text-primary' : ''}`}>
                   {isOpen && <span className="inline-block w-2 h-2 rounded-full bg-accent animate-pulse shrink-0" />}{session.date}
                 </div>
               </Link></TableCell>
+              <TableCell className="py-4 text-left whitespace-normal [overflow-wrap:anywhere] text-muted-foreground"><Link href={href} className="block leading-relaxed">{session.description || '—'}</Link></TableCell>
               <TableCell className="py-4 text-center text-muted-foreground"><Link href={href} className="block">{session.player_count}</Link></TableCell>
               <TableCell className="py-4 text-center">{!isOpen && session.winners.length > 0
                 ? <div className="flex flex-wrap justify-center gap-x-2 gap-y-1 whitespace-normal [overflow-wrap:anywhere]">{session.winners.map(winner => <Link key={winner.player_id} href={`/groups/${groupId}/players/${winner.player_id}`} className="min-w-0 text-muted-foreground hover:text-primary transition-colors">{winner.name}</Link>)}</div>
@@ -81,12 +82,6 @@ export default async function SessionsPage({
               <TableCell className="py-4 text-center text-muted-foreground"><Link href={href} className="block">{session.exchange_rate ? `${session.exchange_rate}:1` : '—'}</Link></TableCell>
               <TableCell className="py-4 text-center"><DeleteSessionButton groupId={groupId} sessionId={session.id} /></TableCell>
             </TableRow>
-              {session.description && <TableRow className={isOpen ? 'bg-primary/5 hover:bg-primary/10' : ''}>
-                <TableCell colSpan={5} className="pt-0 pb-4 text-center whitespace-normal">
-                  <Link href={href} className="mx-auto block max-w-xl px-3 text-xs leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">{session.description}</Link>
-                </TableCell>
-              </TableRow>}
-            </Fragment>
           })}
         </TableBody>
       </Table>
