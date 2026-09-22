@@ -1,7 +1,6 @@
 import { renderToReadableStream } from 'react-dom/server'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import Page from '../app/groups/[groupId]/players/[id]/page'
-import { vi } from 'vitest'
 const captured = vi.hoisted(() => ({ count: 23, chart: undefined as unknown }))
 vi.mock('./queries', () => ({
   getPlayerDetail: async () => fixture(captured.count),

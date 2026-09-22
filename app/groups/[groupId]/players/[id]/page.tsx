@@ -11,12 +11,16 @@ import { computePlayerHistory } from '@/lib/stats'
 
 export const dynamic = 'force-dynamic'
 
-async function PlayerDetailPage({ params, searchParams }: {
+interface PageProps {
   params: Promise<{ groupId: string; id: string }>
   searchParams: Promise<{ page?: string | string[]; page_size?: string | string[] }>
+}
+
+async function PlayerDetailPage({ params, query }: {
+  params: PageProps['params']
+  query: Awaited<PageProps['searchParams']>
 }) {
   const { groupId, id } = await params
-  const query = await searchParams
   const requestedPage = normalizeSessionPageParam(query.page, 1)
   const pageSize = normalizeSessionPageParam(query.page_size, DEFAULT_SESSION_PAGE_SIZE, MAX_SESSION_PAGE_SIZE)
   const player = await getPlayerDetail(groupId, id)
@@ -47,9 +51,9 @@ async function PlayerDetailPage({ params, searchParams }: {
 }
 
 // Reset the loading boundary for pagination as well as path changes.
-export default async function Page(props: Parameters<typeof PlayerDetailPage>[0]) {
+export default async function Page(props: PageProps) {
   const query = await props.searchParams
-  return <Suspense key={JSON.stringify(query)} fallback={<Loading />}>
-    <PlayerDetailPage {...props} />
+  return <Suspense key={JSON.stringify([query.page, query.page_size])} fallback={<Loading />}>
+    <PlayerDetailPage params={props.params} query={query} />
   </Suspense>
 }
