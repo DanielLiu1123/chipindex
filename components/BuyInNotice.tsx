@@ -31,6 +31,7 @@ export default function BuyInNotice({
     toast.success('Buy-in summary', {
       id,
       description,
+      position: 'top-right',
       duration: 3000 + (count - 1) * 2000,
       onDismiss: () => dismiss(),
       onAutoClose: () => dismiss(),
