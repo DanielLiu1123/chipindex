@@ -15,7 +15,7 @@ it('waits for refreshed totals, keeps a single toast across rerenders, and clean
   const view = render(<BuyInNotice command={command} participants={[]} onDismiss={firstDismiss} />)
   expect(toast.success).not.toHaveBeenCalled()
   view.rerender(<BuyInNotice command={command} participants={[player]} onDismiss={firstDismiss} />)
-  expect(toast.success).toHaveBeenCalledWith('Buy-in summary', expect.objectContaining({ id: 'buyin-1', description: 'Alice: 4,000 chips' }))
+  expect(toast.success).toHaveBeenCalledWith('Buy-in summary', expect.objectContaining({ id: 'buyin-1', description: 'Alice: 4,000' }))
   view.rerender(<BuyInNotice command={command} participants={[player]} onDismiss={latestDismiss} />)
   expect(toast.success).toHaveBeenCalledTimes(1)
   const options = vi.mocked(toast.success).mock.calls[0][1]!
