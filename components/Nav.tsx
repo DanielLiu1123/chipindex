@@ -112,14 +112,14 @@ export default function Nav() {
             <SelectTrigger aria-label="Current group" className="w-32 sm:w-40">
               <SelectValue placeholder="Select group" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper" align="end" sideOffset={4} className="min-w-44 max-w-[calc(100vw-2rem)] p-1">
               {groups.map((group) => (
-                <SelectItem key={group.id} value={group.id}>
+                <SelectItem key={group.id} value={group.id} className="min-h-9 pl-2">
                   {group.name}
                 </SelectItem>
               ))}
-              <SelectSeparator />
-              <SelectItem value="__new__">+ NEW GROUP</SelectItem>
+              <SelectSeparator className="mx-0" />
+              <SelectItem value="__new__" className="min-h-9 pl-2">+ NEW GROUP</SelectItem>
             </SelectContent>
           </Select>
         </div>
