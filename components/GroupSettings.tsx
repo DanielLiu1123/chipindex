@@ -1,5 +1,7 @@
 'use client'
 
+import { Trash2 } from 'lucide-react'
+
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 import { Label } from '@/components/ui/label'
@@ -133,9 +135,9 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
                 className="col-start-1 row-start-2 mt-1 text-xs tabular-nums text-muted-foreground sm:col-start-2 sm:row-start-1 sm:mt-0">
                 <BrowserTime value={row.group_player.created_at} includeDate />
               </span>
-              <Button variant="ghost" className="col-start-2 row-span-2 row-start-1 w-24 text-xs tracking-wide text-muted-foreground hover:bg-destructive/10 hover:text-destructive sm:col-start-3 sm:row-span-1" type="button" onClick={() => setPlayerToDelete(row)} disabled={pending} aria-label={`Remove ${row.player.name} from group`}
+              <Button variant="ghost" className="col-start-2 row-span-2 row-start-1 size-8 justify-self-end p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive sm:col-start-3 sm:row-span-1" type="button" onClick={() => setPlayerToDelete(row)} disabled={pending} aria-label={`Remove ${row.player.name} from group`}
                 >
-                REMOVE
+                <Trash2 className="size-4" aria-hidden="true" />
               </Button>
             </li>)}
           </ul>
