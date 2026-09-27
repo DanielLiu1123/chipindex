@@ -1,7 +1,5 @@
 'use client'
 
-import PageHeading from '@/components/PageHeading'
-
 import { Button } from '@/components/ui/button'
 
 import { useEffect } from 'react'
@@ -12,8 +10,9 @@ export default function Error({ error, reset }: { error: Error; reset: () => voi
   }, [error])
 
   return (
-    <div className="surface my-10 flex flex-col gap-6">
-      <PageHeading eyebrow="Something went wrong" title="Let’s try that again." description="We couldn’t load this page. Please try again." />
+    <div className="surface flex flex-col gap-6 mt-12">
+      <p className="text-destructive text-xs tracking-normal">SOMETHING WENT WRONG</p>
+      <p className="text-muted-foreground text-xs">Something went wrong. Please try again.</p>
       <Button variant="outline" type="button"
         onClick={reset}
         className="w-fit"

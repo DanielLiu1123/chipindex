@@ -1,6 +1,25 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <rect width="64" height="64" rx="20" fill="#235944"/>
-  <circle cx="32" cy="32" r="23" stroke="#C4DF99" stroke-width="3" stroke-dasharray="10 8"/>
-  <path d="M37 22a12 12 0 1 0 0 20" stroke="#FFFefa" stroke-width="5" stroke-linecap="round"/>
-  <path d="M40 28v12m7-19v19" stroke="#C4DF99" stroke-width="4" stroke-linecap="round"/>
+  <defs>
+    <mask id="chip">
+      <circle cx="32" cy="32" r="30" fill="white"/>
+      <!-- 8 notches evenly spaced -->
+      <circle cx="32" cy="2"     r="4.5" fill="black"/>
+      <circle cx="53.21" cy="10.79" r="4.5" fill="black"/>
+      <circle cx="62" cy="32"    r="4.5" fill="black"/>
+      <circle cx="53.21" cy="53.21" r="4.5" fill="black"/>
+      <circle cx="32" cy="62"    r="4.5" fill="black"/>
+      <circle cx="10.79" cy="53.21" r="4.5" fill="black"/>
+      <circle cx="2" cy="32"     r="4.5" fill="black"/>
+      <circle cx="10.79" cy="10.79" r="4.5" fill="black"/>
+    </mask>
+  </defs>
+
+  <g mask="url(#chip)">
+    <!-- Outer graphite ring -->
+    <circle cx="32" cy="32" r="30" fill="#242424"/>
+    <!-- White band -->
+    <circle cx="32" cy="32" r="23" fill="#f2f1ed"/>
+    <!-- Graphite center -->
+    <circle cx="32" cy="32" r="16" fill="#242424"/>
+  </g>
 </svg>

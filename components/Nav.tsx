@@ -16,8 +16,7 @@ import { ThemeToggle } from '@/components/ThemeToggle'
 import { errorMessage } from '@/lib/error-message'
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import Brand from '@/components/Brand'
-import { LogOut } from 'lucide-react'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { listGroups, logout } from '@/lib/client'
 import { isActivePath } from '@/lib/navigation'
@@ -100,17 +99,17 @@ export default function Nav() {
   const manageActive = manage !== null && isActivePath(pathname, manage, true)
 
   return (
-    <header className="border-b border-border bg-card/90">
-      <div className="max-w-6xl mx-auto px-4 sm:px-8 min-h-20 py-4 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex w-full items-center justify-between gap-4 min-w-0 sm:w-auto sm:justify-start">
+    <header className="border-b border-border bg-card">
+      <div className="max-w-5xl mx-auto px-4 sm:px-8 min-h-18 py-4 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-4 min-w-0 w-full sm:w-auto justify-between sm:justify-start">
           <Link
             href={home}
-            className="flex items-center gap-2 text-primary font-medium tracking-normal text-sm"
+            className="flex items-center gap-2 text-primary font-semibold tracking-[0.08em] text-sm"
           >
-            <Brand compact />
+            <Image src="/icon.svg" alt="" width={28} height={28} className="dark:invert" /> CHIPINDEX
           </Link>
           <Select value={current?.id ?? ''} onValueChange={changeGroup}>
-            <SelectTrigger aria-label="Current group" className="w-36 bg-background sm:w-40">
+            <SelectTrigger aria-label="Current group" className="w-32 sm:w-40">
               <SelectValue placeholder="Select group" />
             </SelectTrigger>
             <SelectContent>
@@ -124,44 +123,40 @@ export default function Nav() {
             </SelectContent>
           </Select>
         </div>
-        <nav aria-label="Main navigation" className="flex w-full flex-wrap items-center gap-0 sm:w-auto sm:gap-1">
+        <nav className="flex flex-wrap items-center gap-1">
+          <ThemeToggle />
           {manage && (
             <>
               <Link
                 href={home}
                 aria-current={homeActive ? 'page' : undefined}
-                className="nav-link"
+                className={`rounded-md px-1.5 py-2 text-[10px] sm:text-xs tracking-normal transition-colors ${homeActive ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 LEADERBOARD
               </Link>
               <Link
                 href={sessions}
                 aria-current={sessionsActive ? 'page' : undefined}
-                className="nav-link"
+                className={`rounded-md px-1.5 py-2 text-[10px] sm:text-xs tracking-normal transition-colors ${sessionsActive ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 SESSIONS
               </Link>
               <Link
                 href={manage}
                 aria-current={manageActive ? 'page' : undefined}
-                className="nav-link"
+                className={`rounded-md px-1.5 py-2 text-[10px] sm:text-xs tracking-normal transition-colors ${manageActive ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 MANAGE
               </Link>
             </>
           )}
-          <div className="ml-auto [&_button]:size-8 sm:ml-3"><ThemeToggle /></div>
           <Button
-            variant="ghost"
-            size="icon"
-            className="size-8"
-            aria-label="EXIT"
-            title="Exit ChipIndex"
+            variant="destructive"
             type="button"
             disabled={loggingOut}
             onClick={handleLogout}
           >
-            <LogOut aria-hidden="true" />
+            EXIT
           </Button>
           {error && (
             <Alert variant="destructive">

@@ -1,5 +1,3 @@
-import PageHeading from '@/components/PageHeading'
-import { Button } from '@/components/ui/button'
 import { Suspense } from 'react'
 import Loading from './loading'
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table'
@@ -52,12 +50,13 @@ async function SessionsPage({ params, query }: {
 
   return (
     <>
-      <PageHeading eyebrow={group.name} title="The session ledger." description={`${total} sessions. A record of every night at the table.`}>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button asChild variant="outline"><Link href={`/groups/${groupId}/sessions/import`}>IMPORT SESSION</Link></Button>
-          <Button asChild><Link href={`/groups/${groupId}/sessions/new`}>+ NEW SESSION</Link></Button>
+      <div className="flex flex-wrap items-baseline justify-between gap-4 mb-6">
+        <span className="text-xs text-muted-foreground tracking-normal">{total} SESSIONS</span>
+        <div className="flex items-center gap-4">
+          <Link href={`/groups/${groupId}/sessions/new`} className="text-xs text-primary tracking-normal hover:underline">+ NEW SESSION</Link>
+          <Link href={`/groups/${groupId}/sessions/import`} className="text-xs text-primary tracking-normal hover:underline">IMPORT SESSION</Link>
         </div>
-      </PageHeading>
+      </div>
       <Table className="w-full table-fixed text-sm [&_th]:px-0.5 [&_td]:px-0.5 sm:[&_th]:px-2 sm:[&_td]:px-2">
         <colgroup>
           <col className="w-28" />

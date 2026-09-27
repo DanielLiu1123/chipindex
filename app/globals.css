@@ -52,35 +52,35 @@
 }
 
 :root {
-  --background: #f5f4ef;
-  --foreground: #20382f;
-  --card: #fffefa;
-  --card-foreground: #20382f;
-  --popover: #fffefa;
-  --popover-foreground: #20382f;
-  --primary: #235944;
-  --primary-foreground: #ffffff;
-  --secondary: #e9ede5;
-  --secondary-foreground: #294b3d;
-  --muted: #eeeee7;
-  --muted-foreground: #667169;
-  --accent: #e5ebdf;
-  --accent-foreground: #20382f;
-  --destructive: #b33f37;
-  --border: #dce0d5;
-  --input: #c7d0c3;
-  --ring: #537e61;
-  --live: #28704d;
-  --profit: #28704d;
-  --loss: #b33f37;
-  --chart-1: #327b60;
-  --chart-2: #567fb4;
-  --chart-3: #ad7a28;
-  --chart-4: #bf5d50;
-  --chart-5: #9466a2;
-  --chart-6: #338b95;
-  --chart-7: #aa6482;
-  --chart-8: #7c842d;
+  --background: #f6f5f2;
+  --foreground: #242424;
+  --card: #ffffff;
+  --card-foreground: #242424;
+  --popover: #ffffff;
+  --popover-foreground: #242424;
+  --primary: #242424;
+  --primary-foreground: #fafaf8;
+  --secondary: #eeede9;
+  --secondary-foreground: #343432;
+  --muted: #eeede9;
+  --muted-foreground: #706f6b;
+  --accent: #e7e6e1;
+  --accent-foreground: #242424;
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: #deddd7;
+  --input: #cac9c2;
+  --ring: #77756f;
+  --live: oklch(0.448 0.119 151.328);
+  --profit: oklch(0.448 0.119 151.328);
+  --loss: oklch(0.505 0.213 27.518);
+  --chart-1: oklch(0.55 0.2 260);
+  --chart-2: oklch(0.5 0.15 160);
+  --chart-3: oklch(0.6 0.15 70);
+  --chart-4: oklch(0.55 0.2 25);
+  --chart-5: oklch(0.55 0.2 310);
+  --chart-6: oklch(0.5 0.12 210);
+  --chart-7: oklch(0.55 0.2 350);
+  --chart-8: oklch(0.5 0.12 110);
   --radius: 0.75rem;
   --sidebar: var(--card);
   --sidebar-foreground: var(--foreground);
@@ -93,35 +93,35 @@
 }
 
 .dark {
-  --background: #12221c;
-  --foreground: #edefe5;
-  --card: #192d24;
-  --card-foreground: #edefe5;
-  --popover: #1e342a;
-  --popover-foreground: #edefe5;
-  --primary: #c4df99;
-  --primary-foreground: #192d24;
-  --secondary: #293d31;
-  --secondary-foreground: #e0e8d6;
-  --muted: #22362b;
-  --muted-foreground: #a1b1a3;
-  --accent: #304635;
-  --accent-foreground: #edf2e5;
-  --destructive: #f28c7e;
-  --border: #34493b;
-  --input: #4a6150;
-  --ring: #b5cf90;
-  --live: #a9d591;
-  --profit: #a9d591;
-  --loss: #f28c7e;
-  --chart-1: #a9d591;
-  --chart-2: #8fafe3;
-  --chart-3: #e1bd74;
-  --chart-4: #f28c7e;
-  --chart-5: #c19ed3;
-  --chart-6: #76c4ca;
-  --chart-7: #df9ab8;
-  --chart-8: #cbd381;
+  --background: #141414;
+  --foreground: #efeee9;
+  --card: #1d1d1d;
+  --card-foreground: #efeee9;
+  --popover: #242424;
+  --popover-foreground: #efeee9;
+  --primary: #eeede8;
+  --primary-foreground: #1b1b1b;
+  --secondary: #2a2a29;
+  --secondary-foreground: #efeee9;
+  --muted: #272726;
+  --muted-foreground: #a6a49e;
+  --accent: #333332;
+  --accent-foreground: #f4f3ee;
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: #373736;
+  --input: #4b4b48;
+  --ring: #a6a49e;
+  --live: oklch(0.792 0.209 151.711);
+  --profit: oklch(0.792 0.209 151.711);
+  --loss: oklch(0.808 0.114 19.571);
+  --chart-1: oklch(0.75 0.2 260);
+  --chart-2: oklch(0.75 0.15 160);
+  --chart-3: oklch(0.8 0.15 70);
+  --chart-4: oklch(0.75 0.2 25);
+  --chart-5: oklch(0.75 0.2 310);
+  --chart-6: oklch(0.75 0.12 210);
+  --chart-7: oklch(0.75 0.2 350);
+  --chart-8: oklch(0.75 0.12 110);
 }
 
 @layer base {
@@ -137,13 +137,7 @@
 }
 
 @layer components {
-  .page-heading { @apply mb-8 flex flex-wrap items-end justify-between gap-5; }
-  .page-title { @apply text-3xl font-medium tracking-tight sm:text-4xl; }
-  .eyebrow { @apply mb-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground; }
   .surface { @apply rounded-xl border border-border bg-card p-5 sm:p-6; }
-  .nav-link { @apply rounded-lg px-1 py-2.5 text-[10px] font-semibold sm:px-3 sm:text-[11px] sm:tracking-[0.06em] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground; }
-  .nav-link[aria-current="page"] { @apply bg-primary text-primary-foreground; }
-  .brand-art { background-image: repeating-linear-gradient(90deg, transparent, transparent 63px, #ffffff08 63px, #ffffff08 64px); }
 }
 
 @layer base {

@@ -5,8 +5,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
-import { ArrowUpRight, LockKeyhole } from 'lucide-react'
-import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
@@ -37,38 +36,31 @@ function LoginForm() {
   }
 
   return (
-    <div className="grid overflow-hidden rounded-2xl border border-border bg-card lg:min-h-[560px] lg:grid-cols-[1.15fr_1fr]">
-      <section className="brand-art relative overflow-hidden bg-[#235944] p-6 text-[#fffefa] sm:p-12">
-        <p className="text-[10px] uppercase tracking-[0.24em] text-[#c4df99]">The private poker ledger</p>
-        <h1 className="relative z-10 mt-6 text-4xl sm:mt-10 font-medium leading-[1.05] tracking-[-0.055em] sm:text-6xl">Good company.<br />Great sessions.<br /><span className="text-[#c4df99]">Every chip.</span></h1>
-        <p className="relative z-10 mt-6 max-w-xs text-sm leading-7 text-[#e0e8d6]">A shared record of the nights you play.<br />Track the table. Follow the form.</p>
-        <div aria-hidden="true" className="relative mt-12 hidden items-end gap-2 sm:flex">
-          {[32, 52, 42, 72, 96, 122, 150].map((height, i) => <div key={height} className="w-8 rounded-t-sm bg-[#c4df99] sm:w-10" style={{ height, opacity: 0.25 + i * 0.11 }} />)}
-          <span className="mb-1 ml-4 text-[10px] uppercase tracking-[0.18em] text-[#c4df99]">Play. Record. Repeat.</span>
-        </div>
-      </section>
-      <section className="flex flex-col justify-center p-6 sm:p-12">
-        <div className="mb-8 flex size-12 items-center justify-center rounded-xl border border-border bg-muted text-primary"><LockKeyhole className="size-5" aria-hidden="true" /></div>
-        <p className="eyebrow">Your seat at the table</p>
-        <h2 className="text-3xl font-medium tracking-tight">Welcome back.</h2>
-        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">Enter your group password to continue.</p>
-        <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
-          <Label htmlFor="password">Group password</Label>
-          <Input id="password" type="password" aria-label="Password" autoComplete="current-password" required
+    <div className="flex min-h-[70vh] items-center justify-center">
+      <Card className="w-full max-w-sm border-t-4 border-primary shadow-[0_16px_60px_-30px_rgba(0,0,0,0.25)] [--card-spacing:--spacing(8)]">
+        <CardHeader className="gap-3"><CardTitle className="text-3xl font-semibold tracking-tight">ChipIndex</CardTitle><CardDescription className="leading-relaxed">Enter your group password to continue.</CardDescription></CardHeader>
+        <CardContent>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <Input
+            type="password" aria-label="Password" className="h-12"
             value={password}
             onChange={e => { setPassword(e.target.value); setError('') }}
-            placeholder="Enter your password"
-            aria-invalid={Boolean(error)}
-            aria-describedby={error ? 'login-error' : undefined}
-            className="h-12"
+            placeholder="password"
+            autoFocus
+
           />
-          {error && <Alert id="login-error" variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
-          <Button type="submit" size="lg" disabled={loading} className="mt-2 justify-between">
-            {loading ? 'Entering…' : 'Enter ChipIndex'}<ArrowUpRight aria-hidden="true" />
+          {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
+          <Button variant="default" className="h-12 tracking-[0.12em]"
+            type="submit"
+            disabled={loading}
+
+          >
+            {loading ? '...' : 'ENTER'}
           </Button>
         </form>
-        <p className="mt-8 text-xs leading-relaxed text-muted-foreground">Your group. Your games. One shared record.</p>
-      </section>
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -1,7 +1,5 @@
 'use client'
 
-import PageHeading from '@/components/PageHeading'
-
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 import { Label } from '@/components/ui/label'
@@ -97,7 +95,6 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
   }
 
   return <>
-    <PageHeading eyebrow="Group settings" title="Your table, together." description="Keep your group and player directory up to date." />
     <div className="max-w-3xl">
       <section aria-label="Group name" className="surface mb-8">
         <form onSubmit={event => { event.preventDefault(); if (!pending && name.trim() && name.trim() !== savedName) void rename() }}

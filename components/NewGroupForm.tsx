@@ -1,7 +1,5 @@
 'use client'
 
-import PageHeading from '@/components/PageHeading'
-
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 import { Input } from '@/components/ui/input'
@@ -31,10 +29,9 @@ export default function NewGroupForm() {
     }
   }
 
-  return <form onSubmit={submit} className="surface max-w-xl flex flex-col gap-4">
-    <PageHeading eyebrow="The private poker ledger" title="NEW GROUP" description="A place for your players and every session you share." />
-    <label htmlFor="new-group-name" className="text-sm font-medium">Group name</label>
-    <Input id="new-group-name" value={name} onChange={event => setName(event.target.value)} autoFocus placeholder="group name"
+  return <form onSubmit={submit} className="surface max-w-md flex flex-col gap-4">
+    <h1 className="text-2xl font-medium tracking-tight">NEW GROUP</h1>
+    <Input value={name} onChange={event => setName(event.target.value)} autoFocus placeholder="group name"
        />
     {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
     <Button variant="default" type="submit" disabled={saving || !name.trim()} >

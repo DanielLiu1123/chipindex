@@ -1,5 +1,3 @@
-import PageHeading from '@/components/PageHeading'
-import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import SessionEntriesTable from '@/components/SessionEntriesTable'
@@ -41,13 +39,15 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
   const total = entries.reduce((sum, entry) => sum + entry.chips, 0)
   return <>
     <div className="mb-6"><Link href={`/groups/${groupId}/sessions`} className="text-muted-foreground text-xs hover:text-foreground tracking-normal">← SESSIONS</Link></div>
-    <PageHeading eyebrow="Settled session" title={settled.date} description={settled.description || 'The final count. Every chip accounted for.'}>
+    <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+      <h1 className="text-2xl font-medium tracking-tight text-foreground">{settled.date}</h1>
       <div className="flex items-center gap-2">
         <CopySessionSummaryButton summary={summary} />
-        <Button asChild variant="outline"><Link href={`/groups/${groupId}/sessions/${id}/edit`}>EDIT</Link></Button>
+        <Link href={`/groups/${groupId}/sessions/${id}/edit`} className="text-xs text-primary tracking-normal rounded-lg border border-border hover:border-primary px-2.5 py-1 transition-colors">EDIT</Link>
       </div>
-    </PageHeading>
-    <p className="mb-5 text-xs text-muted-foreground">{settled.exchange_rate} chips = 1 CNY</p>
+    </div>
+    <div className="mb-2"><span className="text-xs text-muted-foreground">{settled.exchange_rate} chips = 1 CNY</span></div>
+    <div className="mb-6">{settled.description && <p className="text-sm text-muted-foreground mt-1">{settled.description}</p>}</div>
     <SessionEntriesTable groupId={groupId} entries={entries} exchangeRate={settled.exchange_rate} total={total} />
   </>
 }

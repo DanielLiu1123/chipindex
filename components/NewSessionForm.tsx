@@ -1,7 +1,5 @@
 'use client'
 
-import PageHeading from '@/components/PageHeading'
-
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 import { Label } from '@/components/ui/label'
@@ -79,8 +77,8 @@ export default function NewSessionForm({ groupId, initialPlayers }: { groupId: s
       <div className="mb-6">
         <Link href={`/groups/${groupId}/sessions`} className="text-muted-foreground text-xs hover:text-foreground tracking-normal">← SESSIONS</Link>
       </div>
-      <PageHeading eyebrow="The private poker ledger" title="NEW SESSION" description="Set the stakes, bring in your players, and start the night." />
-      <form onSubmit={handleStart} className="surface flex flex-col gap-6 max-w-2xl">
+      <h1 className="text-2xl font-medium tracking-tight mb-6">NEW SESSION</h1>
+      <form onSubmit={handleStart} className="surface flex flex-col gap-6 max-w-lg">
         <SessionMetaFields disabled={starting}
           date={date} setDate={setDate}
           exchangeRate={exchangeRate} setExchangeRate={setExchangeRate}

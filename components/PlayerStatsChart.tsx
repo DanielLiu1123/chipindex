@@ -33,9 +33,8 @@ export default function PlayerStatsChart({
 
   return (
     <>
-      <p className="eyebrow">Player profile</p>
-      <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
-        <div role="heading" aria-level={1}><PlayerNameEditor groupId={groupId} id={id} initialName={initialName} /></div>
+      <div className="flex flex-wrap items-baseline justify-between gap-4 mb-8">
+        <PlayerNameEditor groupId={groupId} id={id} initialName={initialName} />
         <div className="flex flex-wrap gap-4 text-xs text-muted-foreground items-baseline">
           <span>{sessions} sessions</span>
           <span>{wins} wins</span>

@@ -1,7 +1,5 @@
 'use client'
 
-import PageHeading from '@/components/PageHeading'
-
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 import { Input } from '@/components/ui/input'
@@ -63,8 +61,8 @@ export default function SessionForm({ groupId, initialPlayers }: { groupId: stri
     <PlayerSelectionModal open={pickerOpen} participants={directory.participants}
       action={{ kind: 'players', submit: selectPlayers }} onCreatePlayer={directory.create} onClose={() => setPickerOpen(false)} />
     <div className="mb-6"><Link href={`/groups/${groupId}/sessions`} className="text-xs tracking-normal text-muted-foreground hover:text-foreground">← SESSIONS</Link></div>
-    <PageHeading eyebrow="The private poker ledger" title="IMPORT SESSION" description="Add a past session to your shared record." />
-    <form onSubmit={handleSubmit} className="surface flex max-w-2xl flex-col gap-6">
+    <h1 className="mb-6 text-2xl font-medium tracking-tight">IMPORT SESSION</h1>
+    <form onSubmit={handleSubmit} className="surface flex max-w-lg flex-col gap-6">
       <SessionMetaFields date={date} setDate={setDate} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate}
         description={description} setDescription={setDescription} disabled={submitting} />
       <div className="flex flex-col gap-2">

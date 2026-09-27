@@ -18,12 +18,11 @@ export function TableSkeleton({ label, columns, children }: {
   children?: ReactNode
 }) {
   return <LoadingSkeleton label={label}>
-    <div className="space-y-3"><Skeleton className="h-3 w-24" /><Skeleton className="h-10 w-64" /><Skeleton className="h-4 w-72 max-w-full" /></div>
     <div className="flex items-center justify-between gap-4">
       <Skeleton className="h-8 w-36" /><Skeleton className="h-8 w-32" />
     </div>
     {children}
-    <div className="surface">
+    <div>
       {Array.from({ length: 7 }, (_, row) => <div key={row} className="grid gap-3 border-b py-5" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
         {Array.from({ length: columns }, (_, column) => <Skeleton key={column} className={row === 0 ? 'h-3 w-3/4' : 'h-4 w-full'} />)}
       </div>)}
