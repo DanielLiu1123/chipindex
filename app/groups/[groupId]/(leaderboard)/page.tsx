@@ -13,6 +13,7 @@ export default async function GroupLeaderboardPage({ params }: { params: Promise
   if (!group) notFound()
   return <LeaderboardView
     groupId={groupId}
+    groupName={group.name}
     players={leaderboard.players}
     sessions={leaderboard.sessions}
   />

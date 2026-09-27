@@ -1,5 +1,7 @@
 'use client'
 
+import PageHeading from '@/components/PageHeading'
+
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 import { Label } from '@/components/ui/label'
@@ -95,11 +97,12 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
   }
 
   return <>
+    <PageHeading eyebrow="Group settings" title="Your table, together." description="Keep your group and player directory up to date." />
     <div className="max-w-3xl">
-      <section aria-label="Group name" className="mb-8 border border-border bg-muted/60 p-4 sm:p-5">
+      <section aria-label="Group name" className="surface mb-8">
         <form onSubmit={event => { event.preventDefault(); if (!pending && name.trim() && name.trim() !== savedName) void rename() }}
           className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
-          <Label htmlFor="group-name" className="shrink-0 text-[10px] tracking-normal text-foreground/50">GROUP NAME</Label>
+          <Label htmlFor="group-name" className="shrink-0 text-[10px] tracking-normal text-muted-foreground">GROUP NAME</Label>
           <div className="flex min-w-0 flex-1 gap-2">
             <Input id="group-name" value={name} disabled={pending} onChange={event => setName(event.target.value)}
               className="min-w-0 flex-1" />
@@ -113,13 +116,13 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
         <div className="mb-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
             <h2 id="group-players-heading" className="text-xs tracking-normal text-foreground">PLAYERS</h2>
-            <span className="border border-border bg-muted px-2 py-0.5 text-[10px] tabular-nums text-foreground/50">{groupPlayers.length}</span>
+            <span className="border border-border bg-muted px-2 py-0.5 text-[10px] tabular-nums text-muted-foreground">{groupPlayers.length}</span>
           </div>
           <PlayerActionButton action="add-player" compact disabled={pending} onClick={() => setAddPlayersOpen(true)} />
         </div>
 
-        <div className="border border-border">
-          <div aria-hidden="true" className="hidden grid-cols-[minmax(0,1fr)_11rem_5rem] gap-4 border-b border-border bg-muted/60 px-4 py-2.5 text-[10px] tracking-normal text-foreground/40 sm:grid">
+        <div className="overflow-hidden rounded-xl border border-border bg-card">
+          <div aria-hidden="true" className="hidden grid-cols-[minmax(0,1fr)_11rem_5rem] gap-4 border-b border-border bg-muted/60 px-4 py-2.5 text-[10px] tracking-normal text-muted-foreground sm:grid">
             <span>PLAYER</span><span>JOINED AT</span><span />
           </div>
           <ul className="divide-y divide-border">
@@ -130,7 +133,7 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
                 {row.player.name}
               </Link>
               <span aria-label={`Joined time for ${row.player.name}`}
-                className="col-start-1 row-start-2 mt-1 text-[10px] tabular-nums text-foreground/40 sm:col-start-auto sm:row-start-auto sm:mt-0 sm:text-xs">
+                className="col-start-1 row-start-2 mt-1 text-[10px] tabular-nums text-muted-foreground sm:col-start-auto sm:row-start-auto sm:mt-0 sm:text-xs">
                 <BrowserTime value={row.group_player.created_at} includeDate />
               </span>
               <Button variant="ghost" type="button" onClick={() => setPlayerToDelete(row)} disabled={pending} aria-label={`Remove ${row.player.name} from group`}
@@ -139,7 +142,7 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
               </Button>
             </li>)}
           </ul>
-          {groupPlayers.length === 0 && <p className="px-4 py-8 text-center text-xs text-foreground/40">No players yet.</p>}
+          {groupPlayers.length === 0 && <p className="px-4 py-8 text-center text-xs text-muted-foreground">No players yet.</p>}
         </div>
       </section>
       {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}

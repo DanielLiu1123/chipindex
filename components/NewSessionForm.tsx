@@ -1,5 +1,7 @@
 'use client'
 
+import PageHeading from '@/components/PageHeading'
+
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 import { Label } from '@/components/ui/label'
@@ -77,8 +79,8 @@ export default function NewSessionForm({ groupId, initialPlayers }: { groupId: s
       <div className="mb-6">
         <Link href={`/groups/${groupId}/sessions`} className="text-muted-foreground text-xs hover:text-foreground tracking-normal">← SESSIONS</Link>
       </div>
-      <h1 className="text-xs text-muted-foreground tracking-normal mb-6">NEW SESSION</h1>
-      <form onSubmit={handleStart} className="flex flex-col gap-6 max-w-lg">
+      <PageHeading eyebrow="The private poker ledger" title="NEW SESSION" description="Set the stakes, bring in your players, and start the night." />
+      <form onSubmit={handleStart} className="surface flex flex-col gap-6 max-w-2xl">
         <SessionMetaFields disabled={starting}
           date={date} setDate={setDate}
           exchangeRate={exchangeRate} setExchangeRate={setExchangeRate}
@@ -91,7 +93,7 @@ export default function NewSessionForm({ groupId, initialPlayers }: { groupId: s
               const playerName = directory.players.find(player => player.id === row.playerId)?.name
               const accessibleName = playerName ?? row.playerId
               return <div key={row.playerId}
-                className="group flex gap-2 items-center border border-border bg-muted/30 px-3 py-1.5 transition-colors hover:border-ring/30">
+                className="group flex gap-2 items-center rounded-lg border border-border bg-muted/30 px-3 py-1.5 transition-colors hover:border-ring/30">
                   <span className="flex-1 min-w-0 text-foreground text-sm px-1 truncate">
                     {playerName ?? row.playerId}
                   </span>

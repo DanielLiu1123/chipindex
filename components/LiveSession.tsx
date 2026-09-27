@@ -1,5 +1,7 @@
 'use client'
 
+import PageHeading from '@/components/PageHeading'
+
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 import { Button } from '@/components/ui/button'
@@ -112,25 +114,15 @@ export default function LiveSession({
         </Link>
       </div>
 
-      <div className="flex items-center gap-2 mb-1">
-        <span className="inline-block w-2 h-2 rounded-full bg-live motion-safe:animate-pulse" />
-        <span className="text-xs text-live tracking-normal">LIVE</span>
-        <span className="text-foreground">{session.date}</span>
-        {session.description && (
-          <span className="text-sm text-muted-foreground">
-            · {session.description}
-          </span>
-        )}
-      </div>
-      <div className="mb-6 flex items-baseline gap-2">
-        <span className="text-xs text-muted-foreground tracking-normal">
-          TOTAL BUY-IN
-        </span>
-        <span className="text-primary text-lg">{pot.toLocaleString()}</span>
-        <span className="text-xs text-muted-foreground">chips</span>
+      <PageHeading eyebrow="Live session" title={session.date} description={session.description || 'The table is open. Keep every buy-in in view.'}>
+        <span className="flex items-center gap-2 rounded-full border border-live/30 bg-live/10 px-3 py-1.5 text-xs font-medium text-live"><span aria-hidden="true" className="size-2 rounded-full bg-live motion-safe:animate-pulse" />LIVE</span>
+      </PageHeading>
+      <div className="surface mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div><p className="eyebrow">TOTAL BUY-IN</p><p className="text-4xl font-medium tracking-tight">{pot.toLocaleString()} <span className="text-sm font-normal text-muted-foreground">chips</span></p></div>
+        <p className="text-sm text-muted-foreground">{session.participants.length} players at the table</p>
       </div>
       {cashedOutTotal > 0 && (
-        <div className="-mt-5 mb-6 flex items-baseline gap-2">
+        <div className="mb-6 flex items-baseline gap-2">
           <span className="text-xs text-muted-foreground tracking-normal">
             CASHED OUT
           </span>

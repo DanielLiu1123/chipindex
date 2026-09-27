@@ -16,7 +16,8 @@ import { ThemeToggle } from '@/components/ThemeToggle'
 import { errorMessage } from '@/lib/error-message'
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
+import Brand from '@/components/Brand'
+import { LogOut } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
 import { listGroups, logout } from '@/lib/client'
 import { isActivePath } from '@/lib/navigation'
@@ -99,17 +100,17 @@ export default function Nav() {
   const manageActive = manage !== null && isActivePath(pathname, manage, true)
 
   return (
-    <header className="border-b border-border">
-      <div className="max-w-4xl mx-auto px-6 min-h-12 py-2 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-4 min-w-0">
+    <header className="border-b border-border bg-card/90">
+      <div className="max-w-6xl mx-auto px-4 sm:px-8 min-h-20 py-4 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex w-full items-center justify-between gap-4 min-w-0 sm:w-auto sm:justify-start">
           <Link
             href={home}
             className="flex items-center gap-2 text-primary font-medium tracking-normal text-sm"
           >
-            <Image src="/icon.svg" alt="" width={20} height={20} /> CHIPINDEX
+            <Brand compact />
           </Link>
           <Select value={current?.id ?? ''} onValueChange={changeGroup}>
-            <SelectTrigger aria-label="Current group" className="w-40">
+            <SelectTrigger aria-label="Current group" className="w-36 bg-background sm:w-40">
               <SelectValue placeholder="Select group" />
             </SelectTrigger>
             <SelectContent>
@@ -123,40 +124,44 @@ export default function Nav() {
             </SelectContent>
           </Select>
         </div>
-        <nav className="flex flex-wrap items-center gap-2">
-          <ThemeToggle />
+        <nav aria-label="Main navigation" className="flex w-full flex-wrap items-center gap-0 sm:w-auto sm:gap-1">
           {manage && (
             <>
               <Link
                 href={home}
                 aria-current={homeActive ? 'page' : undefined}
-                className={`text-xs tracking-normal transition-colors ${homeActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                className="nav-link"
               >
                 LEADERBOARD
               </Link>
               <Link
                 href={sessions}
                 aria-current={sessionsActive ? 'page' : undefined}
-                className={`text-xs tracking-normal transition-colors ${sessionsActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                className="nav-link"
               >
                 SESSIONS
               </Link>
               <Link
                 href={manage}
                 aria-current={manageActive ? 'page' : undefined}
-                className={`text-xs tracking-normal transition-colors ${manageActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                className="nav-link"
               >
                 MANAGE
               </Link>
             </>
           )}
+          <div className="ml-auto [&_button]:size-8 sm:ml-3"><ThemeToggle /></div>
           <Button
-            variant="destructive"
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            aria-label="EXIT"
+            title="Exit ChipIndex"
             type="button"
             disabled={loggingOut}
             onClick={handleLogout}
           >
-            EXIT
+            <LogOut aria-hidden="true" />
           </Button>
           {error && (
             <Alert variant="destructive">

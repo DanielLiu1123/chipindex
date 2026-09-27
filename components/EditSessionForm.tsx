@@ -1,5 +1,7 @@
 'use client'
 
+import PageHeading from '@/components/PageHeading'
+
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 import { Label } from '@/components/ui/label'
@@ -155,9 +157,9 @@ function EditSessionEditor({ groupId, sessionId, session, initialPlayers }: {
       <div className="mb-6">
         <Link href={`/groups/${groupId}/sessions/${sessionId}`} className="text-muted-foreground text-xs hover:text-foreground tracking-normal">← SESSION</Link>
       </div>
-      <h1 className="text-xs text-muted-foreground tracking-normal mb-6">EDIT SESSION</h1>
+      <PageHeading eyebrow="The private poker ledger" title="EDIT SESSION" description="Review the details and keep your ledger accurate." />
 
-      <div className="flex flex-col gap-6 max-w-lg">
+      <div className="surface flex flex-col gap-6 max-w-2xl">
         <SessionMetaFields disabled={submitting}
           date={date} setDate={setDate}
           exchangeRate={exchangeRate} setExchangeRate={setExchangeRate}

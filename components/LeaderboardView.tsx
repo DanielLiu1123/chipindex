@@ -15,6 +15,8 @@ import { Label } from '@/components/ui/label'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
+import PageHeading from '@/components/PageHeading'
+import { ArrowUpRight, ListOrdered, ChartNoAxesCombined } from 'lucide-react'
 import ChipValue from '@/components/ChipValue'
 import LeaderboardChart from '@/components/LeaderboardChart'
 import {
@@ -55,8 +57,10 @@ export default function LeaderboardView({
   groupId,
   players,
   sessions,
+  groupName,
 }: {
   groupId: string
+  groupName?: string
   players: Player[]
   sessions: LeaderboardSessionRow[]
 }) {
@@ -99,7 +103,14 @@ export default function LeaderboardView({
 
   return (
     <>
-      <div className="flex items-baseline justify-between mb-3">
+      <PageHeading eyebrow={groupName || 'Your group'} title="The leaderboard." description="Every session adds to the story. See where everyone stands.">
+        <Button asChild><Link href={`/groups/${groupId}/sessions/new`}>+ NEW SESSION <ArrowUpRight aria-hidden="true" /></Link></Button>
+      </PageHeading>
+      <div className="mb-8 grid grid-cols-2 gap-3 sm:gap-4">
+        <div className="surface"><p className="eyebrow">Sessions in range</p><p className="text-4xl font-medium tracking-tight">{sessionCount.toLocaleString()}</p><p className="mt-2 text-xs text-muted-foreground">Recorded at your table</p></div>
+        <div className="surface"><p className="eyebrow">Players in range</p><p className="text-4xl font-medium tracking-tight">{playerCount.toLocaleString()}</p><p className="mt-2 text-xs text-muted-foreground">Sharing the action</p></div>
+      </div>
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
         <ToggleGroup
           type="single"
           value={view}
@@ -109,18 +120,14 @@ export default function LeaderboardView({
           aria-label="Leaderboard view"
           variant="outline"
         >
-          <ToggleGroupItem value="table">TABLE</ToggleGroupItem>
-          <ToggleGroupItem value="chart">CHART</ToggleGroupItem>
+          <ToggleGroupItem value="table"><ListOrdered aria-hidden="true" className="size-4" /> TABLE</ToggleGroupItem>
+          <ToggleGroupItem value="chart"><ChartNoAxesCombined aria-hidden="true" className="size-4" /> CHART</ToggleGroupItem>
         </ToggleGroup>
-        <Button asChild>
-          <Link href={`/groups/${groupId}/sessions/new`}>+ NEW SESSION</Link>
-        </Button>
+        <LeaderboardDateFilter filter={filter} onChange={setFilter} />
       </div>
 
-      <LeaderboardDateFilter filter={filter} onChange={setFilter} />
-
       <div className="flex flex-wrap items-center justify-between gap-2 min-h-8 mb-3 text-[10px] tracking-normal text-muted-foreground">
-        <Label className="flex items-center gap-2 text-sm">
+        <Label className="flex items-center gap-2 text-[10px] font-medium tracking-wide sm:text-xs">
           <Switch
             checked={hideLowActivity}
             onCheckedChange={setHideLowActivity}
@@ -136,7 +143,7 @@ export default function LeaderboardView({
       </div>
 
       {emptyRange && (
-        <p className="py-12 text-center text-xs text-muted-foreground tracking-normal">
+        <p className="surface py-16 text-center text-xs text-muted-foreground tracking-normal">
           NO SESSIONS
         </p>
       )}
@@ -211,7 +218,7 @@ export default function LeaderboardView({
                     href={`/groups/${groupId}/players/${s.player.id}`}
                     className="block"
                   >
-                    {i + 1}
+                    <span className={`inline-flex size-7 items-center justify-center rounded-full text-xs ${i === 0 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>{i + 1}</span>
                   </Link>
                 </TableCell>
                 <TableCell className="py-4">
@@ -268,7 +275,7 @@ export default function LeaderboardView({
         </Table>
       )}
       {showResults && view === 'chart' && (
-        <div className="-mx-2">
+        <div className="surface">
           <div className="flex justify-end px-2 mb-4">
             <ToggleGroup
               type="single"

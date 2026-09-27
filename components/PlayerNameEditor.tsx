@@ -74,7 +74,7 @@ export default function PlayerNameEditor({ groupId, id, initialName }: { groupId
   }
 
   return (
-    <Button variant="ghost" type="button" onClick={() => setEditing(true)}
+    <Button variant="ghost" className="h-auto whitespace-normal px-0 text-3xl font-medium tracking-tight" type="button" onClick={() => setEditing(true)}
       >
       {name}
     </Button>
