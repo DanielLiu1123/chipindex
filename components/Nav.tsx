@@ -99,52 +99,52 @@ export default function Nav() {
   const manageActive = manage !== null && isActivePath(pathname, manage, true)
 
   return (
-    <header className="border-b border-border">
-      <div className="max-w-4xl mx-auto px-6 min-h-12 py-2 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-4 min-w-0">
+    <header className="border-b border-border bg-card">
+      <div className="max-w-5xl mx-auto px-4 sm:px-8 min-h-18 py-4 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-4 min-w-0 w-full sm:w-auto justify-between sm:justify-start">
           <Link
             href={home}
-            className="flex items-center gap-2 text-primary font-medium tracking-normal text-sm"
+            className="flex items-center gap-2 text-primary font-semibold tracking-[0.08em] text-sm"
           >
-            <Image src="/icon.svg" alt="" width={20} height={20} /> CHIPINDEX
+            <Image src="/icon.svg" alt="" width={28} height={28} className="dark:invert" /> CHIPINDEX
           </Link>
           <Select value={current?.id ?? ''} onValueChange={changeGroup}>
-            <SelectTrigger aria-label="Current group" className="w-40">
+            <SelectTrigger aria-label="Current group" className="w-32 sm:w-40">
               <SelectValue placeholder="Select group" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper" align="end" sideOffset={4} className="min-w-44 max-w-[calc(100vw-2rem)] p-1">
               {groups.map((group) => (
-                <SelectItem key={group.id} value={group.id}>
+                <SelectItem key={group.id} value={group.id} className="min-h-9 pl-2">
                   {group.name}
                 </SelectItem>
               ))}
-              <SelectSeparator />
-              <SelectItem value="__new__">+ NEW GROUP</SelectItem>
+              <SelectSeparator className="mx-0" />
+              <SelectItem value="__new__" className="min-h-9 pl-2">+ NEW GROUP</SelectItem>
             </SelectContent>
           </Select>
         </div>
-        <nav className="flex flex-wrap items-center gap-2">
+        <nav className="flex flex-wrap items-center gap-1">
           <ThemeToggle />
           {manage && (
             <>
               <Link
                 href={home}
                 aria-current={homeActive ? 'page' : undefined}
-                className={`text-xs tracking-normal transition-colors ${homeActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`rounded-md px-1.5 py-2 text-[10px] sm:text-xs tracking-normal transition-colors ${homeActive ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 LEADERBOARD
               </Link>
               <Link
                 href={sessions}
                 aria-current={sessionsActive ? 'page' : undefined}
-                className={`text-xs tracking-normal transition-colors ${sessionsActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`rounded-md px-1.5 py-2 text-[10px] sm:text-xs tracking-normal transition-colors ${sessionsActive ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 SESSIONS
               </Link>
               <Link
                 href={manage}
                 aria-current={manageActive ? 'page' : undefined}
-                className={`text-xs tracking-normal transition-colors ${manageActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`rounded-md px-1.5 py-2 text-[10px] sm:text-xs tracking-normal transition-colors ${manageActive ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 MANAGE
               </Link>

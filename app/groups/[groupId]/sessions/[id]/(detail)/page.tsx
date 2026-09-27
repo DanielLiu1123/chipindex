@@ -39,11 +39,11 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
   const total = entries.reduce((sum, entry) => sum + entry.chips, 0)
   return <>
     <div className="mb-6"><Link href={`/groups/${groupId}/sessions`} className="text-muted-foreground text-xs hover:text-foreground tracking-normal">← SESSIONS</Link></div>
-    <div className="flex items-center justify-between mb-2">
-      <h1 className="text-foreground">{settled.date}</h1>
+    <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+      <h1 className="text-2xl font-medium tracking-tight text-foreground">{settled.date}</h1>
       <div className="flex items-center gap-2">
         <CopySessionSummaryButton summary={summary} />
-        <Link href={`/groups/${groupId}/sessions/${id}/edit`} className="text-xs text-primary tracking-normal border border-primary/50 hover:border-primary px-2.5 py-1 transition-colors">EDIT</Link>
+        <Link href={`/groups/${groupId}/sessions/${id}/edit`} className="text-xs text-primary tracking-normal rounded-lg border border-border hover:border-primary px-2.5 py-1 transition-colors">EDIT</Link>
       </div>
     </div>
     <div className="mb-2"><span className="text-xs text-muted-foreground">{settled.exchange_rate} chips = 1 CNY</span></div>

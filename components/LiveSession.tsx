@@ -112,7 +112,7 @@ export default function LiveSession({
         </Link>
       </div>
 
-      <div className="flex items-center gap-2 mb-1">
+      <div className="flex flex-wrap items-center gap-2 mb-3">
         <span className="inline-block w-2 h-2 rounded-full bg-live motion-safe:animate-pulse" />
         <span className="text-xs text-live tracking-normal">LIVE</span>
         <span className="text-foreground">{session.date}</span>
@@ -122,15 +122,15 @@ export default function LiveSession({
           </span>
         )}
       </div>
-      <div className="mb-6 flex items-baseline gap-2">
+      <div className="mb-6 flex flex-wrap items-baseline gap-2">
         <span className="text-xs text-muted-foreground tracking-normal">
           TOTAL BUY-IN
         </span>
-        <span className="text-primary text-lg">{pot.toLocaleString()}</span>
+        <span className="text-primary text-3xl font-medium tracking-tight">{pot.toLocaleString()}</span>
         <span className="text-xs text-muted-foreground">chips</span>
       </div>
       {cashedOutTotal > 0 && (
-        <div className="-mt-5 mb-6 flex items-baseline gap-2">
+        <div className="-mt-5 mb-6 flex flex-wrap items-baseline gap-2">
           <span className="text-xs text-muted-foreground tracking-normal">
             CASHED OUT
           </span>

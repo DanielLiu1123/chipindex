@@ -99,7 +99,7 @@ export default function LeaderboardView({
 
   return (
     <>
-      <div className="flex items-baseline justify-between mb-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
         <ToggleGroup
           type="single"
           value={view}
@@ -268,7 +268,7 @@ export default function LeaderboardView({
         </Table>
       )}
       {showResults && view === 'chart' && (
-        <div className="-mx-2">
+        <div className="surface">
           <div className="flex justify-end px-2 mb-4">
             <ToggleGroup
               type="single"

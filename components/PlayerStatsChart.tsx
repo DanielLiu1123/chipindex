@@ -33,9 +33,9 @@ export default function PlayerStatsChart({
 
   return (
     <>
-      <div className="flex items-baseline justify-between mb-8">
+      <div className="flex flex-wrap items-baseline justify-between gap-4 mb-8">
         <PlayerNameEditor groupId={groupId} id={id} initialName={initialName} />
-        <div className="flex gap-6 text-xs text-muted-foreground items-baseline">
+        <div className="flex flex-wrap gap-4 text-xs text-muted-foreground items-baseline">
           <span>{sessions} sessions</span>
           <span>{wins} wins</span>
           <span>{pogCount} pog</span>
@@ -48,7 +48,7 @@ export default function PlayerStatsChart({
       </div>
 
       {data.length > 0 && (
-        <div className="mb-10 -mx-2">
+        <div className="surface mb-10">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4 mx-2">
             <p className="text-xs text-muted-foreground tracking-normal">
               {mode === 'cny' ? 'CUMULATIVE CNY' : 'CUMULATIVE CHIPS'}

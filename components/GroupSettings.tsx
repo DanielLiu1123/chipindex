@@ -1,5 +1,7 @@
 'use client'
 
+import { Trash2 } from 'lucide-react'
+
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 import { Label } from '@/components/ui/label'
@@ -95,51 +97,51 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
   }
 
   return <>
-    <div className="max-w-3xl">
-      <section aria-label="Group name" className="mb-8 border border-border bg-muted/60 p-4 sm:p-5">
+    <div className="space-y-6">
+      <section aria-label="Group name" className="rounded-xl border border-border bg-card p-5 sm:p-6">
         <form onSubmit={event => { event.preventDefault(); if (!pending && name.trim() && name.trim() !== savedName) void rename() }}
-          className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
-          <Label htmlFor="group-name" className="shrink-0 text-[10px] tracking-normal text-foreground/50">GROUP NAME</Label>
-          <div className="flex min-w-0 flex-1 gap-2">
+          className="space-y-4">
+          <Label htmlFor="group-name" className="text-sm font-semibold tracking-wide text-foreground">GROUP NAME</Label>
+          <div className="flex min-w-0 items-center gap-3 sm:gap-4">
             <Input id="group-name" value={name} disabled={pending} onChange={event => setName(event.target.value)}
-              className="min-w-0 flex-1" />
+              className="min-w-0 flex-1 bg-background" />
             <Button variant="default" type="submit" disabled={pending || !name.trim() || name.trim() === savedName}
-              className="shrink-0">SAVE</Button>
+              className="w-24 shrink-0 text-xs tracking-wide">SAVE</Button>
           </div>
         </form>
       </section>
 
-      <section aria-labelledby="group-players-heading">
-        <div className="mb-4 flex items-center justify-between gap-4">
+      <section aria-labelledby="group-players-heading" className="overflow-hidden rounded-xl border border-border bg-card">
+        <div className="flex items-center justify-between gap-4 border-b border-border px-5 py-5 sm:px-6">
           <div className="flex items-center gap-2.5">
-            <h2 id="group-players-heading" className="text-xs tracking-normal text-foreground">PLAYERS</h2>
-            <span className="border border-border bg-muted px-2 py-0.5 text-[10px] tabular-nums text-foreground/50">{groupPlayers.length}</span>
+            <h2 id="group-players-heading" className="text-sm font-semibold tracking-wide text-foreground">PLAYERS</h2>
+            <span className="inline-flex min-w-6 items-center justify-center rounded-md bg-secondary px-1.5 py-0.5 text-xs font-medium tabular-nums text-muted-foreground">{groupPlayers.length}</span>
           </div>
-          <PlayerActionButton action="add-player" compact disabled={pending} onClick={() => setAddPlayersOpen(true)} />
+          <PlayerActionButton action="add-player" className="w-24 text-xs tracking-wide" disabled={pending} onClick={() => setAddPlayersOpen(true)} />
         </div>
 
-        <div className="border border-border">
-          <div aria-hidden="true" className="hidden grid-cols-[minmax(0,1fr)_11rem_5rem] gap-4 border-b border-border bg-muted/60 px-4 py-2.5 text-[10px] tracking-normal text-foreground/40 sm:grid">
+        <div>
+          <div aria-hidden="true" className="hidden grid-cols-[minmax(0,1fr)_11rem_6rem] gap-4 border-b border-border bg-muted/40 px-6 py-3 text-[10px] font-medium tracking-widest text-muted-foreground sm:grid">
             <span>PLAYER</span><span>JOINED AT</span><span />
           </div>
           <ul className="divide-y divide-border">
             {groupPlayers.map(row => <li key={row.group_player.id}
-              className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 px-4 py-2.5 transition-colors hover:bg-foreground/[0.025] sm:grid-cols-[minmax(0,1fr)_11rem_5rem] sm:py-2">
+              className="grid min-h-18 grid-cols-[minmax(0,1fr)_6rem] items-center gap-x-3 px-5 py-4 transition-colors hover:bg-muted/40 sm:grid-cols-[minmax(0,1fr)_11rem_6rem] sm:gap-x-4 sm:px-6">
               <Link href={`/groups/${group.id}/players/${row.player.id}`} title={row.player.name}
-                className="min-w-0 truncate text-sm text-foreground transition-colors hover:text-primary focus-visible:outline-accent">
+                className="min-w-0 truncate text-sm font-medium text-foreground underline-offset-4 transition-colors hover:underline focus-visible:outline-ring">
                 {row.player.name}
               </Link>
               <span aria-label={`Joined time for ${row.player.name}`}
-                className="col-start-1 row-start-2 mt-1 text-[10px] tabular-nums text-foreground/40 sm:col-start-auto sm:row-start-auto sm:mt-0 sm:text-xs">
+                className="col-start-1 row-start-2 mt-1 text-xs tabular-nums text-muted-foreground sm:col-start-2 sm:row-start-1 sm:mt-0">
                 <BrowserTime value={row.group_player.created_at} includeDate />
               </span>
-              <Button variant="ghost" type="button" onClick={() => setPlayerToDelete(row)} disabled={pending} aria-label={`Remove ${row.player.name} from group`}
+              <Button variant="ghost" className="col-start-2 row-span-2 row-start-1 size-8 justify-self-end p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive sm:col-start-3 sm:row-span-1" type="button" onClick={() => setPlayerToDelete(row)} disabled={pending} aria-label={`Remove ${row.player.name} from group`}
                 >
-                REMOVE
+                <Trash2 className="size-4" aria-hidden="true" />
               </Button>
             </li>)}
           </ul>
-          {groupPlayers.length === 0 && <p className="px-4 py-8 text-center text-xs text-foreground/40">No players yet.</p>}
+          {groupPlayers.length === 0 && <p className="px-5 py-12 text-center text-sm text-muted-foreground">No players yet.</p>}
         </div>
       </section>
       {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}

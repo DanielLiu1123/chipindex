@@ -10,7 +10,7 @@ export default function Error({ error, reset }: { error: Error; reset: () => voi
   }, [error])
 
   return (
-    <div className="flex flex-col gap-6 pt-20">
+    <div className="surface flex flex-col gap-6 mt-12">
       <p className="text-destructive text-xs tracking-normal">SOMETHING WENT WRONG</p>
       <p className="text-muted-foreground text-xs">Something went wrong. Please try again.</p>
       <Button variant="outline" type="button"

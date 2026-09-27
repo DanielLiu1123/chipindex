@@ -15,11 +15,11 @@
   </defs>
 
   <g mask="url(#chip)">
-    <!-- Outer green ring -->
-    <circle cx="32" cy="32" r="30" fill="#1a7a4a"/>
+    <!-- Outer graphite ring -->
+    <circle cx="32" cy="32" r="30" fill="#242424"/>
     <!-- White band -->
-    <circle cx="32" cy="32" r="23" fill="white"/>
-    <!-- Green center -->
-    <circle cx="32" cy="32" r="16" fill="#1a7a4a"/>
+    <circle cx="32" cy="32" r="23" fill="#f2f1ed"/>
+    <!-- Graphite center -->
+    <circle cx="32" cy="32" r="16" fill="#242424"/>
   </g>
 </svg>

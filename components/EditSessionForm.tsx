@@ -155,9 +155,9 @@ function EditSessionEditor({ groupId, sessionId, session, initialPlayers }: {
       <div className="mb-6">
         <Link href={`/groups/${groupId}/sessions/${sessionId}`} className="text-muted-foreground text-xs hover:text-foreground tracking-normal">← SESSION</Link>
       </div>
-      <h1 className="text-xs text-muted-foreground tracking-normal mb-6">EDIT SESSION</h1>
+      <h1 className="text-2xl font-medium tracking-tight mb-6">EDIT SESSION</h1>
 
-      <div className="flex flex-col gap-6 max-w-lg">
+      <div className="surface flex flex-col gap-6 max-w-lg">
         <SessionMetaFields disabled={submitting}
           date={date} setDate={setDate}
           exchangeRate={exchangeRate} setExchangeRate={setExchangeRate}

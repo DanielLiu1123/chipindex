@@ -36,14 +36,14 @@ function LoginForm() {
   }
 
   return (
-    <div className="flex min-h-[70vh] items-center justify-center px-6">
-      <Card className="w-full max-w-sm">
-        <CardHeader><CardTitle>ChipIndex</CardTitle><CardDescription>Enter your group password to continue.</CardDescription></CardHeader>
+    <div className="flex min-h-[70vh] items-center justify-center">
+      <Card className="w-full max-w-sm border-t-4 border-primary shadow-[0_16px_60px_-30px_rgba(0,0,0,0.25)] [--card-spacing:--spacing(8)]">
+        <CardHeader className="gap-3"><CardTitle className="text-3xl font-semibold tracking-tight">ChipIndex</CardTitle><CardDescription className="leading-relaxed">Enter your group password to continue.</CardDescription></CardHeader>
         <CardContent>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <Input
-            type="password" aria-label="Password"
+            type="password" aria-label="Password" className="h-12"
             value={password}
             onChange={e => { setPassword(e.target.value); setError('') }}
             placeholder="password"
@@ -51,7 +51,7 @@ function LoginForm() {
 
           />
           {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
-          <Button variant="default"
+          <Button variant="default" className="h-12 tracking-[0.12em]"
             type="submit"
             disabled={loading}
 

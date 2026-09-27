@@ -50,7 +50,7 @@ async function SessionsPage({ params, query }: {
 
   return (
     <>
-      <div className="flex items-baseline justify-between mb-6">
+      <div className="flex flex-wrap items-baseline justify-between gap-4 mb-6">
         <span className="text-xs text-muted-foreground tracking-normal">{total} SESSIONS</span>
         <div className="flex items-center gap-4">
           <Link href={`/groups/${groupId}/sessions/new`} className="text-xs text-primary tracking-normal hover:underline">+ NEW SESSION</Link>

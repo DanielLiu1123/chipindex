@@ -29,8 +29,8 @@ export default function NewGroupForm() {
     }
   }
 
-  return <form onSubmit={submit} className="max-w-md flex flex-col gap-4">
-    <h1 className="text-xs text-muted-foreground tracking-normal">NEW GROUP</h1>
+  return <form onSubmit={submit} className="surface max-w-md flex flex-col gap-4">
+    <h1 className="text-2xl font-medium tracking-tight">NEW GROUP</h1>
     <Input value={name} onChange={event => setName(event.target.value)} autoFocus placeholder="group name"
        />
     {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
