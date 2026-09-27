@@ -40,11 +40,16 @@ export function LeaderboardSkeleton() {
 }
 
 export function SettingsSkeleton() {
-  return <LoadingSkeleton label="Loading settings" className="space-y-8">
-    <Skeleton className="h-5 w-32" />
-    <Skeleton className="h-9 w-full max-w-sm" />
-    <div className="flex justify-between"><Skeleton className="h-5 w-28" /><Skeleton className="h-8 w-24" /></div>
-    {Array.from({ length: 5 }, (_, i) => <div key={i} className="flex justify-between border-b pb-4"><Skeleton className="h-5 w-32" /><Skeleton className="h-8 w-16" /></div>)}
+  return <LoadingSkeleton label="Loading settings" className="space-y-6">
+    <div className="rounded-xl border border-border bg-card p-5 sm:p-6">
+      <Skeleton className="mb-4 h-5 w-28" />
+      <div className="flex gap-3 sm:gap-4"><Skeleton className="h-10 flex-1" /><Skeleton className="h-10 w-24" /></div>
+    </div>
+    <div className="overflow-hidden rounded-xl border border-border bg-card">
+      <div className="flex items-center justify-between border-b px-5 py-5 sm:px-6"><Skeleton className="h-5 w-28" /><Skeleton className="h-10 w-24" /></div>
+      <div className="hidden border-b px-6 py-3 sm:block"><Skeleton className="h-4 w-3/4" /></div>
+      {Array.from({ length: 5 }, (_, i) => <div key={i} className="flex min-h-18 items-center justify-between border-b px-5 py-4 last:border-0 sm:px-6"><Skeleton className="h-5 w-32" /><Skeleton className="h-10 w-24" /></div>)}
+    </div>
   </LoadingSkeleton>
 }
 
