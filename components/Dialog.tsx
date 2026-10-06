@@ -12,6 +12,7 @@ interface Props {
   open: boolean
   label: string
   hideTitle?: boolean
+  showCloseButton?: boolean
   pending?: boolean
   onClose: () => void
   children: ReactNode
@@ -25,6 +26,7 @@ export default function Dialog({
   open,
   label,
   hideTitle = false,
+  showCloseButton = true,
   pending = false,
   onClose,
   children,
@@ -52,7 +54,7 @@ export default function Dialog({
           returnFocus.current?.focus()
         }}
         className={`max-h-[90dvh] overflow-y-auto ${className ?? 'sm:max-w-md'}`}
-        showCloseButton={!pending}
+        showCloseButton={showCloseButton && !pending}
         aria-describedby={undefined}
         aria-busy={pending}
         onEscapeKeyDown={(event) => {
