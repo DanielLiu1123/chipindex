@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ApiClientError,
+  updateSession,
   cashOutSessionParticipant,
   removeSessionParticipant,
   revokeBuyIn,
@@ -16,7 +17,7 @@ import type { LiveParticipant, LiveSessionData } from './domain-types'
 import type { BatchBuyInCommand } from './contracts'
 
 type Panel =
-  | { kind: 'none' | 'buy-in' | 'add-players' }
+  | { kind: 'none' | 'buy-in' | 'add-players' | 'rate' }
   | { kind: 'remove' | 'cash-out'; participant: LiveParticipant }
   | { kind: 'settle'; difference: number | null }
 
@@ -126,6 +127,11 @@ export function useLiveSession(groupId: string, session: LiveSessionData) {
     receipt,
     close,
     refresh,
+    openRate: () => open({ kind: 'rate' }),
+    confirmRate: (exchangeRate: number) => {
+      if (panel.kind !== 'rate') return
+      return run(() => updateSession(groupId, session.id, { exchange_rate: exchangeRate }), finish)
+    },
     openBuyIn: () => open({ kind: 'buy-in' }),
     openAddPlayers: () => open({ kind: 'add-players' }),
     openCashOut: (participant: LiveParticipant) =>

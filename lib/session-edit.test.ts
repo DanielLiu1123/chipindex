@@ -3,7 +3,7 @@ import type { EditedParticipant } from './contracts'
 
 const mocks = vi.hoisted(() => ({ from: vi.fn() }))
 vi.mock('./db', () => ({ db: { from: mocks.from } }))
-import { updateSettledSession } from './session-mutations'
+import { updateSession } from './session-mutations'
 
 type Row = Record<string, unknown>
 let tables: Record<string, Row[]>
@@ -59,7 +59,7 @@ const existing = (): EditedParticipant[] => [
 describe('in-place settled-session edits', () => {
   it('preserves IDs, event timestamps and revoked history on unchanged save', async () => {
     const before = structuredClone(tables)
-    await updateSettledSession('g1', 's1', meta, existing(), false)
+    await updateSession('g1', 's1', { ...meta, participants: existing(), force: false })
     expect(tables.buy_in).toEqual(before.buy_in)
     expect(tables.session_participant).toEqual(before.session_participant)
     expect(writes.every(write => write.table === 'session')).toBe(true)
@@ -67,14 +67,14 @@ describe('in-place settled-session edits', () => {
   it('updates existing events in place and inserts only new records', async () => {
     const edits = existing(); edits[0].buy_ins[0].amount = 150; edits[0].final_chips = 150
     edits.push({ player_id: 'p3', final_chips: 300, buy_ins: [{ amount: 300 }] })
-    await updateSettledSession('g1', 's1', meta, edits, false)
+    await updateSession('g1', 's1', { ...meta, participants: edits, force: false })
     expect(tables.buy_in.find(row => row.id === 'b1')).toMatchObject({ amount: 150, created_at: '2026-08-14T11:00:00.123Z' })
     expect(tables.session_participant.find(row => row.id === 'part1')).toMatchObject({ final_chips: 150, settled_at: '2026-08-14T12:30:00Z' })
     expect(tables.session_participant.find(row => row.player_id === 'p3')).toMatchObject({ settled_at: '2026-08-14T13:00:00Z' })
     expect(writes.filter(write => write.op === 'insert')).toHaveLength(2)
   })
   it('soft deletes only explicitly omitted active events and participants', async () => {
-    await updateSettledSession('g1', 's1', meta, [existing()[0]], false)
+    await updateSession('g1', 's1', { ...meta, participants: [existing()[0]], force: false })
     expect(tables.buy_in.find(row => row.id === 'b2')!.deleted_at).not.toBeNull()
     expect(tables.session_participant.find(row => row.id === 'part2')!.deleted_at).not.toBeNull()
     expect(tables.buy_in.find(row => row.id === 'revoked')!.deleted_at).toBe('2026-08-14T12:00:00Z')
@@ -82,19 +82,61 @@ describe('in-place settled-session edits', () => {
   })
   it.each(['foreign', 'revoked', 'b2', 'missing'])('rejects an invalid event identity %s before any write', async id => {
     const edits = existing(); edits[0].buy_ins[0].id = id
-    await expect(updateSettledSession('g1', 's1', meta, edits, false)).rejects.toMatchObject({ code: 'conflict' })
+    await expect(updateSession('g1', 's1', { ...meta, participants: edits, force: false })).rejects.toMatchObject({ code: 'conflict' })
     expect(writes).toEqual([])
   })
   it('rejects repeated buy-in IDs before any write', async () => {
     const edits = existing(); edits[0].buy_ins.push({ id: 'b1', amount: 100 })
-    await expect(updateSettledSession('g1', 's1', meta, edits, true)).rejects.toMatchObject({ code: 'invalid_input' })
+    await expect(updateSession('g1', 's1', { ...meta, participants: edits, force: true })).rejects.toMatchObject({ code: 'invalid_input' })
     expect(writes).toEqual([])
   })
   it('does not remove old events when a new insert fails', async () => {
     failInsert = true
     const edits = [existing()[0], { player_id: 'p3', final_chips: 300, buy_ins: [{ amount: 300 }] }]
     const before = structuredClone(tables)
-    await expect(updateSettledSession('g1', 's1', meta, edits, false)).rejects.toThrow('Database operation failed')
+    await expect(updateSession('g1', 's1', { ...meta, participants: edits, force: false })).rejects.toThrow('Database operation failed')
     expect(tables).toEqual(before)
   })
+})
+
+describe('session metadata edits', () => {
+  it.each(['OPEN', 'SETTLED'])('updates rate without touching participants or buy-ins for %s sessions', async status => {
+    Object.assign(tables.session[0], { status, ...meta })
+    tables.session_participant[0].final_chips = 999
+    const before = structuredClone(tables)
+    await expect(updateSession('g1', 's1', { exchange_rate: 20.5 })).resolves.toEqual({ id: 's1' })
+    expect(tables.session[0]).toEqual({ ...before.session[0], exchange_rate: 20.5, updated_at: expect.any(String) })
+    expect(tables.session_participant).toEqual(before.session_participant)
+    expect(tables.buy_in).toEqual(before.buy_in)
+    expect(writes).toHaveLength(1)
+  })
+
+  it.each(['wrong-group', 'deleted', 'missing'])('rejects %s sessions without changing data', async scenario => {
+    if (scenario === 'deleted') tables.session[0].deleted_at = '2026-10-07T00:00:00Z'
+    if (scenario === 'missing') tables.session = []
+    const before = structuredClone(tables)
+    await expect(updateSession(scenario === 'wrong-group' ? 'g2' : 'g1', 's1', { exchange_rate: 20 }))
+      .rejects.toMatchObject({ code: 'not_found' })
+    expect(tables).toEqual(before)
+  })
+
+  it('preserves full settled-session editing through the shared entry point', async () => {
+    await updateSession('g1', 's1', { ...meta, exchange_rate: 20, participants: existing(), force: false })
+    expect(tables.session[0].exchange_rate).toBe(20)
+  })
+
+  it('still requires settlement when editing participant results', async () => {
+    tables.session[0].status = 'OPEN'
+    await expect(updateSession('g1', 's1', { ...meta, participants: existing() }))
+      .rejects.toMatchObject({ code: 'conflict' })
+    expect(writes).toEqual([])
+  })
+})
+
+it('still rejects unbalanced participant edits before writing', async () => {
+  const participants = existing()
+  participants[0].final_chips += 1
+  await expect(updateSession('g1', 's1', { ...meta, participants }))
+    .rejects.toMatchObject({ code: 'unbalanced' })
+  expect(writes).toEqual([])
 })

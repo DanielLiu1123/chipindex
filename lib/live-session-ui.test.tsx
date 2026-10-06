@@ -12,6 +12,7 @@ import { afterEach, expect, it, vi } from 'vitest'
 import LiveSession from '../components/LiveSession'
 import {
   ApiClientError,
+  updateSession,
   cashOutSessionParticipant,
   removeSessionParticipant,
   revokeBuyIn,
@@ -26,6 +27,7 @@ vi.mock('./client', async (original) => ({
   removeSessionParticipant: vi.fn(),
   revokeBuyIn: vi.fn(),
   settleSession: vi.fn(),
+  updateSession: vi.fn(),
 }))
 const session: LiveSessionData = {
   id: 's1',
@@ -185,4 +187,47 @@ it('refreshes after revocation and keeps recoverable errors in the page', async 
   click('✕')
   await waitFor(() => expect(nav.refresh).toHaveBeenCalledOnce())
   expect(screen.queryByText('Cannot revoke')).toBeNull()
+})
+
+it('edits the rate, preserves failed drafts, and refreshes after a single successful save', async () => {
+  vi.mocked(updateSession).mockRejectedValueOnce(new Error('Cannot save rate'))
+  const view = mount()
+  expect(screen.getByText('40 chips = 1 CNY')).toBeTruthy()
+  click('40 chips = 1 CNY')
+  const dialog = screen.getByRole('dialog', { name: 'Edit rate' })
+  expect(within(dialog).queryByRole('button', { name: 'Close' })).toBeNull()
+  const input = within(dialog).getByRole('spinbutton') as HTMLInputElement
+  expect(input.value).toBe('40')
+  for (const value of ['', '0', '-1']) {
+    fireEvent.change(input, { target: { value } })
+    fireEvent.submit(dialog.querySelector('form')!)
+    expect(updateSession).not.toHaveBeenCalled()
+  }
+  fireEvent.change(input, { target: { value: '20.5' } })
+  click('SAVE')
+  await screen.findByText('Cannot save rate')
+  expect(input.value).toBe('20.5')
+  expect(nav.refresh).not.toHaveBeenCalled()
+  let finish!: () => void
+  vi.mocked(updateSession).mockImplementationOnce(() => new Promise(resolve => {
+    finish = () => resolve({ id: 's1' })
+  }))
+  fireEvent.submit(dialog.querySelector('form')!)
+  fireEvent.submit(dialog.querySelector('form')!)
+  fireEvent.keyDown(dialog, { key: 'Escape' })
+  expect(screen.getByRole('dialog')).toBeTruthy()
+  expect(updateSession).toHaveBeenCalledTimes(2)
+  await act(async () => finish())
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  expect(nav.refresh).toHaveBeenCalledOnce()
+  expect(updateSession).toHaveBeenLastCalledWith('g1', 's1', { exchange_rate: 20.5 })
+  view.rerender(<LiveSession groupId="g1" session={{ ...session, exchange_rate: 20.5 }} allPlayers={[]} />)
+  expect(screen.getByText('20.5 chips = 1 CNY')).toBeTruthy()
+  click('20.5 chips = 1 CNY')
+  expect((screen.getByRole('spinbutton') as HTMLInputElement).value).toBe('20.5')
+  fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '99' } })
+  click('CANCEL')
+  click('20.5 chips = 1 CNY')
+  expect((screen.getByRole('spinbutton') as HTMLInputElement).value).toBe('20.5')
+  expect(updateSession).toHaveBeenCalledTimes(2)
 })
