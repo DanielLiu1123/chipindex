@@ -11,6 +11,7 @@ import {
 interface Props {
   open: boolean
   label: string
+  hideTitle?: boolean
   pending?: boolean
   onClose: () => void
   children: ReactNode
@@ -23,6 +24,7 @@ interface Props {
 export default function Dialog({
   open,
   label,
+  hideTitle = false,
   pending = false,
   onClose,
   children,
@@ -60,9 +62,13 @@ export default function Dialog({
           if (pending) event.preventDefault()
         }}
       >
-        <DialogHeader>
-          <DialogTitle>{label}</DialogTitle>
-        </DialogHeader>
+        {hideTitle ? (
+          <DialogTitle className="sr-only">{label}</DialogTitle>
+        ) : (
+          <DialogHeader>
+            <DialogTitle>{label}</DialogTitle>
+          </DialogHeader>
+        )}
         {children}
       </DialogContent>
     </Root>
