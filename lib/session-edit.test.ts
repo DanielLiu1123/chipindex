@@ -3,7 +3,7 @@ import type { EditedParticipant } from './contracts'
 
 const mocks = vi.hoisted(() => ({ from: vi.fn() }))
 vi.mock('./db', () => ({ db: { from: mocks.from } }))
-import { updateSettledSession } from './session-mutations'
+import { updateSession, updateSettledSession } from './session-mutations'
 
 type Row = Record<string, unknown>
 let tables: Record<string, Row[]>
@@ -96,5 +96,38 @@ describe('in-place settled-session edits', () => {
     const before = structuredClone(tables)
     await expect(updateSettledSession('g1', 's1', meta, edits, false)).rejects.toThrow('Database operation failed')
     expect(tables).toEqual(before)
+  })
+})
+
+describe('session metadata edits', () => {
+  it.each(['OPEN', 'SETTLED'])('updates rate without touching participants or buy-ins for %s sessions', async status => {
+    Object.assign(tables.session[0], { status, ...meta })
+    const before = structuredClone(tables)
+    await expect(updateSession('g1', 's1', { exchange_rate: 20.5 })).resolves.toEqual({ id: 's1', diff: 0 })
+    expect(tables.session[0]).toEqual({ ...before.session[0], exchange_rate: 20.5, updated_at: expect.any(String) })
+    expect(tables.session_participant).toEqual(before.session_participant)
+    expect(tables.buy_in).toEqual(before.buy_in)
+    expect(writes).toHaveLength(1)
+  })
+
+  it.each(['wrong-group', 'deleted', 'missing'])('rejects %s sessions without changing data', async scenario => {
+    if (scenario === 'deleted') tables.session[0].deleted_at = '2026-10-07T00:00:00Z'
+    if (scenario === 'missing') tables.session = []
+    const before = structuredClone(tables)
+    await expect(updateSession(scenario === 'wrong-group' ? 'g2' : 'g1', 's1', { exchange_rate: 20 }))
+      .rejects.toMatchObject({ code: 'not_found' })
+    expect(tables).toEqual(before)
+  })
+
+  it('preserves full settled-session editing through the shared entry point', async () => {
+    await updateSession('g1', 's1', { ...meta, exchange_rate: 20, participants: existing(), force: false })
+    expect(tables.session[0].exchange_rate).toBe(20)
+  })
+
+  it('still requires settlement when editing participant results', async () => {
+    tables.session[0].status = 'OPEN'
+    await expect(updateSession('g1', 's1', { ...meta, participants: existing() }))
+      .rejects.toMatchObject({ code: 'conflict' })
+    expect(writes).toEqual([])
   })
 })

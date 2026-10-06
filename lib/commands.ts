@@ -13,7 +13,6 @@ import type {
   SessionMetaCommand,
   SettleSessionCommand,
   UpdateSessionCommand,
-  UpdateSessionRateCommand,
 } from './contracts'
 
 type JsonObject = Record<string, unknown>
@@ -164,11 +163,18 @@ function parseEditedParticipant(value: unknown, index: number): EditedParticipan
 
 export function parseUpdateSessionCommand(value: unknown): UpdateSessionCommand {
   const body = object(value)
-  return {
-    ...sessionMeta(body),
-    participants: array(body.participants, 'participants').map(parseEditedParticipant),
-    force: boolean(body.force, 'force'),
+  const command: UpdateSessionCommand = { force: boolean(body.force, 'force') }
+  if (body.date !== undefined) command.date = date(body.date)
+  if (body.exchange_rate !== undefined) {
+    command.exchange_rate = number(body.exchange_rate, 'exchange_rate')
+    if (command.exchange_rate <= 0) invalid('exchange_rate must be greater than 0')
   }
+  if (body.description !== undefined) command.description = description(body.description)
+  if (body.participants !== undefined) {
+    command.participants = array(body.participants, 'participants').map(parseEditedParticipant)
+  }
+  if (Object.keys(command).length === 1) invalid('At least one session field required')
+  return command
 }
 
 export function parseBuyInCommand(value: unknown): BuyInCommand {
@@ -217,11 +223,4 @@ export function parseSettleSessionCommand(value: unknown): SettleSessionCommand 
     finals: array(body.finals, 'finals').map(parseFinalEntry),
     force: boolean(body.force, 'force'),
   }
-}
-
-export function parseUpdateSessionRateCommand(value: unknown): UpdateSessionRateCommand {
-  const body = object(value)
-  const exchangeRate = number(body.exchange_rate, 'exchange_rate')
-  if (exchangeRate <= 0) invalid('exchange_rate must be greater than 0')
-  return { exchange_rate: exchangeRate }
 }

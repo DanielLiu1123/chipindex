@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { addBatchBuyIn, addBatchSessionParticipants, cashOutSessionParticipant, createPlayerInGroup, startSession, undoSessionParticipantCashOut } from './client'
+import { updateSession, addBatchBuyIn, addBatchSessionParticipants, cashOutSessionParticipant, createPlayerInGroup, startSession, undoSessionParticipantCashOut } from './client'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -118,5 +118,14 @@ describe('client failure policy', () => {
   it('rejects malformed successful responses rather than returning an empty object', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => { throw new SyntaxError('HTML response') } }))
     await expect(startSession('g1', {} as never)).rejects.toMatchObject({ status: 502 })
+  })
+})
+
+it('uses the existing edit API for rate-only changes', async () => {
+  const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 's1', diff: 0 }) })
+  vi.stubGlobal('fetch', fetchMock)
+  await updateSession('g1', 's1', { exchange_rate: 20.5 })
+  expect(fetchMock).toHaveBeenCalledExactlyOnceWith('/api/groups/g1/sessions/s1', {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ exchange_rate: 20.5 }),
   })
 })

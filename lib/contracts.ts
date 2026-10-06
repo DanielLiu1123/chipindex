@@ -44,9 +44,9 @@ export interface EditedParticipant {
   buy_ins: Array<{ id?: string; amount: number; created_at?: string }>
 }
 
-export interface UpdateSessionCommand extends SessionMetaCommand {
-  participants: EditedParticipant[]
-  force: boolean
+export interface UpdateSessionCommand extends Partial<SessionMetaCommand> {
+  participants?: EditedParticipant[]
+  force?: boolean
 }
 
 export interface BuyInCommand {
@@ -72,8 +72,4 @@ export interface FinalEntry {
 export interface SettleSessionCommand {
   finals: FinalEntry[]
   force: boolean
-}
-
-export interface UpdateSessionRateCommand {
-  exchange_rate: number
 }

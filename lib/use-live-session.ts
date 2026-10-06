@@ -4,7 +4,7 @@ import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ApiClientError,
-  updateLiveSessionRate,
+  updateSession,
   cashOutSessionParticipant,
   removeSessionParticipant,
   revokeBuyIn,
@@ -129,7 +129,7 @@ export function useLiveSession(groupId: string, session: LiveSessionData) {
     refresh,
     openRate: () => open({ kind: 'rate' }),
     confirmRate: (exchangeRate: number) =>
-      run(() => updateLiveSessionRate(groupId, session.id, { exchange_rate: exchangeRate }), finish),
+      run(() => updateSession(groupId, session.id, { exchange_rate: exchangeRate }), finish),
     openBuyIn: () => open({ kind: 'buy-in' }),
     openAddPlayers: () => open({ kind: 'add-players' }),
     openCashOut: (participant: LiveParticipant) =>

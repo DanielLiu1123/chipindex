@@ -5,7 +5,7 @@ import { synthFromNet } from './synth'
 import { buyinSum } from './settlement'
 import { requireConservation, requireNonNegativeInteger, requirePositiveInteger } from './session-policy'
 import { ensure, ensureData, now, requireActiveMembers, requireGroup, requireSession, requireUniquePlayerIds } from './mutation-guards'
-import type { EditedParticipant, ImportEntry, SessionMetaCommand as SessionMeta, StartingPlayer } from './contracts'
+import type { UpdateSessionCommand, EditedParticipant, ImportEntry, SessionMetaCommand as SessionMeta, StartingPlayer } from './contracts'
 
 export async function importSession(groupId: string, meta: SessionMeta, entries: ImportEntry[]) {
   if (!entries?.length) throw new DomainError('invalid_input', 'At least one player required')
@@ -76,10 +76,28 @@ export async function startSession(groupId: string, meta: SessionMeta, players: 
   return session
 }
 
+// Metadata edits apply to both live and settled sessions. Participant edits keep
+// the existing settled-session validation and conservation rules.
+export async function updateSession(groupId: string, id: string, command: UpdateSessionCommand) {
+  const { participants, force = false, ...meta } = command
+  if (participants !== undefined) return updateSettledSession(groupId, id, meta, participants, force)
+  await saveSessionMeta(groupId, id, meta)
+  return { id, diff: 0 }
+}
+
+async function saveSessionMeta(groupId: string, id: string, meta: Partial<SessionMeta>) {
+  const { data, error } = await db.from('session')
+    .update({ ...meta, updated_at: now() })
+    .eq('group_id', groupId).eq('id', id).is('deleted_at', null)
+    .select('id').maybeSingle()
+  ensure(error)
+  if (!data) throw new DomainError('not_found', 'Session not found')
+}
+
 export async function updateSettledSession(
   groupId: string,
   id: string,
-  meta: SessionMeta,
+  meta: Partial<SessionMeta>,
   participants: EditedParticipant[],
   force: boolean,
 ): Promise<{ id: string; diff: number }> {
@@ -183,9 +201,7 @@ export async function updateSettledSession(
       .eq('session_id', id).in('id', removedParticipants).is('deleted_at', null)
     ensure(error)
   }
-  const { error } = await db.from('session').update({ date: meta.date, exchange_rate: meta.exchange_rate,
-    description: meta.description || null, updated_at: timestamp }).eq('group_id', groupId).eq('id', id)
-  ensure(error)
+  await saveSessionMeta(groupId, id, meta)
   return { id, diff }
 }
 
