@@ -13,6 +13,7 @@ import type {
   SettleSessionCommand,
   StartSessionCommand,
   UpdateSessionCommand,
+  UpdateSessionRateCommand,
 } from './contracts'
 import type { Group, GroupPlayer, Player } from '@/lib/domain-types'
 
@@ -118,3 +119,6 @@ export const undoSessionParticipantCashOut = (groupId: string, sessionId: string
 
 export const settleSession = (groupId: string, sessionId: string, command: SettleSessionCommand) =>
   request<{ id: string; diff: number }>('POST', `/api/groups/${groupId}/sessions/${sessionId}/settle`, command)
+
+export const updateLiveSessionRate = (groupId: string, sessionId: string, command: UpdateSessionRateCommand) =>
+  request<{ id: string; exchange_rate: number }>('PATCH', `/api/groups/${groupId}/sessions/${sessionId}`, command)

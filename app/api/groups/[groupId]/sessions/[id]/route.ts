@@ -1,6 +1,7 @@
+import { updateLiveSessionRate } from '@/lib/live-session-mutations'
 import { withAuth } from '@/lib/http'
 import { updateSettledSession, softDeleteSession } from '@/lib/session-mutations'
-import { parseUpdateSessionCommand, readCommand } from '@/lib/commands'
+import { parseUpdateSessionCommand, parseUpdateSessionRateCommand, readCommand } from '@/lib/commands'
 
 type Ctx = { params: Promise<{ groupId: string; id: string }> }
 
@@ -14,4 +15,10 @@ export const DELETE = withAuth(async (_req, { params }: Ctx) => {
   const { groupId, id } = await params
   await softDeleteSession(groupId, id)
   return new Response(null, { status: 204 })
+})
+
+export const PATCH = withAuth(async (req, { params }: Ctx) => {
+  const { groupId, id } = await params
+  const { exchange_rate } = await readCommand(req, parseUpdateSessionRateCommand)
+  return Response.json(await updateLiveSessionRate(groupId, id, exchange_rate))
 })

@@ -73,3 +73,7 @@ export interface SettleSessionCommand {
   finals: FinalEntry[]
   force: boolean
 }
+
+export interface UpdateSessionRateCommand {
+  exchange_rate: number
+}

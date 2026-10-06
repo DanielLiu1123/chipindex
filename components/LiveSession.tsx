@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { useState } from 'react'
 import Link from 'next/link'
 import ConfirmModal from '@/components/ConfirmModal'
+import SessionRateModal from '@/components/SessionRateModal'
 import CashOutModal from '@/components/CashOutModal'
 import BuyInModal from '@/components/BuyInModal'
 import BuyInNotice from '@/components/BuyInNotice'
@@ -96,6 +97,15 @@ export default function LiveSession({
         onConfirm={flow.confirmRemove}
         onCancel={flow.close}
       />
+      {panel.kind === 'rate' && (
+        <SessionRateModal
+          rate={session.exchange_rate}
+          pending={pending}
+          error={error}
+          onConfirm={flow.confirmRate}
+          onCancel={flow.close}
+        />
+      )}
       <CashOutModal
         participant={cashOut}
         pending={pending}
@@ -122,6 +132,12 @@ export default function LiveSession({
           </span>
         )}
       </div>
+      <div className="mb-3 flex items-center gap-2">
+        <span className="text-xs text-muted-foreground">{session.exchange_rate} chips = 1 CNY</span>
+        <Button variant="ghost" size="sm" type="button" onClick={flow.openRate} disabled={pending || settling}>
+          EDIT RATE
+        </Button>
+      </div>
       <div className="mb-6 flex flex-wrap items-baseline gap-2">
         <span className="text-xs text-muted-foreground tracking-normal">
           TOTAL BUY-IN
@@ -141,7 +157,7 @@ export default function LiveSession({
         </div>
       )}
 
-      {error && panel.kind !== 'cash-out' && (
+      {error && panel.kind !== 'cash-out' && panel.kind !== 'rate' && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
         </Alert>

@@ -13,6 +13,7 @@ import type {
   SessionMetaCommand,
   SettleSessionCommand,
   UpdateSessionCommand,
+  UpdateSessionRateCommand,
 } from './contracts'
 
 type JsonObject = Record<string, unknown>
@@ -216,4 +217,11 @@ export function parseSettleSessionCommand(value: unknown): SettleSessionCommand 
     finals: array(body.finals, 'finals').map(parseFinalEntry),
     force: boolean(body.force, 'force'),
   }
+}
+
+export function parseUpdateSessionRateCommand(value: unknown): UpdateSessionRateCommand {
+  const body = object(value)
+  const exchangeRate = number(body.exchange_rate, 'exchange_rate')
+  if (exchangeRate <= 0) invalid('exchange_rate must be greater than 0')
+  return { exchange_rate: exchangeRate }
 }

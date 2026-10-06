@@ -122,3 +122,17 @@ export async function settleSession(groupId: string, sessionId: string, finals: 
   ensure(error)
   return { id: sessionId, diff }
 }
+
+export async function updateLiveSessionRate(groupId: string, sessionId: string, exchangeRate: number) {
+  if (!Number.isFinite(exchangeRate) || exchangeRate <= 0) {
+    throw new DomainError('invalid_input', 'exchange_rate must be a finite number greater than 0')
+  }
+  await requireOpenSession(groupId, sessionId)
+  const { data, error } = await db.from('session')
+    .update({ exchange_rate: exchangeRate, updated_at: now() })
+    .eq('group_id', groupId).eq('id', sessionId).eq('status', 'OPEN').is('deleted_at', null)
+    .select('id, exchange_rate').maybeSingle()
+  ensure(error)
+  if (!data) throw new DomainError('conflict', 'Session is no longer open')
+  return data
+}
