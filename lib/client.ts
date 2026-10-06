@@ -93,7 +93,7 @@ export const startSession = (groupId: string, command: StartSessionCommand) =>
   request<{ id: string }>('POST', `/api/groups/${groupId}/sessions`, command)
 
 export const updateSession = (groupId: string, sessionId: string, command: UpdateSessionCommand) =>
-  request<{ id: string; diff: number }>('PUT', `/api/groups/${groupId}/sessions/${sessionId}`, command)
+  request<{ id: string; diff?: number }>('PUT', `/api/groups/${groupId}/sessions/${sessionId}`, command)
 
 export const deleteSession = (groupId: string, sessionId: string) =>
   request<void>('DELETE', `/api/groups/${groupId}/sessions/${sessionId}`)

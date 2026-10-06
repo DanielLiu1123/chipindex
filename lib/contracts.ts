@@ -44,7 +44,10 @@ export interface EditedParticipant {
   buy_ins: Array<{ id?: string; amount: number; created_at?: string }>
 }
 
-export interface UpdateSessionCommand extends Partial<SessionMetaCommand> {
+export interface UpdateSessionCommand {
+  exchange_rate: number
+  date?: string
+  description?: string | null
   participants?: EditedParticipant[]
   force?: boolean
 }

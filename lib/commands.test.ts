@@ -93,7 +93,7 @@ describe('parseUpdateSessionCommand', () => {
         settled_at: '2026-08-14T13:00:00.000Z',
         buy_ins: [{ amount: 2000, created_at: '2026-08-14T12:00:00.000Z' }],
       }],
-    }).participants![0]).toEqual({
+    }).participants?.[0]).toEqual({
       player_id: 'p1',
       final_chips: 3000,
       buy_ins: [{ amount: 2000, created_at: '2026-08-14T12:00:00.000Z' }],
@@ -104,7 +104,7 @@ describe('parseUpdateSessionCommand', () => {
 it('retains buy-in identity when parsing a settled-session edit', () => {
   const command = parseUpdateSessionCommand({ date: '2026-09-08', exchange_rate: 40, description: null,
     participants: [{ player_id: 'p1', final_chips: 100, buy_ins: [{ id: 'existing-event', amount: 100 }] }], force: false })
-  expect(command.participants![0].buy_ins).toEqual([{ id: 'existing-event', amount: 100 }])
+  expect(command.participants?.[0].buy_ins).toEqual([{ id: 'existing-event', amount: 100 }])
 })
 
 it('accepts rate-only edits without defaulting omitted metadata or participants', () => {

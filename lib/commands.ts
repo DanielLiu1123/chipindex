@@ -77,12 +77,16 @@ function optionalTimestamp(value: unknown, field: string): string | undefined {
   return value
 }
 
+function exchangeRate(value: unknown): number {
+  const rate = number(value, 'exchange_rate')
+  if (rate <= 0) invalid('exchange_rate must be greater than 0')
+  return rate
+}
+
 function sessionMeta(body: JsonObject): SessionMetaCommand {
-  const exchangeRate = number(body.exchange_rate, 'exchange_rate')
-  if (exchangeRate <= 0) invalid('exchange_rate must be greater than 0')
   return {
     date: date(body.date),
-    exchange_rate: exchangeRate,
+    exchange_rate: exchangeRate(body.exchange_rate),
     description: description(body.description),
   }
 }
@@ -163,18 +167,15 @@ function parseEditedParticipant(value: unknown, index: number): EditedParticipan
 
 export function parseUpdateSessionCommand(value: unknown): UpdateSessionCommand {
   const body = object(value)
-  const command: UpdateSessionCommand = { force: boolean(body.force, 'force') }
-  if (body.date !== undefined) command.date = date(body.date)
-  if (body.exchange_rate !== undefined) {
-    command.exchange_rate = number(body.exchange_rate, 'exchange_rate')
-    if (command.exchange_rate <= 0) invalid('exchange_rate must be greater than 0')
+  return {
+    exchange_rate: exchangeRate(body.exchange_rate),
+    ...(body.date === undefined ? {} : { date: date(body.date) }),
+    ...(body.description === undefined ? {} : { description: description(body.description) }),
+    ...(body.participants === undefined ? {} : {
+      participants: array(body.participants, 'participants').map(parseEditedParticipant),
+    }),
+    force: boolean(body.force, 'force'),
   }
-  if (body.description !== undefined) command.description = description(body.description)
-  if (body.participants !== undefined) {
-    command.participants = array(body.participants, 'participants').map(parseEditedParticipant)
-  }
-  if (Object.keys(command).length === 1) invalid('At least one session field required')
-  return command
 }
 
 export function parseBuyInCommand(value: unknown): BuyInCommand {

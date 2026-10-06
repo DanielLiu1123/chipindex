@@ -195,6 +195,7 @@ it('edits the rate, preserves failed drafts, and refreshes after a single succes
   expect(screen.getByText('40 chips = 1 CNY')).toBeTruthy()
   click('40 chips = 1 CNY')
   const dialog = screen.getByRole('dialog', { name: 'Edit rate' })
+  expect(within(dialog).queryByRole('button', { name: 'Close' })).toBeNull()
   const input = within(dialog).getByRole('spinbutton') as HTMLInputElement
   expect(input.value).toBe('40')
   for (const value of ['', '0', '-1']) {
@@ -209,7 +210,7 @@ it('edits the rate, preserves failed drafts, and refreshes after a single succes
   expect(nav.refresh).not.toHaveBeenCalled()
   let finish!: () => void
   vi.mocked(updateSession).mockImplementationOnce(() => new Promise(resolve => {
-    finish = () => resolve({ id: 's1', diff: 0 })
+    finish = () => resolve({ id: 's1' })
   }))
   fireEvent.submit(dialog.querySelector('form')!)
   fireEvent.submit(dialog.querySelector('form')!)

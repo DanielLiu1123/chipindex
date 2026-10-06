@@ -122,7 +122,7 @@ describe('client failure policy', () => {
 })
 
 it('uses the existing edit API for rate-only changes', async () => {
-  const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 's1', diff: 0 }) })
+  const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 's1' }) })
   vi.stubGlobal('fetch', fetchMock)
   await updateSession('g1', 's1', { exchange_rate: 20.5 })
   expect(fetchMock).toHaveBeenCalledExactlyOnceWith('/api/groups/g1/sessions/s1', {

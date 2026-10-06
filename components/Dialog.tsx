@@ -11,8 +11,7 @@ import {
 interface Props {
   open: boolean
   label: string
-  hideTitle?: boolean
-  showCloseButton?: boolean
+  showHeader?: boolean
   pending?: boolean
   onClose: () => void
   children: ReactNode
@@ -25,8 +24,7 @@ interface Props {
 export default function Dialog({
   open,
   label,
-  hideTitle = false,
-  showCloseButton = true,
+  showHeader = true,
   pending = false,
   onClose,
   children,
@@ -54,7 +52,7 @@ export default function Dialog({
           returnFocus.current?.focus()
         }}
         className={`max-h-[90dvh] overflow-y-auto ${className ?? 'sm:max-w-md'}`}
-        showCloseButton={showCloseButton && !pending}
+        showCloseButton={showHeader && !pending}
         aria-describedby={undefined}
         aria-busy={pending}
         onEscapeKeyDown={(event) => {
@@ -64,13 +62,9 @@ export default function Dialog({
           if (pending) event.preventDefault()
         }}
       >
-        {hideTitle ? (
-          <DialogTitle className="sr-only">{label}</DialogTitle>
-        ) : (
-          <DialogHeader>
-            <DialogTitle>{label}</DialogTitle>
-          </DialogHeader>
-        )}
+        <DialogHeader className={showHeader ? undefined : 'sr-only'}>
+          <DialogTitle>{label}</DialogTitle>
+        </DialogHeader>
         {children}
       </DialogContent>
     </Root>

@@ -128,8 +128,10 @@ export function useLiveSession(groupId: string, session: LiveSessionData) {
     close,
     refresh,
     openRate: () => open({ kind: 'rate' }),
-    confirmRate: (exchangeRate: number) =>
-      run(() => updateSession(groupId, session.id, { exchange_rate: exchangeRate }), finish),
+    confirmRate: (exchangeRate: number) => {
+      if (panel.kind !== 'rate') return
+      return run(() => updateSession(groupId, session.id, { exchange_rate: exchangeRate }), finish)
+    },
     openBuyIn: () => open({ kind: 'buy-in' }),
     openAddPlayers: () => open({ kind: 'add-players' }),
     openCashOut: (participant: LiveParticipant) =>

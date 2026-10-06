@@ -24,7 +24,7 @@ export default function SessionRateModal({ rate, pending, error, onConfirm, onCa
   }
 
   return (
-    <Dialog open label="Edit rate" hideTitle showCloseButton={false} pending={pending} onClose={onCancel} className="max-w-xs p-4">
+    <Dialog open label="Edit rate" showHeader={false} pending={pending} onClose={onCancel} className="max-w-xs p-4">
       <form onSubmit={submit} className="w-full">
         <Label htmlFor="session-rate">RATE (CHIPS PER 1 CNY)</Label>
         <Input id="session-rate" type="number" inputMode="decimal" step="any" required autoFocus
