@@ -132,11 +132,16 @@ export default function LiveSession({
           </span>
         )}
       </div>
-      <div className="mb-3 flex items-center gap-2">
-        <span className="text-xs text-muted-foreground">{session.exchange_rate} chips = 1 CNY</span>
-        <Button variant="ghost" size="sm" type="button" onClick={flow.openRate} disabled={pending || settling}>
-          EDIT RATE
-        </Button>
+      <div className="mb-3">
+        <button
+          type="button"
+          onClick={flow.openRate}
+          disabled={pending || settling}
+          aria-haspopup="dialog"
+          className="cursor-pointer rounded-sm py-1 text-xs font-normal tracking-normal text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+        >
+          {session.exchange_rate} chips = 1 CNY
+        </button>
       </div>
       <div className="mb-6 flex flex-wrap items-baseline gap-2">
         <span className="text-xs text-muted-foreground tracking-normal">
