@@ -223,7 +223,7 @@ export async function getLeaderboardData(groupId: string): Promise<LeaderboardDa
 }
 
 // ── sessions list ──────────────────────────────────────────────
-// Unified list row: OPEN pinned on top + SETTLED by date descending. OPEN rows have no winners.
+// OPEN pinned on top; SETTLED by date, then end time descending (nulls last).
 
 interface SessionListSource {
   id: string
@@ -290,7 +290,7 @@ async function fetchSessionSlice(
       .range(from, from + limit - 1)
     : await query
       .order('date', { ascending: false })
-      .order('id', { ascending: false })
+      .order('ended_at', { ascending: false, nullsFirst: false })
       .range(from, from + limit - 1)
   throwIfQueryError(error)
   return (data ?? []).map(session => ({
