@@ -14,7 +14,7 @@ import {
   type TooltipContentProps,
   type TooltipValueType,
 } from 'recharts'
-import { sortTooltipItems } from '@/lib/chart'
+import { sortTooltipItems, type LeaderboardChartPoint } from '@/lib/chart'
 import { formatAmount } from '@/lib/format'
 
 const COLORS = [
@@ -28,10 +28,6 @@ const COLORS = [
   'var(--chart-8)',
 ]
 
-interface ChartPoint {
-  date: string
-  [player: string]: string | number
-}
 interface ChartPlayer {
   id: string
   name: string
@@ -46,6 +42,7 @@ export function SortedTooltipContent(
       active={props.active}
       payload={payload}
       label={props.label}
+      labelFormatter={props.labelFormatter}
       formatter={props.formatter}
     />
   )
@@ -56,11 +53,16 @@ export default function LeaderboardChart({
   players,
   mode,
 }: {
-  data: ChartPoint[]
+  data: LeaderboardChartPoint[]
   players: ChartPlayer[]
   mode: 'chips' | 'cny'
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const dateBySessionId = new Map(data.map(point => [point.session_id, point.date]))
+  const formatSessionDate = (sessionId: unknown) => {
+    const id = String(sessionId)
+    return dateBySessionId.get(id) ?? id
+  }
 
   function toggle(name: string) {
     setSelected((prev) => {
@@ -90,7 +92,8 @@ export default function LeaderboardChart({
           margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
         >
           <XAxis
-            dataKey="date"
+            dataKey="session_id"
+            tickFormatter={formatSessionDate}
             tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }}
             axisLine={false}
             tickLine={false}
@@ -113,6 +116,7 @@ export default function LeaderboardChart({
           <ReferenceLine y={0} stroke="var(--border)" strokeDasharray="3 3" />
           <Tooltip
             content={SortedTooltipContent}
+            labelFormatter={formatSessionDate}
             formatter={(v, name, item) => {
               if (!visible.has(String(item.dataKey))) return null
               const n = Number(v)

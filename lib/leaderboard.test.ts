@@ -17,6 +17,7 @@ const session = (
   id,
   date,
   exchange_rate: rate,
+  ended_at: null,
   session_entries: [
     {
       player_id: 'a',
@@ -48,8 +49,8 @@ it('selects an inclusive cross-year range and rebases curves with the same curre
   expect(result.sortedStats.map((s) => s.player.id)).toEqual(['a'])
   expect(result.sortedStats[0].total_yuan).toBe(0.67)
   expect(result.chartData).toEqual([
-    { date: '2026-12-31', a: 0.33 },
-    { date: '2027-01-01', a: 0.67 },
+    { session_id: 'start', date: '2026-12-31', a: 0.33 },
+    { session_id: 'end', date: '2027-01-01', a: 0.67 },
   ])
   expect(
     buildLeaderboard(players, sessions, {
@@ -93,4 +94,18 @@ it('distinguishes an empty selected range from all-time players without sessions
   expect(filtered.playerCount).toBe(0)
   expect(filtered.activityFilter.hiddenCount).toBe(0)
   expect(filtered.chartData).toEqual([])
+})
+
+it('orders same-day cumulative points by end time with missing times first and stable ID ties', () => {
+  const sessions = [
+    { ...session('late-b', '2026-01-01', 8, 1), ended_at: '2026-01-01T20:00:00Z' },
+    { ...session('early', '2026-01-01', -4, 1), ended_at: '2026-01-01T10:00:00Z' },
+    { ...session('late-a', '2026-01-01', 2, 1), ended_at: '2026-01-01T20:00:00Z' },
+    session('import', '2026-01-01', 1, 1),
+  ]
+  const result = buildLeaderboard(players, sessions, options)
+  expect(result.chartData.map(point => point.a)).toEqual([1, -3, -1, 7])
+  expect(result.chartData.map(point => point.session_id)).toEqual(['import', 'early', 'late-a', 'late-b'])
+  expect(result.sortedStats.find(stat => stat.player.id === 'a')?.total_yuan).toBe(7)
+  expect(sessions.map(row => row.id)).toEqual(['late-b', 'early', 'late-a', 'import'])
 })

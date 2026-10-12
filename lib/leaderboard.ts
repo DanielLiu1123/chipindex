@@ -1,3 +1,4 @@
+import type { LeaderboardChartPoint } from './chart'
 import {
   computeLeaderboardStats,
   filterLowActivityPlayers,
@@ -8,6 +9,7 @@ import {
   type LeaderboardRange,
 } from './leaderboard-range'
 import type { LeaderboardSessionRow, Player } from './domain-types'
+import { compareSettledSessionsOldestFirst } from './session-order'
 
 export type LeaderboardSortKey =
   'total_yuan' | 'total_chips' | 'sessions_played' | 'win_rate' | 'pog_count'
@@ -16,15 +18,16 @@ function buildChartData(
   sessions: LeaderboardSessionRow[],
   stats: PlayerStats[],
   mode: 'chips' | 'cny',
-): { date: string; [player: string]: string | number }[] {
-  const sorted = [...sessions].sort((a, b) => a.date.localeCompare(b.date))
+): LeaderboardChartPoint[] {
+  const sorted = [...sessions].sort(compareSettledSessionsOldestFirst)
   const playerIds = stats.map((s) => s.player.id)
 
   const cumulative = new Map<string, number>()
   playerIds.forEach((pid) => cumulative.set(pid, 0))
 
   return sorted.map((session) => {
-    const row: { date: string; [k: string]: string | number } = {
+    const row: LeaderboardChartPoint = {
+      session_id: session.id,
       date: session.date,
     }
     playerIds.forEach((pid) => {

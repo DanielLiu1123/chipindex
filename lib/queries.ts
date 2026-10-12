@@ -185,7 +185,7 @@ export async function getLeaderboardData(groupId: string): Promise<LeaderboardDa
   const [activeRows, sessionResult] = await Promise.all([
     getGroupPlayers(groupId),
     db.from('session')
-      .select('id, date, exchange_rate')
+      .select('id, date, exchange_rate, ended_at')
       .eq('group_id', groupId)
       .is('deleted_at', null)
       .eq('status', 'SETTLED')
@@ -283,15 +283,13 @@ async function fetchSessionSlice(
     .is('deleted_at', null)
     .eq('status', status)
 
-  const { data, error } = status === 'OPEN'
-    ? await query
-      .order('started_at', { ascending: false })
-      .order('id', { ascending: false })
-      .range(from, from + limit - 1)
-    : await query
+  const orderedQuery = status === 'OPEN'
+    ? query.order('started_at', { ascending: false }).order('id', { ascending: false })
+    : query
       .order('date', { ascending: false })
       .order('ended_at', { ascending: false, nullsFirst: false })
-      .range(from, from + limit - 1)
+      .order('id', { ascending: false })
+  const { data, error } = await orderedQuery.range(from, from + limit - 1)
   throwIfQueryError(error)
   return (data ?? []).map(session => ({
     ...session,
@@ -495,7 +493,7 @@ export async function getPlayerDetail(groupId: string, id: string): Promise<Play
 
   const { data: sessions, error } = await db
     .from('session')
-    .select('id, date, description, exchange_rate, started_at')
+    .select('id, date, description, exchange_rate, ended_at')
     .is('deleted_at', null)
     .eq('status', 'SETTLED')
     .eq('group_id', groupId)
