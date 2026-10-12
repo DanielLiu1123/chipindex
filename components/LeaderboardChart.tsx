@@ -14,9 +14,8 @@ import {
   type TooltipContentProps,
   type TooltipValueType,
 } from 'recharts'
-import { sortTooltipItems } from '@/lib/chart'
+import { sortTooltipItems, type LeaderboardChartPoint } from '@/lib/chart'
 import { formatAmount } from '@/lib/format'
-import type { LeaderboardChartPoint } from '@/lib/leaderboard'
 
 const COLORS = [
   'var(--chart-1)',
@@ -42,7 +41,8 @@ export function SortedTooltipContent(
     <ChartTooltipContent
       active={props.active}
       payload={payload}
-      label={payload[0]?.payload?.date}
+      label={props.label}
+      labelFormatter={props.labelFormatter}
       formatter={props.formatter}
     />
   )
@@ -59,6 +59,10 @@ export default function LeaderboardChart({
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const dateBySessionId = new Map(data.map(point => [point.session_id, point.date]))
+  const formatSessionDate = (sessionId: unknown) => {
+    const id = String(sessionId)
+    return dateBySessionId.get(id) ?? id
+  }
 
   function toggle(name: string) {
     setSelected((prev) => {
@@ -89,7 +93,7 @@ export default function LeaderboardChart({
         >
           <XAxis
             dataKey="session_id"
-            tickFormatter={sessionId => dateBySessionId.get(String(sessionId)) ?? String(sessionId)}
+            tickFormatter={formatSessionDate}
             tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }}
             axisLine={false}
             tickLine={false}
@@ -112,6 +116,7 @@ export default function LeaderboardChart({
           <ReferenceLine y={0} stroke="var(--border)" strokeDasharray="3 3" />
           <Tooltip
             content={SortedTooltipContent}
+            labelFormatter={formatSessionDate}
             formatter={(v, name, item) => {
               if (!visible.has(String(item.dataKey))) return null
               const n = Number(v)

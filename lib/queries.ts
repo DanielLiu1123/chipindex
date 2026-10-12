@@ -1,4 +1,3 @@
-import { SETTLED_SESSION_ORDER, compareSettledSessionsOldestFirst } from './session-order'
 import { DEFAULT_EXCHANGE_RATE, BUY_IN_UNIT, pogPlayerIds } from './session-rules'
 import { cache } from 'react'
 import { db } from './db'
@@ -193,7 +192,7 @@ export async function getLeaderboardData(groupId: string): Promise<LeaderboardDa
       .order('date', { ascending: true }),
   ])
   throwIfQueryError(sessionResult.error)
-  const sessionRows = (sessionResult.data ?? []).sort(compareSettledSessionsOldestFirst).map(session => ({
+  const sessionRows = (sessionResult.data ?? []).map(session => ({
     ...session,
     exchange_rate: exchangeRate(session.exchange_rate),
   }))
@@ -277,23 +276,20 @@ async function fetchSessionSlice(
   limit: number,
 ): Promise<SessionListSource[]> {
   if (limit <= 0) return []
-  let query = db
+  const query = db
     .from('session')
     .select(SESSION_LIST_COLUMNS)
     .eq('group_id', groupId)
     .is('deleted_at', null)
     .eq('status', status)
 
-  if (status === 'OPEN') {
-    query = query
-      .order('started_at', { ascending: false })
+  const orderedQuery = status === 'OPEN'
+    ? query.order('started_at', { ascending: false }).order('id', { ascending: false })
+    : query
+      .order('date', { ascending: false })
+      .order('ended_at', { ascending: false, nullsFirst: false })
       .order('id', { ascending: false })
-  } else {
-    for (const column of SETTLED_SESSION_ORDER) {
-      query = query.order(column, { ascending: false, nullsFirst: false })
-    }
-  }
-  const { data, error } = await query.range(from, from + limit - 1)
+  const { data, error } = await orderedQuery.range(from, from + limit - 1)
   throwIfQueryError(error)
   return (data ?? []).map(session => ({
     ...session,
@@ -497,7 +493,7 @@ export async function getPlayerDetail(groupId: string, id: string): Promise<Play
 
   const { data: sessions, error } = await db
     .from('session')
-    .select('id, date, description, exchange_rate, started_at, ended_at')
+    .select('id, date, description, exchange_rate, ended_at')
     .is('deleted_at', null)
     .eq('status', 'SETTLED')
     .eq('group_id', groupId)

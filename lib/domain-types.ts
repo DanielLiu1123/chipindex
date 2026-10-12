@@ -45,7 +45,6 @@ export interface PlayerHistorySession {
   date: string
   description: string | null
   exchange_rate: number
-  started_at: string | null
   ended_at: string | null
   session_entries: ResultEntry[] // all players in the session, for POG computation
 }

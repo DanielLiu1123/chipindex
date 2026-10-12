@@ -1,3 +1,9 @@
+export interface LeaderboardChartPoint {
+  session_id: string
+  date: string
+  [player: string]: string | number
+}
+
 interface TooltipSortItem {
   dataKey?: unknown
   name?: unknown

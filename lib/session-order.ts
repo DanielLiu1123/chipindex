@@ -1,29 +1,24 @@
 // Settled lists show newest first; charts use the exact reverse order.
-// A stable ID tie-breaker also keeps pagination deterministic.
-export const SETTLED_SESSION_ORDER = ['date', 'ended_at', 'id'] as const
-
-export interface SettledSessionOrderKey {
+// The ID tie-breaker keeps equal end times and pagination deterministic.
+interface SettledSession {
   id: string
   date: string
   ended_at: string | null
 }
 
-export function compareSettledSessionsNewestFirst(a: SettledSessionOrderKey, b: SettledSessionOrderKey): number {
-  for (const column of SETTLED_SESSION_ORDER) {
-    const left = a[column]
-    const right = b[column]
-    if (left === right) continue
-    if (left === null) return 1
-    if (right === null) return -1
-    // Compare instants, so different timestamp offsets still order correctly.
-    const difference = column === 'ended_at'
-      ? Date.parse(right) - Date.parse(left)
-      : right.localeCompare(left)
-    if (difference !== 0) return difference
+export function compareSettledSessionsNewestFirst(a: SettledSession, b: SettledSession): number {
+  const dateOrder = b.date.localeCompare(a.date)
+  if (dateOrder !== 0) return dateOrder
+
+  if (a.ended_at !== b.ended_at) {
+    if (a.ended_at === null) return 1
+    if (b.ended_at === null) return -1
+    const endOrder = Date.parse(b.ended_at) - Date.parse(a.ended_at)
+    if (endOrder !== 0) return endOrder
   }
-  return 0
+  return b.id.localeCompare(a.id)
 }
 
-export function compareSettledSessionsOldestFirst(a: SettledSessionOrderKey, b: SettledSessionOrderKey): number {
+export function compareSettledSessionsOldestFirst(a: SettledSession, b: SettledSession): number {
   return compareSettledSessionsNewestFirst(b, a)
 }

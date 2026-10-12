@@ -1,3 +1,4 @@
+import type { LeaderboardChartPoint } from './chart'
 import {
   computeLeaderboardStats,
   filterLowActivityPlayers,
@@ -12,12 +13,6 @@ import { compareSettledSessionsOldestFirst } from './session-order'
 
 export type LeaderboardSortKey =
   'total_yuan' | 'total_chips' | 'sessions_played' | 'win_rate' | 'pog_count'
-
-export interface LeaderboardChartPoint {
-  session_id: string
-  date: string
-  [player: string]: string | number
-}
 
 function buildChartData(
   sessions: LeaderboardSessionRow[],
