@@ -130,8 +130,8 @@ it('shares an applied calendar range between rankings and rebased CNY/chip curve
   expect(
     JSON.parse(screen.getByTestId('leaderboard-chart').textContent!).data,
   ).toEqual([
-    { date: '2026-01-01', Alice: 10 },
-    { date: '2026-01-31', Alice: 5 },
+    { session_id: 'start', date: '2026-01-01', Alice: 10 },
+    { session_id: 'end', date: '2026-01-31', Alice: 5 },
   ])
   fireEvent.click(screen.getByRole('radio', { name: 'CHIPS' }))
   expect(

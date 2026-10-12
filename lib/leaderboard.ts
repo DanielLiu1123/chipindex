@@ -13,11 +13,17 @@ import { compareSettledSessionsOldestFirst } from './session-order'
 export type LeaderboardSortKey =
   'total_yuan' | 'total_chips' | 'sessions_played' | 'win_rate' | 'pog_count'
 
+export interface LeaderboardChartPoint {
+  session_id: string
+  date: string
+  [player: string]: string | number
+}
+
 function buildChartData(
   sessions: LeaderboardSessionRow[],
   stats: PlayerStats[],
   mode: 'chips' | 'cny',
-): { date: string; [player: string]: string | number }[] {
+): LeaderboardChartPoint[] {
   const sorted = [...sessions].sort(compareSettledSessionsOldestFirst)
   const playerIds = stats.map((s) => s.player.id)
 
@@ -25,7 +31,8 @@ function buildChartData(
   playerIds.forEach((pid) => cumulative.set(pid, 0))
 
   return sorted.map((session) => {
-    const row: { date: string; [k: string]: string | number } = {
+    const row: LeaderboardChartPoint = {
+      session_id: session.id,
       date: session.date,
     }
     playerIds.forEach((pid) => {

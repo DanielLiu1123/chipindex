@@ -16,6 +16,7 @@ import {
 } from 'recharts'
 import { sortTooltipItems } from '@/lib/chart'
 import { formatAmount } from '@/lib/format'
+import type { LeaderboardChartPoint } from '@/lib/leaderboard'
 
 const COLORS = [
   'var(--chart-1)',
@@ -28,10 +29,6 @@ const COLORS = [
   'var(--chart-8)',
 ]
 
-interface ChartPoint {
-  date: string
-  [player: string]: string | number
-}
 interface ChartPlayer {
   id: string
   name: string
@@ -45,7 +42,7 @@ export function SortedTooltipContent(
     <ChartTooltipContent
       active={props.active}
       payload={payload}
-      label={props.label}
+      label={payload[0]?.payload?.date}
       formatter={props.formatter}
     />
   )
@@ -56,11 +53,12 @@ export default function LeaderboardChart({
   players,
   mode,
 }: {
-  data: ChartPoint[]
+  data: LeaderboardChartPoint[]
   players: ChartPlayer[]
   mode: 'chips' | 'cny'
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const dateBySessionId = new Map(data.map(point => [point.session_id, point.date]))
 
   function toggle(name: string) {
     setSelected((prev) => {
@@ -90,7 +88,8 @@ export default function LeaderboardChart({
           margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
         >
           <XAxis
-            dataKey="date"
+            dataKey="session_id"
+            tickFormatter={sessionId => dateBySessionId.get(String(sessionId)) ?? String(sessionId)}
             tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }}
             axisLine={false}
             tickLine={false}

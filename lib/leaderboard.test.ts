@@ -49,8 +49,8 @@ it('selects an inclusive cross-year range and rebases curves with the same curre
   expect(result.sortedStats.map((s) => s.player.id)).toEqual(['a'])
   expect(result.sortedStats[0].total_yuan).toBe(0.67)
   expect(result.chartData).toEqual([
-    { date: '2026-12-31', a: 0.33 },
-    { date: '2027-01-01', a: 0.67 },
+    { session_id: 'start', date: '2026-12-31', a: 0.33 },
+    { session_id: 'end', date: '2027-01-01', a: 0.67 },
   ])
   expect(
     buildLeaderboard(players, sessions, {
@@ -105,6 +105,7 @@ it('orders same-day cumulative points by end time with missing times first and s
   ]
   const result = buildLeaderboard(players, sessions, options)
   expect(result.chartData.map(point => point.a)).toEqual([1, -3, -1, 7])
+  expect(result.chartData.map(point => point.session_id)).toEqual(['import', 'early', 'late-a', 'late-b'])
   expect(result.sortedStats.find(stat => stat.player.id === 'a')?.total_yuan).toBe(7)
   expect(sessions.map(row => row.id)).toEqual(['late-b', 'early', 'late-a', 'import'])
 })
