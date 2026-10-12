@@ -1,6 +1,7 @@
 import { pogPlayerIds } from './session-rules'
 import type { Player } from '@/lib/domain-types'
-import type { LeaderboardSessionRow, PlayerDetail, PlayerHistoryEntry } from '@/lib/domain-types'
+import type { LeaderboardSessionRow, PlayerDetail } from '@/lib/domain-types'
+import { compareSettledSessionsOldestFirst } from './session-order'
 import { netChips, toCny } from '@/lib/settlement'
 
 // All derived statistics live here: POG / wins / cumulative totals.
@@ -81,7 +82,7 @@ export interface CandlePoint {
   close: number
 }
 
-// Player detail: date-sorted cumulative curve + summary
+// Player detail: cumulative curve in the reverse of the settled session list order.
 export interface HistoryPoint {
   date: string
   session_id: string
@@ -105,27 +106,6 @@ export interface PlayerHistory {
   pogCount: number
 }
 
-function timestamp(value: string | null): number | null {
-  if (value === null) return null
-  const parsed = Date.parse(value)
-  return Number.isFinite(parsed) ? parsed : null
-}
-
-function compareHistoryEntries(a: PlayerHistoryEntry, b: PlayerHistoryEntry): number {
-  const dateOrder = a.sessions.date.localeCompare(b.sessions.date)
-  if (dateOrder !== 0) return dateOrder
-
-  const aTimestamp = timestamp(a.sessions.started_at)
-  const bTimestamp = timestamp(b.sessions.started_at)
-  if (aTimestamp !== null && bTimestamp === null) return -1
-  if (aTimestamp === null && bTimestamp !== null) return 1
-  if (aTimestamp !== null && bTimestamp !== null && aTimestamp !== bTimestamp) {
-    return aTimestamp - bTimestamp
-  }
-
-  return a.session_id.localeCompare(b.session_id)
-}
-
 function createCandle(open: number, net: number, buyIn: number): CandlePoint {
   const close = open + net
   return {
@@ -137,7 +117,7 @@ function createCandle(open: number, net: number, buyIn: number): CandlePoint {
 }
 
 export function computePlayerHistory(detail: PlayerDetail): PlayerHistory {
-  const sorted = [...detail.entries].sort(compareHistoryEntries)
+  const sorted = [...detail.entries].sort((a, b) => compareSettledSessionsOldestFirst(a.sessions, b.sessions))
 
   let cumulative = 0
   let cumulativeCny = 0

@@ -1,9 +1,9 @@
 import { renderToReadableStream } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import Page from '../app/groups/[groupId]/players/[id]/page'
-const captured = vi.hoisted(() => ({ count: 23, chart: undefined as unknown }))
+const captured = vi.hoisted(() => ({ count: 23, detail: undefined as PlayerDetail | undefined, chart: undefined as unknown }))
 vi.mock('./queries', () => ({
-  getPlayerDetail: async () => fixture(captured.count),
+  getPlayerDetail: async () => captured.detail ?? fixture(captured.count),
 }))
 vi.mock('next/navigation', () => ({
   notFound: () => {
@@ -41,6 +41,7 @@ function fixture(count: number): PlayerDetail {
         description: null,
         exchange_rate: 40,
         started_at: null,
+        ended_at: null,
         session_entries: [
           {
             player_id: 'p1',
@@ -55,7 +56,8 @@ function fixture(count: number): PlayerDetail {
   }
 }
 
-async function renderPage(query: Query, count = 23) {
+async function renderPage(query: Query, count = 23, detail?: PlayerDetail) {
+  captured.detail = detail
   captured.count = count
   captured.chart = undefined
   let renderError: unknown
@@ -84,6 +86,25 @@ async function renderPage(query: Query, count = 23) {
 }
 
 describe('player session history pagination', () => {
+  it('uses the settled list order across same-day history pages and reverses it for the chart', async () => {
+    const detail = fixture(4)
+    const endTimes = [null, '2026-08-01T20:00:00Z', '2026-08-01T10:00:00Z', '2026-08-01T20:00:00Z']
+    detail.entries.forEach((entry, index) => {
+      entry.sessions.date = '2026-08-01'
+      entry.sessions.ended_at = endTimes[index]
+      entry.sessions.started_at = `2026-08-01T0${4 - index}:00:00Z`
+    })
+    const first = await renderPage({ page_size: '2' }, 4, detail)
+    expect(first.chart?.data.map(point => point.session_id)).toEqual(['s1', 's3', 's2', 's4'])
+    expect(first.chart?.data.map(point => point.cumulative)).toEqual([100, 200, 300, 400])
+    expect(first.html.indexOf('/sessions/s4')).toBeLessThan(first.html.indexOf('/sessions/s2'))
+    expect(first.html).not.toContain('/sessions/s1')
+    const second = await renderPage({ page: '2', page_size: '2' }, 4, detail)
+    expect(second.html.indexOf('/sessions/s3')).toBeLessThan(second.html.indexOf('/sessions/s1'))
+    expect(second.html).not.toContain('/sessions/s2')
+    expect(second.chart?.data).toEqual(first.chart?.data)
+  })
+
   it('pages newest-first rows without resetting cumulative values or truncating chart statistics', async () => {
     const { html, chart } = await renderPage({ page: '2', page_size: '10' })
     expect(

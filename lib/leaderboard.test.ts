@@ -17,6 +17,7 @@ const session = (
   id,
   date,
   exchange_rate: rate,
+  ended_at: null,
   session_entries: [
     {
       player_id: 'a',
@@ -93,4 +94,17 @@ it('distinguishes an empty selected range from all-time players without sessions
   expect(filtered.playerCount).toBe(0)
   expect(filtered.activityFilter.hiddenCount).toBe(0)
   expect(filtered.chartData).toEqual([])
+})
+
+it('orders same-day cumulative points by end time with missing times first and stable ID ties', () => {
+  const sessions = [
+    { ...session('late-b', '2026-01-01', 8, 1), ended_at: '2026-01-01T20:00:00Z' },
+    { ...session('early', '2026-01-01', -4, 1), ended_at: '2026-01-01T10:00:00Z' },
+    { ...session('late-a', '2026-01-01', 2, 1), ended_at: '2026-01-01T20:00:00Z' },
+    session('import', '2026-01-01', 1, 1),
+  ]
+  const result = buildLeaderboard(players, sessions, options)
+  expect(result.chartData.map(point => point.a)).toEqual([1, -3, -1, 7])
+  expect(result.sortedStats.find(stat => stat.player.id === 'a')?.total_yuan).toBe(7)
+  expect(sessions.map(row => row.id)).toEqual(['late-b', 'early', 'late-a', 'import'])
 })

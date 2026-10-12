@@ -58,6 +58,7 @@ const sessions = [
     id: 'old',
     date: '2025-12-31',
     exchange_rate: 40,
+    ended_at: null,
     session_entries: [
       {
         player_id: 'Alice',
@@ -72,6 +73,7 @@ const sessions = [
     id: 'start',
     date: '2026-01-01',
     exchange_rate: 40,
+    ended_at: null,
     session_entries: [
       {
         player_id: 'Alice',
@@ -86,6 +88,7 @@ const sessions = [
     id: 'end',
     date: '2026-01-31',
     exchange_rate: 20,
+    ended_at: null,
     session_entries: [
       {
         player_id: 'Alice',
@@ -100,6 +103,7 @@ const sessions = [
     id: 'after',
     date: '2026-02-01',
     exchange_rate: 40,
+    ended_at: null,
     session_entries: [
       {
         player_id: 'Bob',

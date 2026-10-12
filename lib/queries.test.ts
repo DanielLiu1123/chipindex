@@ -176,6 +176,11 @@ describe('getSessionsPage', () => {
     expect(settledCountQuery.eq).toHaveBeenCalledWith('status', 'SETTLED')
     expect(settledCountQuery.range).not.toHaveBeenCalled()
     expect(settledQuery.range).toHaveBeenCalledWith(8, 17)
+    expect(settledQuery.order.mock.calls).toEqual([
+      ['date', { ascending: false, nullsFirst: false }],
+      ['ended_at', { ascending: false, nullsFirst: false }],
+      ['id', { ascending: false, nullsFirst: false }],
+    ])
     expect(result).toMatchObject({
       page: 2,
       page_size: 10,
@@ -247,7 +252,7 @@ describe('player ordering', () => {
 describe('getLeaderboardData', () => {
   it('builds sessions and players from one settled-session result scan', async () => {
     mockQueryResponses({
-      session: [{ data: [{ id: 's1', date: '2026-01-10', exchange_rate: 40 }] }],
+      session: [{ data: [{ id: 's1', date: '2026-01-10', ended_at: '2026-01-10T14:00:00Z', exchange_rate: 40 }] }],
       group_player: [{ data: [{
         id: 'gp-active', group_id: 'g1', player_id: 'active', created_at: '2026-01-01', updated_at: '2026-01-01', deleted_at: null,
       }] }],
@@ -269,12 +274,14 @@ describe('getLeaderboardData', () => {
     const data = await getLeaderboardData('g1')
 
     expect(dbMocks.chains.filter(query => query.table === 'session')).toHaveLength(1)
+    expect(dbMocks.chains.find(query => query.table === 'session')?.select).toHaveBeenCalledWith('id, date, exchange_rate, ended_at')
     expect(dbMocks.chains.filter(query => query.table === 'session_participant')).toHaveLength(1)
     expect(data.players.map(player => player.id)).toEqual(['alice', 'active'])
     expect(data.sessions).toEqual([
       {
         id: 's1',
         date: '2026-01-10',
+        ended_at: '2026-01-10T14:00:00Z',
         exchange_rate: 40,
         session_entries: [{
           player_id: 'alice',
@@ -464,6 +471,7 @@ describe('getPlayerDetail', () => {
           description: 'first game',
           exchange_rate: 40,
           started_at: '2026-01-10T12:00:00Z',
+          ended_at: '2026-01-10T14:00:00Z',
         }] },
       ],
       buy_in: [{
@@ -477,7 +485,7 @@ describe('getPlayerDetail', () => {
     const detail = await getPlayerDetail('g1', 'alice')
 
     const sessionQuery = dbMocks.chains.filter(query => query.table === 'session')[1]!
-    expect(sessionQuery.select).toHaveBeenCalledWith('id, date, description, exchange_rate, started_at')
+    expect(sessionQuery.select).toHaveBeenCalledWith('id, date, description, exchange_rate, started_at, ended_at')
     expect(detail).toEqual({
       id: 'alice',
       name: 'Alice',
@@ -501,6 +509,7 @@ describe('getPlayerDetail', () => {
           description: 'first game',
           exchange_rate: 40,
           started_at: '2026-01-10T12:00:00Z',
+          ended_at: '2026-01-10T14:00:00Z',
           session_entries: [{
             player_id: 'alice',
             chips: 2500,
@@ -535,6 +544,7 @@ describe('getPlayerDetail', () => {
           description: null,
           exchange_rate: 40,
           started_at: '2026-01-10T12:00:00Z',
+          ended_at: '2026-01-10T14:00:00Z',
         }] },
       ],
       buy_in: [

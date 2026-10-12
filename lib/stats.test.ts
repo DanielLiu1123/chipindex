@@ -33,6 +33,7 @@ const sessions: LeaderboardSessionRow[] = [
     id: 's1',
     date: '2026-01-10',
     exchange_rate: 40,
+    ended_at: null,
     session_entries: [
       { player_id: 'alice', chips: 4000, final_chips: 6000, total_buyin: 2000, buy_in_count: 1 },
       { player_id: 'bob', chips: -4000, final_chips: 0, total_buyin: 4000, buy_in_count: 2 },
@@ -42,6 +43,7 @@ const sessions: LeaderboardSessionRow[] = [
     id: 's2',
     date: '2026-01-17',
     exchange_rate: 40,
+    ended_at: null,
     session_entries: [
       { player_id: 'alice', chips: -2000, final_chips: 0, total_buyin: 2000, buy_in_count: 1 },
       { player_id: 'bob', chips: 2000, final_chips: 4000, total_buyin: 2000, buy_in_count: 1 },
@@ -53,6 +55,7 @@ interface EntryOptions {
   session_id: string
   date?: string
   started_at?: string | null
+  ended_at?: string | null
   chips?: number
   total_buyin?: number
   buy_in_count?: number
@@ -64,6 +67,7 @@ function makeEntry({
   session_id,
   date = '2026-02-01',
   started_at = null,
+  ended_at = null,
   chips = 0,
   total_buyin = 2000,
   buy_in_count = 1,
@@ -91,6 +95,7 @@ function makeEntry({
       description: null,
       exchange_rate,
       started_at,
+      ended_at,
       session_entries: [resultEntry],
     },
   }
@@ -212,6 +217,7 @@ describe('computePlayerHistory', () => {
           description: null,
           exchange_rate: 40,
           started_at: '2026-01-17T12:00:00Z',
+          ended_at: null,
           session_entries: sessions[1].session_entries,
         },
       },
@@ -227,6 +233,7 @@ describe('computePlayerHistory', () => {
           description: 'first game',
           exchange_rate: 40,
           started_at: '2026-01-10T12:00:00Z',
+          ended_at: null,
           session_entries: sessions[0].session_entries,
         },
       },
@@ -285,30 +292,33 @@ describe('computePlayerHistory', () => {
     }
   })
 
-  it('orders same-day sessions by valid start time, then session id, with missing times last', () => {
+  it('orders same-day sessions by end time, then session id, with missing times first in chronological order', () => {
     const sameDay = makePlayerDetail([
-      makeEntry({ session_id: 'null-b', started_at: null }),
-      makeEntry({ session_id: 'late', started_at: '2026-02-01T20:00:00+08:00' }),
-      makeEntry({ session_id: 'early', started_at: '2026-02-01T10:00:00+08:00' }),
-      makeEntry({ session_id: 'same-b', started_at: '2026-02-01T12:00:00+08:00' }),
-      makeEntry({ session_id: 'same-a', started_at: '2026-02-01T12:00:00+08:00' }),
-      makeEntry({ session_id: 'null-a', started_at: 'invalid' }),
+      makeEntry({ session_id: 'null-b', ended_at: null }),
+      makeEntry({ session_id: 'late', started_at: '2026-02-01T01:00:00Z', ended_at: '2026-02-01T20:00:00+08:00', chips: -40 }),
+      makeEntry({ session_id: 'early', started_at: '2026-02-01T01:30:00Z', ended_at: '2026-02-01T10:00:00+08:00', chips: 100 }),
+      makeEntry({ session_id: 'same-b', ended_at: '2026-02-01T12:00:00+08:00' }),
+      makeEntry({ session_id: 'same-a', ended_at: '2026-02-01T12:00:00+08:00' }),
+      makeEntry({ session_id: 'null-a', ended_at: null }),
     ])
 
     expect(computePlayerHistory(sameDay).history.map(point => point.session_id)).toEqual([
+      'null-a',
+      'null-b',
       'early',
       'same-a',
       'same-b',
       'late',
-      'null-a',
-      'null-b',
     ])
+    const history = computePlayerHistory(sameDay).history
+    expect(history.map(point => point.cumulative)).toEqual([0, 0, 100, 100, 100, 60])
+    expect(history.at(-1)?.chips_candle).toEqual({ open: 100, high: 100, low: -1900, close: 60 })
   })
 
-  it('sorts all missing same-day start times by session id', () => {
+  it('sorts all missing same-day end times by session id', () => {
     const missing = makePlayerDetail([
-      makeEntry({ session_id: 'b', started_at: null }),
-      makeEntry({ session_id: 'a', started_at: null }),
+      makeEntry({ session_id: 'b', ended_at: null }),
+      makeEntry({ session_id: 'a', ended_at: null }),
     ])
 
     expect(computePlayerHistory(missing).history.map(point => point.session_id)).toEqual(['a', 'b'])
@@ -319,12 +329,12 @@ describe('computePlayerHistory', () => {
       makeEntry({
         session_id: 'later-date',
         date: '2026-02-02',
-        started_at: '2026-01-01T01:00:00Z',
+        ended_at: '2026-01-01T01:00:00Z',
       }),
       makeEntry({
         session_id: 'earlier-date',
         date: '2026-02-01',
-        started_at: '2026-12-31T23:00:00Z',
+        ended_at: '2026-12-31T23:00:00Z',
       }),
     ])
 

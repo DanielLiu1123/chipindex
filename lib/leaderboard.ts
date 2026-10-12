@@ -8,6 +8,7 @@ import {
   type LeaderboardRange,
 } from './leaderboard-range'
 import type { LeaderboardSessionRow, Player } from './domain-types'
+import { compareSettledSessionsOldestFirst } from './session-order'
 
 export type LeaderboardSortKey =
   'total_yuan' | 'total_chips' | 'sessions_played' | 'win_rate' | 'pog_count'
@@ -17,7 +18,7 @@ function buildChartData(
   stats: PlayerStats[],
   mode: 'chips' | 'cny',
 ): { date: string; [player: string]: string | number }[] {
-  const sorted = [...sessions].sort((a, b) => a.date.localeCompare(b.date))
+  const sorted = [...sessions].sort(compareSettledSessionsOldestFirst)
   const playerIds = stats.map((s) => s.player.id)
 
   const cumulative = new Map<string, number>()

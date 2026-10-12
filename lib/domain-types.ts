@@ -46,6 +46,7 @@ export interface PlayerHistorySession {
   description: string | null
   exchange_rate: number
   started_at: string | null
+  ended_at: string | null
   session_entries: ResultEntry[] // all players in the session, for POG computation
 }
 
@@ -142,6 +143,7 @@ export interface LeaderboardData {
 export interface LeaderboardSessionRow {
   id: string
   date: string
+  ended_at: string | null
   exchange_rate: number
   session_entries: ResultEntry[]
 }
