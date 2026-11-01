@@ -56,7 +56,7 @@ export default function LiveParticipantList({
           aria-label={`${participant.name} buy-in history`}
           aria-expanded={isExpanded}
           title={participant.name}
-          className="min-w-0 flex-1 self-stretch text-left"
+          className="min-w-0 flex-1 self-stretch px-0 text-left"
         >
           {interactive && (
             <ChevronRight
@@ -124,8 +124,8 @@ export default function LiveParticipantList({
           )}
         </div>
 
-        {/* Align with the chevron after the row padding and trigger border/padding. */}
-        <CollapsibleContent className="border-t border-border pl-[calc(1.375rem+1px)] pr-3 py-2 bg-muted/50">
+        {/* Match the row inset and trigger border so details align with the chevron. */}
+        <CollapsibleContent className="border-t border-border pl-[calc(0.75rem+1px)] pr-3 py-2 bg-muted/50">
           {cashedOut && (
             <div className="mb-2 flex min-w-0 items-baseline gap-2 overflow-hidden text-[10px] text-muted-foreground">
               <span className="shrink-0 tracking-normal">
