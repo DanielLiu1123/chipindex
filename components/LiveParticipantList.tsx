@@ -5,6 +5,7 @@ import {
 } from '@/components/ui/collapsible'
 import { ChevronRight, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import styles from './live-session-actions.module.css'
 import BrowserTime from '@/components/BrowserTime'
 import ChipValue from '@/components/ChipValue'
 import type { LiveParticipant } from '@/lib/domain-types'
@@ -104,7 +105,7 @@ export default function LiveParticipantList({
                   ? onUndoCashOut(participant.player_id)
                   : onCashOut(participant)}
                 disabled={pending}
-                className={`w-[4.75rem] shrink-0 text-xs sm:w-24 ${cashedOut ? '' : 'bg-[#F2E3AE] text-[#655014] hover:bg-[#EAD58A] dark:bg-[#40351B] dark:text-[#ECD58E] dark:hover:bg-[#514323]'}`}
+                className={`w-[4.75rem] shrink-0 text-xs sm:w-24 ${cashedOut ? '' : styles.cashOut}`}
                 aria-label={cashedOut ? `undo ${participant.name} cash out` : undefined}
               >
                 {cashedOut ? 'UNDO' : 'CASH OUT'}

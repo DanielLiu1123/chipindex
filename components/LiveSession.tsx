@@ -3,6 +3,7 @@
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 import { Button } from '@/components/ui/button'
+import styles from './live-session-actions.module.css'
 
 import { useState } from 'react'
 import Link from 'next/link'
@@ -156,13 +157,13 @@ export default function LiveSession({
         </Alert>
       )}
 
-      {settling && (
+      {panel.kind === 'settle' ? (
         <LiveSettlementPanel
           participants={session.participants}
           finals={finals}
           pending={pending}
           settleError={
-            panel.kind === 'settle' && panel.difference !== null
+            panel.difference !== null
               ? { diff: panel.difference }
               : null
           }
@@ -172,56 +173,51 @@ export default function LiveSession({
           }}
           onCancel={flow.close}
         />
-      )}
+      ) : (
+        <>
+          <div className={styles.toolbar}>
+            <PlayerActionButton
+              action="add-player"
+              onClick={flow.openAddPlayers}
+              disabled={pending}
+            />
+            <PlayerActionButton
+              action="buy-in"
+              onClick={flow.openBuyIn}
+              disabled={
+                pending ||
+                !session.participants.some((p) => p.settled_at === null)
+              }
+            />
+            <Button
+              variant="secondary"
+              type="button"
+              onClick={flow.openSettlement}
+              disabled={pending || session.participants.length === 0}
+              className={styles.settle}
+            >
+              SETTLE
+            </Button>
+          </div>
 
-      {!settling && (
-        <div className="mb-5 grid grid-cols-3 gap-2 sm:flex">
-          <PlayerActionButton
-            action="add-player"
-            className="min-w-0 px-2 text-xs sm:px-4"
-            onClick={flow.openAddPlayers}
-            disabled={pending}
-          />
-          <PlayerActionButton
-            action="buy-in"
-            className="min-w-0 px-2 text-xs sm:px-4"
-            onClick={flow.openBuyIn}
-            disabled={
-              pending ||
-              !session.participants.some((p) => p.settled_at === null)
-            }
-          />
-          <Button
-            variant="secondary"
-            type="button"
-            onClick={flow.openSettlement}
-            disabled={pending || session.participants.length === 0}
-            className="min-w-0 bg-[#DEDBD3] px-2 text-xs text-[#343432] hover:bg-[#D2CEC4] dark:bg-[#3A3935] dark:text-[#EFEEE9] dark:hover:bg-[#474640] sm:ml-auto sm:px-4"
-          >
-            SETTLE
-          </Button>
-        </div>
-      )}
-
-      {/* participants + buy-ins */}
-      {!settling && (
-        <div className="flex flex-col gap-1 mb-6">
-          <LiveParticipantList
-            participants={session.participants}
-            expanded={expanded}
-            pending={pending}
-            interactive
-            onToggle={toggleExpand}
-            onRevokeBuyIn={(buyInId) => {
-              void flow.revokeBuyIn(buyInId)
-            }}
-            onCashOut={flow.openCashOut}
-            onUndoCashOut={(playerId) => {
-              void flow.undoCashOut(playerId)
-            }}
-            onRemove={flow.openRemove}
-          />
-        </div>
+          <div className="flex flex-col gap-1 mb-6">
+            <LiveParticipantList
+              participants={session.participants}
+              expanded={expanded}
+              pending={pending}
+              interactive
+              onToggle={toggleExpand}
+              onRevokeBuyIn={(buyInId) => {
+                void flow.revokeBuyIn(buyInId)
+              }}
+              onCashOut={flow.openCashOut}
+              onUndoCashOut={(playerId) => {
+                void flow.undoCashOut(playerId)
+              }}
+              onRemove={flow.openRemove}
+            />
+          </div>
+        </>
       )}
     </>
   )
