@@ -1,5 +1,7 @@
 'use client'
 
+import { Trash2 } from 'lucide-react'
+
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 import { Input } from '@/components/ui/input'
@@ -104,9 +106,11 @@ export default function NewSessionForm({ groupId, initialPlayers }: { groupId: s
                   aria-label={`buy-in for ${accessibleName}`}
                   placeholder="buy-in" min="1" max={MAX_BUY_IN_AMOUNT} step="1"
                   className="w-28 shrink-0 text-right" />
-                <Button variant="destructive" type="button" disabled={starting} onClick={() => removeRow(row.playerId)}
+                <Button variant="ghost" type="button" disabled={starting} onClick={() => removeRow(row.playerId)}
                   aria-label={`remove ${accessibleName}`}
-                  className="w-8 shrink-0 justify-center">×</Button>
+                  className="size-8 shrink-0 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
+                  <Trash2 className="size-4" aria-hidden="true" />
+                </Button>
               </div>
             })}
           </div>
