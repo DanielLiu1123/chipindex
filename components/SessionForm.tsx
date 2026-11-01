@@ -1,5 +1,7 @@
 'use client'
 
+import DeleteIconButton from '@/components/DeleteIconButton'
+
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 import { Input } from '@/components/ui/input'
@@ -9,7 +11,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import PlayerSelectionModal from './PlayerSelectionModal'
-import PlayerActionButton from './PlayerActionButton'
+import SessionPlayersHeader from '@/components/SessionPlayersHeader'
 import SessionMetaFields from './SessionMetaFields'
 import { usePlayerDirectory } from '@/lib/use-player-directory'
 import { importSession } from '@/lib/client'
@@ -33,6 +35,8 @@ export default function SessionForm({ groupId, initialPlayers }: { groupId: stri
   const busy = useRef(false)
   const directory = usePlayerDirectory({ groupId, players: initialPlayers,
     excludedIds: rows.map(row => row.playerId), excludedMessage: 'This player is already selected.' })
+
+  const hasPlayers = rows.length > 0
 
   async function selectPlayers(ids: string[]) {
     setRows(current => [...current, ...[...new Set(ids)]
@@ -65,23 +69,31 @@ export default function SessionForm({ groupId, initialPlayers }: { groupId: stri
     <form onSubmit={handleSubmit} className="surface flex max-w-lg flex-col gap-6">
       <SessionMetaFields date={date} setDate={setDate} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate}
         description={description} setDescription={setDescription} disabled={submitting} />
-      <div className="flex flex-col gap-2">
-        {rows.map(row => {
-          const name = directory.players.find(player => player.id === row.playerId)?.name ?? row.playerId
-          return <div key={row.playerId} className="flex items-center gap-2">
-            <span className="min-w-0 flex-1 truncate text-sm text-foreground">{name}</span>
-            <Input aria-label={`net chips for ${name}`} type="number" step="1" required value={row.chips} disabled={submitting}
-              onChange={event => setRows(current => current.map(item => item.playerId === row.playerId ? { ...item, chips: event.target.value } : item))}
-              placeholder="chips (±)" className="w-28" />
-            <Button variant="destructive" type="button" aria-label={`remove ${name}`} disabled={submitting}
-              onClick={() => setRows(current => current.filter(item => item.playerId !== row.playerId))}
-              >✕</Button>
+      <div>
+        <SessionPlayersHeader disabled={submitting} onAdd={() => setPickerOpen(true)} />
+        {!hasPlayers ? (
+          <p className="rounded-lg border border-dashed border-input px-3 py-6 text-center text-sm text-muted-foreground">No players</p>
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            {rows.map(row => {
+              const name = directory.players.find(player => player.id === row.playerId)?.name ?? row.playerId
+              return <div key={row.playerId} className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-1.5">
+                <span className="min-w-0 flex-1 truncate text-sm text-foreground">{name}</span>
+                <Input aria-label={`net chips for ${name}`} type="number" step="1" required value={row.chips} disabled={submitting}
+                  onChange={event => setRows(current => current.map(item => item.playerId === row.playerId ? { ...item, chips: event.target.value } : item))}
+                  placeholder="chips (±)" className="w-28 shrink-0 text-right" />
+                <DeleteIconButton label={`remove ${name}`} disabled={submitting}
+                  onClick={() => setRows(current => current.filter(item => item.playerId !== row.playerId))} />
+              </div>
+            })}
           </div>
-        })}
-        <PlayerActionButton action="add-player" disabled={submitting} onClick={() => setPickerOpen(true)} />
+        )}
       </div>
       {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
-      <Button variant="default" type="submit" disabled={submitting || !date} >{submitting ? 'IMPORTING...' : 'IMPORT'}</Button>
+      <div className="flex flex-col gap-2">
+        <Button variant="default" type="submit" disabled={submitting || !date || !hasPlayers} className="w-full">{submitting ? 'IMPORTING...' : 'IMPORT'}</Button>
+        {!hasPlayers && <p className="text-xs text-muted-foreground">Add at least one player to import.</p>}
+      </div>
     </form>
   </>
 }
