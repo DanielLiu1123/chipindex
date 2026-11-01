@@ -67,7 +67,7 @@ async function SessionsPage({ params, query }: {
           <col className="w-9 sm:w-12" />
         </colgroup>
         <TableHeader><TableRow className="border-b border-border text-muted-foreground text-xs tracking-normal">
-          <TableHead className="text-left py-3 font-normal">DATE</TableHead><TableHead className="hidden sm:table-cell text-left py-3 font-normal whitespace-normal [overflow-wrap:anywhere]">DESCRIPTION</TableHead><TableHead className="text-center py-3 font-normal">PLAYERS</TableHead>
+          <TableHead className="text-left h-16 py-3 font-normal">DATE</TableHead><TableHead className="hidden sm:table-cell text-left py-3 font-normal whitespace-normal [overflow-wrap:anywhere]">DESCRIPTION</TableHead><TableHead className="text-center py-3 font-normal">PLAYERS</TableHead>
           <TableHead className="text-center py-3 font-normal">POG</TableHead><TableHead className="text-center py-3 font-normal">RATE</TableHead>
           <TableHead className="text-center py-3 font-normal"></TableHead>
         </TableRow></TableHeader>
@@ -82,13 +82,13 @@ async function SessionsPage({ params, query }: {
                   {isOpen && <><span aria-hidden="true" className="inline-block w-2 h-2 rounded-full bg-live motion-safe:animate-pulse shrink-0" /><span className="sr-only">Live session</span></>}{session.date}
                 </div>
               </Link></TableCell>
-              <TableCell className="hidden sm:table-cell py-4 text-left whitespace-normal [overflow-wrap:anywhere] text-muted-foreground"><Link href={href} className="block leading-relaxed">{session.description || '—'}</Link></TableCell>
+              <TableCell className="hidden sm:table-cell py-4 text-left whitespace-normal [overflow-wrap:anywhere] text-muted-foreground"><Link href={href} className="block">{session.description || '—'}</Link></TableCell>
               <TableCell className="py-4 text-center text-muted-foreground"><Link href={href} className="block">{session.player_count}</Link></TableCell>
               <TableCell className="py-4 text-center">{!isOpen && session.winners.length > 0
                 ? <div className="flex flex-wrap justify-center gap-x-2 gap-y-1 whitespace-normal [overflow-wrap:anywhere]">{session.winners.map(winner => <Link key={winner.player_id} href={`/groups/${groupId}/players/${winner.player_id}`} className="min-w-0 text-muted-foreground hover:text-primary transition-colors">{winner.name}</Link>)}</div>
                 : <span className="text-muted-foreground">—</span>}</TableCell>
               <TableCell className="py-4 text-center text-muted-foreground"><Link href={href} className="block">{session.exchange_rate ? `${session.exchange_rate}:1` : '—'}</Link></TableCell>
-              <TableCell className="py-4 text-center"><DeleteSessionButton groupId={groupId} sessionId={session.id} /></TableCell>
+              <TableCell className="py-2 text-center"><DeleteSessionButton groupId={groupId} sessionId={session.id} /></TableCell>
             </TableRow>
           })}
         </TableBody>
