@@ -3,7 +3,7 @@ import {
   CollapsibleTrigger,
   CollapsibleContent,
 } from '@/components/ui/collapsible'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import BrowserTime from '@/components/BrowserTime'
 import ChipValue from '@/components/ChipValue'
@@ -93,62 +93,35 @@ export default function LiveParticipantList({
         onOpenChange={() => onToggle(participant.player_id)}
         className="rounded-lg border border-border"
       >
-        {cashedOut ? (
-          <div className="flex flex-nowrap items-center gap-1.5 px-3 py-1.5 sm:gap-2">
-            {detailsToggle}
-            {interactive && (
-              <div className="contents">
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={() => onUndoCashOut(participant.player_id)}
-                  disabled={pending}
-                  className="w-[4.75rem] shrink-0 sm:w-24"
-                  aria-label={`undo ${participant.name} cash out`}
-                >
-                  UNDO
-                </Button>
-                <Button
-                  variant="destructive"
-                  type="button"
-                  onClick={() => onRemove(participant)}
-                  disabled={pending}
-                  className="shrink-0"
-                  aria-label="remove player"
-                >
-                  ✕
-                </Button>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="flex flex-nowrap items-center gap-1.5 px-3 py-1.5 sm:gap-2">
-            {detailsToggle}
-            {interactive && (
-              <div className="contents">
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={() => onCashOut(participant)}
-                  disabled={pending}
-                  className="w-[4.75rem] shrink-0 text-xs sm:w-24"
-                >
-                  CASH OUT
-                </Button>
-                <Button
-                  variant="destructive"
-                  type="button"
-                  onClick={() => onRemove(participant)}
-                  disabled={pending}
-                  className="shrink-0"
-                  aria-label="remove player"
-                >
-                  ✕
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
+        <div className="flex flex-nowrap items-center gap-1.5 px-3 py-1.5 sm:gap-2">
+          {detailsToggle}
+          {interactive && (
+            <>
+              <Button
+                variant={cashedOut ? 'secondary' : 'default'}
+                type="button"
+                onClick={() => cashedOut
+                  ? onUndoCashOut(participant.player_id)
+                  : onCashOut(participant)}
+                disabled={pending}
+                className="w-[4.75rem] shrink-0 text-xs sm:w-24"
+                aria-label={cashedOut ? `undo ${participant.name} cash out` : undefined}
+              >
+                {cashedOut ? 'UNDO' : 'CASH OUT'}
+              </Button>
+              <Button
+                variant="ghost"
+                type="button"
+                onClick={() => onRemove(participant)}
+                disabled={pending}
+                className="size-8 shrink-0 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                aria-label="remove player"
+              >
+                <Trash2 className="size-4" aria-hidden="true" />
+              </Button>
+            </>
+          )}
+        </div>
 
         {/* Align with the chevron after the row padding and trigger border/padding. */}
         <CollapsibleContent className="border-t border-border pl-[calc(1.375rem+1px)] pr-3 py-2 bg-muted/50">
@@ -186,10 +159,11 @@ export default function LiveParticipantList({
                       size="icon-xs"
                       className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                       type="button"
+                      aria-label={`Revoke ${participant.name} buy-in`}
                       onClick={() => onRevokeBuyIn(buyIn.id)}
                       disabled={pending}
                     >
-                      ✕
+                      <Trash2 className="size-4" aria-hidden="true" />
                     </Button>
                   )}
                 </div>

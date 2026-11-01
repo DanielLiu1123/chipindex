@@ -37,7 +37,7 @@ export default function LiveSession({
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
   const unit = session.buy_in_unit
-  const { pot, cashedOutTotal } = summarizeLiveSession(
+  const { pot } = summarizeLiveSession(
     session.participants,
     finals,
   )
@@ -150,17 +150,7 @@ export default function LiveSession({
         <span className="text-primary text-3xl font-medium tracking-tight">{pot.toLocaleString()}</span>
         <span className="text-xs text-muted-foreground">chips</span>
       </div>
-      {cashedOutTotal > 0 && (
-        <div className="-mt-5 mb-6 flex flex-wrap items-baseline gap-2">
-          <span className="text-xs text-muted-foreground tracking-normal">
-            CASHED OUT
-          </span>
-          <span className="text-foreground text-sm">
-            {cashedOutTotal.toLocaleString()}
-          </span>
-          <span className="text-xs text-muted-foreground">chips</span>
-        </div>
-      )}
+
 
       {error && panel.kind !== 'cash-out' && panel.kind !== 'rate' && (
         <Alert variant="destructive">

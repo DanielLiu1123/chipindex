@@ -181,10 +181,10 @@ it('refreshes after revocation and keeps recoverable errors in the page', async 
     .mockResolvedValueOnce(undefined)
   mount()
   click('Alice buy-in history')
-  click('✕')
+  click('Revoke Alice buy-in')
   await screen.findByText('Cannot revoke')
   expect(nav.refresh).not.toHaveBeenCalled()
-  click('✕')
+  click('Revoke Alice buy-in')
   await waitFor(() => expect(nav.refresh).toHaveBeenCalledOnce())
   expect(screen.queryByText('Cannot revoke')).toBeNull()
 })
@@ -230,4 +230,23 @@ it('edits the rate, preserves failed drafts, and refreshes after a single succes
   click('20.5 chips = 1 CNY')
   expect((screen.getByRole('spinbutton') as HTMLInputElement).value).toBe('20.5')
   expect(updateSession).toHaveBeenCalledTimes(2)
+})
+
+it('hides the cashed-out summary while retaining participant results and expanded details', () => {
+  render(<LiveSession groupId="g1" session={{
+    ...session,
+    participants: [{
+      ...session.participants[0],
+      final_chips: 2500,
+      settled_at: '2026-09-22T09:00:00Z',
+    }],
+  }} allPlayers={[]} />)
+
+  expect(screen.queryByText('CASHED OUT')).toBeNull()
+  expect(screen.getByText('NET')).toBeTruthy()
+  expect(screen.getByRole('button', { name: 'undo Alice cash out' })).toBeTruthy()
+  click('Alice buy-in history')
+  expect(screen.getByText(/CASHED OUT/)).toBeTruthy()
+  expect(screen.getByText(/FINAL/)).toBeTruthy()
+  expect(screen.queryByRole('button', { name: 'Revoke Alice buy-in' })).toBeNull()
 })
