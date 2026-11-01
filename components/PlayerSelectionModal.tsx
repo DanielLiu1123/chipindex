@@ -275,7 +275,7 @@ export default function PlayerSelectionModal({
               CHIPS PER PLAYER
             </Label>
             <div className="mb-2 flex flex-wrap gap-2">
-              {[1, 2, 3, 4, 5].map((multiplier) => {
+              {[1, 2, 3, 4].map((multiplier) => {
                 const preset = action.unit * multiplier
                 return (
                   <Button
