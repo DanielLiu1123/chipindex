@@ -133,7 +133,7 @@ export default function LiveSession({
           </span>
         )}
       </div>
-      <div className="mb-3">
+      <div className="mb-6 flex items-baseline justify-between gap-2">
         <button
           type="button"
           onClick={flow.openRate}
@@ -143,12 +143,12 @@ export default function LiveSession({
         >
           {session.exchange_rate} chips = 1 CNY
         </button>
-      </div>
-      <div className="mb-6 flex flex-wrap items-baseline gap-2">
-        <span className="text-xs text-muted-foreground tracking-normal">
-          TOTAL BUY-IN
-        </span>
-        <span className="text-primary text-2xl font-medium tracking-tight">{pot.toLocaleString()}</span>
+        <div className="flex shrink-0 items-baseline gap-1 sm:gap-2">
+          <span className="text-xs text-muted-foreground tracking-normal">
+            TOTAL BUY-IN
+          </span>
+          <span className="text-primary text-2xl font-medium tracking-tight">{pot.toLocaleString()}</span>
+        </div>
       </div>
 
       {error && panel.kind !== 'cash-out' && panel.kind !== 'rate' && (
