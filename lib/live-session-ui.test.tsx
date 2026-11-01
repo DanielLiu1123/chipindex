@@ -243,7 +243,8 @@ it('hides the cashed-out summary while retaining participant results and expande
   }} allPlayers={[]} />)
 
   expect(screen.queryByText('CASHED OUT')).toBeNull()
-  expect(screen.getByText('NET')).toBeTruthy()
+  expect(screen.queryByText('NET')).toBeNull()
+  expect(screen.getByText('+500')).toBeTruthy()
   expect(screen.getByRole('button', { name: 'undo Alice cash out' })).toBeTruthy()
   click('Alice buy-in history')
   expect(screen.getByText(/CASHED OUT/)).toBeTruthy()

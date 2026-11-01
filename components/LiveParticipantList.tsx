@@ -69,7 +69,6 @@ export default function LiveParticipantList({
           </span>
           {cashedOut ? (
             <span className="shrink-0 whitespace-nowrap text-[10px] tracking-normal text-muted-foreground sm:text-xs">
-              NET{' '}
               <ChipValue
                 chips={netChips}
                 className="tracking-normal tabular-nums"
