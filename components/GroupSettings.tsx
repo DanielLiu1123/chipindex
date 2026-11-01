@@ -121,12 +121,12 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
         </div>
 
         <div>
-          <div aria-hidden="true" className="hidden grid-cols-[minmax(0,1fr)_11rem_6rem] gap-4 border-b border-border bg-muted/40 px-4 py-2 text-[10px] font-medium tracking-widest text-muted-foreground sm:grid">
+          <div aria-hidden="true" className="hidden h-16 grid-cols-[minmax(0,1fr)_11rem_6rem] items-center gap-4 border-b border-border bg-muted/40 px-4 py-2 text-[10px] font-medium tracking-widest text-muted-foreground sm:grid">
             <span>PLAYER</span><span>JOINED AT</span><span />
           </div>
           <ul className="divide-y divide-border">
             {groupPlayers.map(row => <li key={row.group_player.id}
-              className="grid min-h-14 grid-cols-[minmax(0,1fr)_6rem] items-center gap-x-3 px-4 py-2.5 transition-colors hover:bg-muted/40 sm:grid-cols-[minmax(0,1fr)_11rem_6rem] sm:gap-x-4">
+              className="grid min-h-13 grid-cols-[minmax(0,1fr)_6rem] items-center gap-x-3 px-4 py-2.5 transition-colors hover:bg-muted/40 sm:grid-cols-[minmax(0,1fr)_11rem_6rem] sm:gap-x-4">
               <Link href={`/groups/${group.id}/players/${row.player.id}`} title={row.player.name}
                 className="min-w-0 truncate text-sm font-medium text-foreground underline-offset-4 transition-colors hover:underline focus-visible:outline-ring">
                 {row.player.name}
