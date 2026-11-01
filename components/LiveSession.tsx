@@ -147,10 +147,8 @@ export default function LiveSession({
         <span className="text-xs text-muted-foreground tracking-normal">
           TOTAL BUY-IN
         </span>
-        <span className="text-primary text-3xl font-medium tracking-tight">{pot.toLocaleString()}</span>
-        <span className="text-xs text-muted-foreground">chips</span>
+        <span className="text-primary text-2xl font-medium tracking-tight">{pot.toLocaleString()}</span>
       </div>
-
 
       {error && panel.kind !== 'cash-out' && panel.kind !== 'rate' && (
         <Alert variant="destructive">
