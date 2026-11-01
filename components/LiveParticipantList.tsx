@@ -104,7 +104,7 @@ export default function LiveParticipantList({
                   ? onUndoCashOut(participant.player_id)
                   : onCashOut(participant)}
                 disabled={pending}
-                className={`w-[4.75rem] shrink-0 text-xs sm:w-24 ${cashedOut ? '' : 'bg-amber-100 text-amber-950 hover:bg-amber-200 dark:bg-amber-950 dark:text-amber-200 dark:hover:bg-amber-900'}`}
+                className={`w-[4.75rem] shrink-0 text-xs sm:w-24 ${cashedOut ? '' : 'bg-[#F2E3AE] text-[#655014] hover:bg-[#EAD58A] dark:bg-[#40351B] dark:text-[#ECD58E] dark:hover:bg-[#514323]'}`}
                 aria-label={cashedOut ? `undo ${participant.name} cash out` : undefined}
               >
                 {cashedOut ? 'UNDO' : 'CASH OUT'}
