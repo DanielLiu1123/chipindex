@@ -6,6 +6,7 @@ vi.mock('./queries', () => ({
   getPlayerDetail: async () => captured.detail,
 }))
 vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn() }),
   notFound: () => {
     throw new Error('404')
   },

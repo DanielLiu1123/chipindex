@@ -1,3 +1,6 @@
+'use client'
+
+import type { FormEvent, MouseEvent } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -19,14 +22,28 @@ export default function SessionPagination({
   page,
   pageSize,
   totalPages,
+  onPageChange,
 }: {
   sessionsPath: string
   page: number
   pageSize: number
   totalPages: number
+  onPageChange?: (href: string) => void
 }) {
   if (totalPages <= 1) return null
   const href = (next: number) => sessionPageHref(sessionsPath, next, pageSize)
+  function navigate(event: MouseEvent<HTMLAnchorElement>) {
+    const destination = event.currentTarget.getAttribute('href')
+    if (!onPageChange || !destination || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+    event.preventDefault()
+    onPageChange(destination)
+  }
+  function jumpToPage(event: FormEvent<HTMLFormElement>) {
+    if (!onPageChange) return
+    event.preventDefault()
+    const next = Number(new FormData(event.currentTarget).get('page'))
+    if (Number.isSafeInteger(next) && next >= 1 && next <= totalPages) onPageChange(href(next))
+  }
   return (
     <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
       <Pagination aria-label="Sessions pagination" className="mx-0 w-auto">
@@ -34,6 +51,7 @@ export default function SessionPagination({
           <PaginationItem>
             <PaginationPrevious
               href={page > 1 ? href(page - 1) : undefined}
+              onClick={navigate}
               aria-label="Previous page"
               aria-disabled={page === 1}
               tabIndex={page === 1 ? -1 : undefined}
@@ -49,6 +67,7 @@ export default function SessionPagination({
               ) : (
                 <PaginationLink
                   href={href(item)}
+                  onClick={navigate}
                   isActive={item === page}
                   aria-label={`Go to page ${item}`}
                 >
@@ -60,6 +79,7 @@ export default function SessionPagination({
           <PaginationItem>
             <PaginationNext
               href={page < totalPages ? href(page + 1) : undefined}
+              onClick={navigate}
               aria-label="Next page"
               aria-disabled={page === totalPages}
               tabIndex={page === totalPages ? -1 : undefined}
@@ -71,7 +91,7 @@ export default function SessionPagination({
         </PaginationContent>
       </Pagination>
       {totalPages > 7 && (
-        <form key={`${page}:${pageSize}`} action={sessionsPath} method="get">
+        <form key={`${page}:${pageSize}`} action={sessionsPath} method="get" onSubmit={jumpToPage}>
           <Label className="flex items-center gap-2">
             GO
             <Input

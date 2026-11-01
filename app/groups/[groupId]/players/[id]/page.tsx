@@ -3,8 +3,7 @@ import Loading from './loading'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import PlayerStatsChart from '@/components/PlayerStatsChart'
-import PlayerSessionHistoryTable from '@/components/PlayerSessionHistoryTable'
-import SessionPagination from '@/components/SessionPagination'
+import PlayerSessionHistory from '@/components/PlayerSessionHistory'
 import { DEFAULT_SESSION_PAGE_SIZE, MAX_SESSION_PAGE_SIZE, normalizeSessionPageParam, hasCanonicalSessionPageParams, sessionPageHref } from '@/lib/session-pagination'
 import { getPlayerDetail } from '@/lib/queries'
 import { computePlayerHistory } from '@/lib/stats'
@@ -45,15 +44,14 @@ async function PlayerDetailPage({ params, query }: {
     <PlayerStatsChart groupId={groupId} id={id} initialName={player.name} data={history} totalCny={totalCny}
       totalChips={totalChips} sessions={history.length} wins={wins} pogCount={pogCount} />
     <p className="text-xs text-muted-foreground tracking-normal mb-4">SESSION HISTORY</p>
-    <PlayerSessionHistoryTable groupId={groupId} rows={rows} />
-    <SessionPagination sessionsPath={historyPath} page={page} pageSize={pageSize} totalPages={totalPages} />
+    <PlayerSessionHistory groupId={groupId} rows={rows} sessionsPath={historyPath} page={page} pageSize={pageSize} totalPages={totalPages} />
   </>
 }
 
-// Reset the loading boundary for pagination as well as path changes.
+// Keep the revealed profile mounted during pagination transitions.
 export default async function Page(props: PageProps) {
   const query = await props.searchParams
-  return <Suspense key={JSON.stringify([query.page, query.page_size])} fallback={<Loading />}>
+  return <Suspense fallback={<Loading />}>
     <PlayerDetailPage params={props.params} query={query} />
   </Suspense>
 }
