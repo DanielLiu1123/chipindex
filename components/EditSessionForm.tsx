@@ -2,7 +2,7 @@
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
-import { Label } from '@/components/ui/label'
+import { Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
@@ -165,13 +165,16 @@ function EditSessionEditor({ groupId, sessionId, session, initialPlayers }: {
         />
 
         <div>
-          <Label className="text-xs text-muted-foreground tracking-normal block mb-3">PLAYERS <span className="text-muted-foreground">(buy-in · final · net)</span></Label>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2 className="text-xs font-normal text-muted-foreground tracking-normal">PLAYERS</h2>
+            <PlayerActionButton action="add-player" variant="default" disabled={submitting} onClick={() => setAddPlayersOpen(true)} />
+          </div>
           <div className="flex flex-col gap-2">
             {rows.map(row => {
               const total = buyinTotal(row)
               const net = netChips(Number(row.final) || 0, total)
               return (
-                <div key={row.playerId} className="border border-border">
+                <div key={row.playerId} className="overflow-hidden rounded-lg border border-border">
                   <div className="flex items-center gap-2 px-3 py-2.5">
                     <Button variant="ghost" type="button" onClick={() => toggle(row.playerId)} className="flex-1 text-left min-w-0">
                       <span className="text-foreground truncate">{row.name}</span>
@@ -181,7 +184,10 @@ function EditSessionEditor({ groupId, sessionId, session, initialPlayers }: {
                       placeholder="final" min="0"
                       className="w-24 text-right" />
                     <span className="w-20 text-right text-sm"><ChipValue chips={net} /></span>
-                    <Button variant="destructive" type="button" disabled={submitting} onClick={() => setConfirmRemove(row)}  aria-label={`remove ${row.name}`}>✕</Button>
+                    <Button variant="ghost" type="button" disabled={submitting} onClick={() => setConfirmRemove(row)} aria-label={`remove ${row.name}`}
+                      className="size-8 shrink-0 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
+                      <Trash2 className="size-4" aria-hidden="true" />
+                    </Button>
                   </div>
 
                   {expanded.has(row.playerId) && (
@@ -197,8 +203,11 @@ function EditSessionEditor({ groupId, sessionId, session, initialPlayers }: {
                             <Input disabled={submitting} type="number" value={b.amount} min="1"
                               onChange={e => updateRow(row.playerId, { buyins: row.buyins.map((x, j) => j === i ? { ...x, amount: e.target.value } : x) })}
                               className="flex-1 text-right" />
-                            <Button variant="destructive" disabled={submitting} type="button" onClick={() => updateRow(row.playerId, { buyins: row.buyins.filter((_, j) => j !== i) })}
-                              >✕</Button>
+                            <Button variant="ghost" disabled={submitting} type="button" onClick={() => updateRow(row.playerId, { buyins: row.buyins.filter((_, j) => j !== i) })}
+                              aria-label={`remove buy-in ${i + 1} for ${row.name}`}
+                              className="size-8 shrink-0 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
+                              <Trash2 className="size-4" aria-hidden="true" />
+                            </Button>
                           </div>
                         ))}
                         <Button variant="ghost" disabled={submitting} type="button" onClick={() => updateRow(row.playerId, { buyins: [...row.buyins, { amount: String(unit), created_at: defaultEventTime }] })}
@@ -209,7 +218,6 @@ function EditSessionEditor({ groupId, sessionId, session, initialPlayers }: {
                 </div>
               )
             })}
-            <PlayerActionButton action="add-player" disabled={submitting} onClick={() => setAddPlayersOpen(true)} />
           </div>
         </div>
 
