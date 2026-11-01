@@ -3,6 +3,7 @@ import {
   CollapsibleTrigger,
   CollapsibleContent,
 } from '@/components/ui/collapsible'
+import { cn } from 'cn'
 import { ChevronRight, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import styles from './live-session-actions.module.css'
@@ -56,7 +57,7 @@ export default function LiveParticipantList({
           aria-label={`${participant.name} buy-in history`}
           aria-expanded={isExpanded}
           title={participant.name}
-          className="min-w-0 flex-1 self-stretch px-0 text-left"
+          className="min-w-0 flex-1 self-stretch border-0 px-0 text-left"
         >
           {interactive && (
             <ChevronRight
@@ -68,12 +69,10 @@ export default function LiveParticipantList({
             {participant.name}
           </span>
           {cashedOut ? (
-            <span className="shrink-0 whitespace-nowrap text-[10px] tracking-normal text-muted-foreground sm:text-xs">
-              <ChipValue
-                chips={netChips}
-                className="tracking-normal tabular-nums"
-              />
-            </span>
+            <ChipValue
+              chips={netChips}
+              className="shrink-0 whitespace-nowrap text-[10px] tracking-normal tabular-nums sm:text-xs"
+            />
           ) : (
             <span className="shrink-0 whitespace-nowrap text-[11px] text-muted-foreground tabular-nums group-hover:text-foreground sm:text-xs">
               {participant.buy_ins.length}×{' '}
@@ -104,7 +103,7 @@ export default function LiveParticipantList({
                   ? onUndoCashOut(participant.player_id)
                   : onCashOut(participant)}
                 disabled={pending}
-                className={`w-[4.75rem] shrink-0 text-xs sm:w-24 ${cashedOut ? '' : styles.cashOut}`}
+                className={cn('w-[4.75rem] shrink-0 text-xs sm:w-24', !cashedOut && styles.cashOut)}
                 aria-label={cashedOut ? `undo ${participant.name} cash out` : undefined}
               >
                 {cashedOut ? 'UNDO' : 'CASH OUT'}
@@ -123,8 +122,7 @@ export default function LiveParticipantList({
           )}
         </div>
 
-        {/* Match the row inset and trigger border so details align with the chevron. */}
-        <CollapsibleContent className="border-t border-border pl-[calc(0.75rem+1px)] pr-3 py-2 bg-muted/50">
+        <CollapsibleContent className="border-t border-border px-3 py-2 bg-muted/50">
           {cashedOut && (
             <div className="mb-2 flex min-w-0 items-baseline gap-2 overflow-hidden text-[10px] text-muted-foreground">
               <span className="shrink-0 tracking-normal">
