@@ -1,7 +1,11 @@
 import * as React from "react"
 import { cn } from "cn"
 
-function Input({ className, type, ...props }: React.ComponentProps<"input">) {
+type InputProps = React.ComponentProps<"input"> & {
+  showStepper?: boolean
+}
+
+function Input({ className, type, showStepper = false, ...props }: InputProps) {
   return (
     <input
       type={type}

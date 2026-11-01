@@ -96,6 +96,7 @@ export default function SessionPagination({
             GO
             <Input
               type="number"
+              showStepper
               name="page"
               min="1"
               max={totalPages}
