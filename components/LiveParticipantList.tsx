@@ -64,7 +64,7 @@ export default function LiveParticipantList({
               className={`size-3 shrink-0 text-muted-foreground transition-transform motion-reduce:transition-none ${isExpanded ? 'rotate-90' : ''}`}
             />
           )}
-          <span className="min-w-0 flex-1 truncate text-sm leading-snug text-foreground sm:text-base">
+          <span className="min-w-0 flex-1 truncate text-sm font-normal leading-snug text-foreground sm:text-base">
             {participant.name}
           </span>
           {cashedOut ? (
