@@ -9,8 +9,8 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }))
 afterEach(() => { cleanup(); push.mockReset() })
 
 const rows = [{ date: '2026-10-30', cny: 1, chips: 40, cumulative_cny: 1, cumulative: 40, session_id: 's1' }]
-function setup() {
-  return render(<PlayerSessionHistory groupId="g1" rows={rows} sessionsPath="/groups/g1/players/p1" page={2} pageSize={10} totalPages={9} />)
+function setup(page = 2) {
+  return render(<PlayerSessionHistory groupId="g1" rows={rows} sessionsPath="/groups/g1/players/p1" page={page} pageSize={10} totalPages={9} />)
 }
 
 describe('player history client navigation', () => {
@@ -47,15 +47,16 @@ describe('player history client navigation', () => {
     expect(screen.queryByRole('link', { name: '2026-10-30' })).toBeNull()
     expect(screen.getByRole('status', { name: 'Loading session history' })).toBeTruthy()
     expect(screen.getByRole('region', { name: 'Session history' }).getAttribute('aria-busy')).toBe('true')
-    expect(screen.getByRole('navigation').parentElement?.parentElement?.hasAttribute('inert')).toBe(true)
+    expect(Boolean(screen.getByRole('navigation').closest('[inert]'))).toBe(true)
     expect(screen.queryByText('Loading entire profile')).toBeNull()
+    fireEvent.click(screen.getByRole('link', { name: 'Next page' }))
+    expect(push).toHaveBeenCalledTimes(1)
     await act(async () => { resolve(); await ready })
     expect(screen.getByRole('link', { name: '2026-10-29' })).toBeTruthy()
     expect(screen.queryByRole('status')).toBeNull()
     expect(screen.getByRole('region', { name: 'Session history' }).getAttribute('aria-busy')).toBe('false')
     expect(screen.getByRole('textbox', { name: 'Chart state' })).toBe(chart)
     expect((chart as HTMLInputElement).value).toBe('CHIPS')
-    push.mockReset()
   })
 
   it('submits GO through the router while preserving page size', () => {
@@ -64,6 +65,22 @@ describe('player history client navigation', () => {
     fireEvent.change(input, { target: { value: '8' } })
     fireEvent.submit(input.closest('form')!)
     expect(push).toHaveBeenCalledWith('/groups/g1/players/p1?page=8&page_size=10', { scroll: false })
+  })
+
+  it.each([[1, 'Previous page'], [9, 'Next page']] as const)('does not navigate past page %s', (page, label) => {
+    setup(page)
+    const link = screen.getByLabelText(label)
+    expect(link.getAttribute('aria-disabled')).toBe('true')
+    fireEvent.click(link)
+    expect(push).not.toHaveBeenCalled()
+  })
+
+  it.each(['', '0', '10', '1.5'])('ignores invalid GO value "%s"', value => {
+    setup()
+    const input = screen.getByRole('spinbutton', { name: 'Go to page' })
+    fireEvent.change(input, { target: { value } })
+    fireEvent.submit(input.closest('form')!)
+    expect(push).not.toHaveBeenCalled()
   })
 
   it('preserves native modified-click behavior and session detail links', () => {

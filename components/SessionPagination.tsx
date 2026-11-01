@@ -1,6 +1,6 @@
 'use client'
 
-import type { MouseEvent } from 'react'
+import type { FormEvent, MouseEvent } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -32,10 +32,17 @@ export default function SessionPagination({
 }) {
   if (totalPages <= 1) return null
   const href = (next: number) => sessionPageHref(sessionsPath, next, pageSize)
-  const navigate = (event: MouseEvent<HTMLAnchorElement>, next: number) => {
-    if (!onPageChange || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+  function navigate(event: MouseEvent<HTMLAnchorElement>) {
+    const destination = event.currentTarget.getAttribute('href')
+    if (!onPageChange || !destination || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
     event.preventDefault()
-    onPageChange(href(next))
+    onPageChange(destination)
+  }
+  function jumpToPage(event: FormEvent<HTMLFormElement>) {
+    if (!onPageChange) return
+    event.preventDefault()
+    const next = Number(new FormData(event.currentTarget).get('page'))
+    if (Number.isSafeInteger(next) && next >= 1 && next <= totalPages) onPageChange(href(next))
   }
   return (
     <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
@@ -44,7 +51,7 @@ export default function SessionPagination({
           <PaginationItem>
             <PaginationPrevious
               href={page > 1 ? href(page - 1) : undefined}
-              onClick={event => navigate(event, Math.max(1, page - 1))}
+              onClick={navigate}
               aria-label="Previous page"
               aria-disabled={page === 1}
               tabIndex={page === 1 ? -1 : undefined}
@@ -60,7 +67,7 @@ export default function SessionPagination({
               ) : (
                 <PaginationLink
                   href={href(item)}
-                  onClick={event => navigate(event, item)}
+                  onClick={navigate}
                   isActive={item === page}
                   aria-label={`Go to page ${item}`}
                 >
@@ -72,7 +79,7 @@ export default function SessionPagination({
           <PaginationItem>
             <PaginationNext
               href={page < totalPages ? href(page + 1) : undefined}
-              onClick={event => navigate(event, Math.min(totalPages, page + 1))}
+              onClick={navigate}
               aria-label="Next page"
               aria-disabled={page === totalPages}
               tabIndex={page === totalPages ? -1 : undefined}
@@ -84,12 +91,7 @@ export default function SessionPagination({
         </PaginationContent>
       </Pagination>
       {totalPages > 7 && (
-        <form key={`${page}:${pageSize}`} action={sessionsPath} method="get" onSubmit={event => {
-          if (!onPageChange) return
-          event.preventDefault()
-          const value = Number(new FormData(event.currentTarget).get('page'))
-          if (Number.isInteger(value) && value >= 1 && value <= totalPages) onPageChange(href(value))
-        }}>
+        <form key={`${page}:${pageSize}`} action={sessionsPath} method="get" onSubmit={jumpToPage}>
           <Label className="flex items-center gap-2">
             GO
             <Input

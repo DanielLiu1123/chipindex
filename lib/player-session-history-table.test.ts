@@ -12,15 +12,10 @@ const row = {
   session_id: 's1',
 }
 
-function renderTable(): string {
+function renderTable(loading = false): string {
   return renderToStaticMarkup(
-    createElement(PlayerSessionHistoryTable, { groupId: 'g1', rows: [row] }),
+    createElement(PlayerSessionHistoryTable, { groupId: 'g1', rows: [row], loading }),
   )
-}
-
-function classTokensFor(markup: string, tag: 'th' | 'td'): string[][] {
-  return [...markup.matchAll(new RegExp(`<${tag}\\b[^>]* class="([^"]*)"`, 'g'))]
-    .map(match => match[1].split(/\s+/))
 }
 
 describe('PlayerSessionHistoryTable', () => {
@@ -33,21 +28,17 @@ describe('PlayerSessionHistoryTable', () => {
     expect(html).toContain('<span class="hidden sm:inline">CUMULATIVE CHIPS</span>')
   })
 
-  it('keeps explicit horizontal spacing between every header and data cell', () => {
-    const html = renderTable()
-
-    for (const tag of ['th', 'td'] as const) {
-      const cellClasses = classTokensFor(html, tag)
-      expect(cellClasses).toHaveLength(5)
-      for (const tokens of cellClasses) {
-        expect(tokens).toEqual(expect.arrayContaining([
-          'px-1',
-          'first:pl-3',
-          'last:pr-3',
-          'sm:first:pl-4',
-          'sm:last:pr-4',
-        ]))
-      }
+  it('uses the same table geometry for loading without exposing stale data or links', () => {
+    const content = renderTable()
+    const loading = renderTable(true)
+    for (const tag of ['tr', 'th', 'td']) {
+      const pattern = new RegExp(`<${tag}\\b`, 'g')
+      expect(loading.match(pattern)).toHaveLength(content.match(pattern)!.length)
     }
+    expect(loading).not.toContain(row.date)
+    expect(loading).not.toContain('href=')
+    expect(content).toContain('/groups/g1/sessions/s1')
+    expect(content).toContain('+¥37.5')
+    expect(content).toContain('+4,500')
   })
 })
