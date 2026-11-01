@@ -274,19 +274,22 @@ export default function PlayerSelectionModal({
             >
               CHIPS PER PLAYER
             </Label>
-            <div className="mb-2 flex gap-2">
-              {[action.unit, action.unit * 2, action.unit * 3].map((preset) => (
-                <Button
-                  variant={amount === preset ? 'default' : 'outline'}
-                  key={preset}
-                  type="button"
-                  disabled={locked}
-                  aria-pressed={amount === preset}
-                  onClick={() => setValue(String(preset))}
-                >
-                  {preset.toLocaleString()}
-                </Button>
-              ))}
+            <div className="mb-2 flex flex-wrap gap-2">
+              {[1, 2, 3, 4, 5].map((multiplier) => {
+                const preset = action.unit * multiplier
+                return (
+                  <Button
+                    variant={amount === preset ? 'default' : 'outline'}
+                    key={preset}
+                    type="button"
+                    disabled={locked}
+                    aria-pressed={amount === preset}
+                    onClick={() => setValue(String(preset))}
+                  >
+                    {preset.toLocaleString()}
+                  </Button>
+                )
+              })}
             </div>
             <Input
               id={amountId}
