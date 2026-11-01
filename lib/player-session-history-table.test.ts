@@ -42,8 +42,10 @@ describe('PlayerSessionHistoryTable', () => {
       for (const tokens of cellClasses) {
         expect(tokens).toEqual(expect.arrayContaining([
           'px-1',
-          'first:pl-0',
-          'last:pr-0',
+          'first:pl-3',
+          'last:pr-3',
+          'sm:first:pl-4',
+          'sm:last:pr-4',
         ]))
       }
     }
