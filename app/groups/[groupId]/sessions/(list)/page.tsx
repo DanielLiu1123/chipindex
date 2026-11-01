@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
 import Loading from './loading'
+import styles from './sessions-table.module.css'
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
@@ -57,7 +58,7 @@ async function SessionsPage({ params, query }: {
           <Link href={`/groups/${groupId}/sessions/import`} className="text-xs text-primary tracking-normal hover:underline">IMPORT SESSION</Link>
         </div>
       </div>
-      <Table className="w-full table-fixed text-sm [&_th]:px-0.5 [&_td]:px-0.5 max-sm:[&_th:first-child]:pl-3 max-sm:[&_td:first-child]:pl-3 sm:[&_th]:px-2 sm:[&_td]:px-2">
+      <Table className={`table-fixed ${styles.table}`}>
         <colgroup>
           <col className="w-28" />
           <col className="hidden sm:table-column" />
@@ -66,8 +67,8 @@ async function SessionsPage({ params, query }: {
           <col className="w-11 sm:w-20" />
           <col className="w-9 sm:w-12" />
         </colgroup>
-        <TableHeader><TableRow className="border-b border-border text-muted-foreground text-xs tracking-normal">
-          <TableHead className="text-left h-16 py-3 font-normal">DATE</TableHead><TableHead className="hidden sm:table-cell text-left py-3 font-normal whitespace-normal [overflow-wrap:anywhere]">DESCRIPTION</TableHead><TableHead className="text-center py-3 font-normal">PLAYERS</TableHead>
+        <TableHeader><TableRow className="h-16 border-b border-border text-muted-foreground text-xs tracking-normal">
+          <TableHead className="text-left py-3 font-normal">DATE</TableHead><TableHead className="hidden sm:table-cell text-left py-3 font-normal whitespace-normal [overflow-wrap:anywhere]">DESCRIPTION</TableHead><TableHead className="text-center py-3 font-normal">PLAYERS</TableHead>
           <TableHead className="text-center py-3 font-normal">POG</TableHead><TableHead className="text-center py-3 font-normal">RATE</TableHead>
           <TableHead className="text-center py-3 font-normal"></TableHead>
         </TableRow></TableHeader>

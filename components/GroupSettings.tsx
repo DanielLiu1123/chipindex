@@ -120,26 +120,24 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
           <PlayerActionButton action="add-player" className="w-24 text-xs tracking-wide" disabled={pending} onClick={() => setAddPlayersOpen(true)} />
         </div>
 
-        <div>
-          <ul className="divide-y divide-border">
-            {groupPlayers.map(row => <li key={row.group_player.id}
-              className="grid min-h-13 grid-cols-[minmax(0,1fr)_6rem] items-center gap-x-3 px-4 py-2.5 transition-colors hover:bg-muted/40 sm:grid-cols-[minmax(0,1fr)_11rem_6rem] sm:gap-x-4">
-              <Link href={`/groups/${group.id}/players/${row.player.id}`} title={row.player.name}
-                className="min-w-0 truncate text-sm text-foreground underline-offset-4 transition-colors hover:underline focus-visible:outline-ring">
-                {row.player.name}
-              </Link>
-              <span aria-label={`Joined time for ${row.player.name}`}
-                className="col-start-1 row-start-2 mt-0.5 text-xs tabular-nums text-muted-foreground sm:col-start-2 sm:row-start-1 sm:mt-0">
-                <BrowserTime value={row.group_player.created_at} includeDate />
-              </span>
-              <Button variant="ghost" className="col-start-2 row-span-2 row-start-1 size-8 justify-self-end p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive sm:col-start-3 sm:row-span-1" type="button" onClick={() => setPlayerToDelete(row)} disabled={pending} aria-label={`Remove ${row.player.name} from group`}
-                >
-                <Trash2 className="size-4" aria-hidden="true" />
-              </Button>
-            </li>)}
-          </ul>
-          {groupPlayers.length === 0 && <p className="px-4 py-8 text-center text-sm text-muted-foreground">No players yet.</p>}
-        </div>
+        <ul className="divide-y divide-border">
+          {groupPlayers.map(row => <li key={row.group_player.id}
+            className="grid grid-cols-[minmax(0,1fr)_6rem] items-center gap-x-3 px-4 py-2.5 transition-colors hover:bg-muted/40 sm:grid-cols-[minmax(0,1fr)_11rem_6rem] sm:gap-x-4">
+            <Link href={`/groups/${group.id}/players/${row.player.id}`} title={row.player.name}
+              className="min-w-0 truncate text-sm text-foreground underline-offset-4 transition-colors hover:underline focus-visible:outline-ring">
+              {row.player.name}
+            </Link>
+            <span aria-label={`Joined time for ${row.player.name}`}
+              className="col-start-1 row-start-2 mt-0.5 text-xs tabular-nums text-muted-foreground sm:col-start-2 sm:row-start-1 sm:mt-0">
+              <BrowserTime value={row.group_player.created_at} includeDate />
+            </span>
+            <Button variant="ghost" className="col-start-2 row-span-2 row-start-1 size-8 justify-self-end p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive sm:col-start-3 sm:row-span-1" type="button" onClick={() => setPlayerToDelete(row)} disabled={pending} aria-label={`Remove ${row.player.name} from group`}
+              >
+              <Trash2 className="size-4" aria-hidden="true" />
+            </Button>
+          </li>)}
+        </ul>
+        {groupPlayers.length === 0 && <p className="px-4 py-8 text-center text-sm text-muted-foreground">No players yet.</p>}
       </section>
       {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
     </div>
