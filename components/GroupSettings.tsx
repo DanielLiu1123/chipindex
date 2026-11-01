@@ -125,7 +125,7 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
             {groupPlayers.map(row => <li key={row.group_player.id}
               className="grid min-h-13 grid-cols-[minmax(0,1fr)_6rem] items-center gap-x-3 px-4 py-2.5 transition-colors hover:bg-muted/40 sm:grid-cols-[minmax(0,1fr)_11rem_6rem] sm:gap-x-4">
               <Link href={`/groups/${group.id}/players/${row.player.id}`} title={row.player.name}
-                className="min-w-0 truncate text-sm font-medium text-foreground underline-offset-4 transition-colors hover:underline focus-visible:outline-ring">
+                className="min-w-0 truncate text-sm text-foreground underline-offset-4 transition-colors hover:underline focus-visible:outline-ring">
                 {row.player.name}
               </Link>
               <span aria-label={`Joined time for ${row.player.name}`}
