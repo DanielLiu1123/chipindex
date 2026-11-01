@@ -156,21 +156,50 @@ export default function LiveSession({
         </Alert>
       )}
 
+      {settling && (
+        <LiveSettlementPanel
+          participants={session.participants}
+          finals={finals}
+          pending={pending}
+          settleError={
+            panel.kind === 'settle' && panel.difference !== null
+              ? { diff: panel.difference }
+              : null
+          }
+          onFinalChange={flow.changeFinal}
+          onSubmit={(force) => {
+            void flow.confirmSettlement(force)
+          }}
+          onCancel={flow.close}
+        />
+      )}
+
       {!settling && (
-        <div className="mb-5 grid grid-cols-2 gap-2">
+        <div className="mb-5 grid grid-cols-3 gap-2 sm:flex">
           <PlayerActionButton
             action="add-player"
+            className="min-w-0 px-2 text-xs sm:px-4"
             onClick={flow.openAddPlayers}
             disabled={pending}
           />
           <PlayerActionButton
             action="buy-in"
+            className="min-w-0 px-2 text-xs sm:px-4"
             onClick={flow.openBuyIn}
             disabled={
               pending ||
               !session.participants.some((p) => p.settled_at === null)
             }
           />
+          <Button
+            variant="secondary"
+            type="button"
+            onClick={flow.openSettlement}
+            disabled={pending || session.participants.length === 0}
+            className="min-w-0 bg-[#DEDBD3] px-2 text-xs text-[#343432] hover:bg-[#D2CEC4] dark:bg-[#3A3935] dark:text-[#EFEEE9] dark:hover:bg-[#474640] sm:ml-auto sm:px-4"
+          >
+            SETTLE
+          </Button>
         </div>
       )}
 
@@ -193,35 +222,6 @@ export default function LiveSession({
             onRemove={flow.openRemove}
           />
         </div>
-      )}
-
-      {/* settle */}
-      {!settling ? (
-        <Button
-          variant="default"
-          type="button"
-          onClick={flow.openSettlement}
-          disabled={pending || session.participants.length === 0}
-          className="w-full"
-        >
-          SETTLE SESSION
-        </Button>
-      ) : (
-        <LiveSettlementPanel
-          participants={session.participants}
-          finals={finals}
-          pending={pending}
-          settleError={
-            panel.kind === 'settle' && panel.difference !== null
-              ? { diff: panel.difference }
-              : null
-          }
-          onFinalChange={flow.changeFinal}
-          onSubmit={(force) => {
-            void flow.confirmSettlement(force)
-          }}
-          onCancel={flow.close}
-        />
       )}
     </>
   )

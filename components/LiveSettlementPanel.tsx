@@ -17,7 +17,8 @@ export default function LiveSettlementPanel({ participants, finals, pending, set
   const { pot, totalFinal, settleDiff, allFinalsFilled } = summarizeLiveSession(participants, finals)
 
   return (
-    <div className="border border-border p-4">
+    <div className="rounded-lg border border-border p-4">
+      <h2 className="mb-4 text-sm font-medium">SETTLE</h2>
       <div className="flex flex-col gap-2 mb-4">
         {participants.map(participant => (
           <div key={participant.player_id} className="flex items-center gap-3">
@@ -57,13 +58,13 @@ export default function LiveSettlementPanel({ participants, finals, pending, set
         </div>
       )}
 
-      <div className="flex gap-2">
+      <div className="grid grid-cols-2 gap-2">
+        <Button variant="outline" type="button" onClick={onCancel} disabled={pending}
+          className="h-11 w-full text-xs">CANCEL</Button>
         <Button variant="default" type="button" onClick={() => onSubmit(false)} disabled={pending || !allFinalsFilled}
-          className="flex-1">
-          {pending ? 'SETTLING...' : 'CONFIRM SETTLE'}
+          className="h-11 w-full text-xs">
+          {pending ? 'SETTLING...' : 'CONFIRM'}
         </Button>
-        <Button variant="ghost" type="button" onClick={onCancel} disabled={pending}
-          >CANCEL</Button>
       </div>
     </div>
   )

@@ -116,7 +116,7 @@ it('keeps failed removal in its confirmation and restores actions after retry', 
   expect(
     (
       screen.getByRole('button', {
-        name: 'SETTLE SESSION',
+        name: 'SETTLE',
       }) as HTMLButtonElement
     ).disabled,
   ).toBe(false)
@@ -128,11 +128,11 @@ it('keeps settlement values after an unbalanced response and explicitly force-se
     )
     .mockResolvedValueOnce({ id: 's1', diff: 100 })
   mount()
-  click('SETTLE SESSION')
+  click('SETTLE')
   fireEvent.change(screen.getByLabelText('final chips for Alice'), {
     target: { value: '2100' },
   })
-  click('CONFIRM SETTLE')
+  click('CONFIRM')
   await screen.findByRole('button', { name: 'FORCE SETTLE →' })
   expect(
     (screen.getByLabelText('final chips for Alice') as HTMLInputElement).value,
@@ -159,15 +159,15 @@ it('keeps settlement values after an unbalanced response and explicitly force-se
 it('retains cancelled settlement drafts and clears stale errors when opening another operation', async () => {
   vi.mocked(settleSession).mockRejectedValueOnce(new Error('Unavailable'))
   mount()
-  click('SETTLE SESSION')
+  click('SETTLE')
   fireEvent.change(screen.getByLabelText('final chips for Alice'), {
     target: { value: '2000' },
   })
-  click('CONFIRM SETTLE')
+  click('CONFIRM')
   await screen.findByText('Unavailable')
   click('CANCEL')
   expect(screen.queryByText('Unavailable')).toBeNull()
-  click('SETTLE SESSION')
+  click('SETTLE')
   expect(
     (screen.getByLabelText('final chips for Alice') as HTMLInputElement).value,
   ).toBe('2000')
