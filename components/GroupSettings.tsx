@@ -121,9 +121,6 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
         </div>
 
         <div>
-          <div aria-hidden="true" className="hidden h-16 grid-cols-[minmax(0,1fr)_11rem_6rem] items-center gap-4 border-b border-border bg-muted/40 px-4 py-2 text-[10px] font-medium tracking-widest text-muted-foreground sm:grid">
-            <span>PLAYER</span><span>JOINED AT</span><span />
-          </div>
           <ul className="divide-y divide-border">
             {groupPlayers.map(row => <li key={row.group_player.id}
               className="grid min-h-13 grid-cols-[minmax(0,1fr)_6rem] items-center gap-x-3 px-4 py-2.5 transition-colors hover:bg-muted/40 sm:grid-cols-[minmax(0,1fr)_11rem_6rem] sm:gap-x-4">
