@@ -1,0 +1,16 @@
+/* Keep narrow columns compact while giving the date room at the card edge. */
+.table > :is(thead, tbody) > tr > :is(th, td) {
+  padding-inline: 0.125rem;
+}
+
+@media (width < 40rem) {
+  .table > :is(thead, tbody) > tr > :first-child {
+    padding-left: 0.75rem;
+  }
+}
+
+@media (width >= 40rem) {
+  .table > :is(thead, tbody) > tr > :is(th, td) {
+    padding-inline: 0.5rem;
+  }
+}
