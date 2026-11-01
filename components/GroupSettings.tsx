@@ -97,12 +97,12 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
   }
 
   return <>
-    <div className="space-y-6">
-      <section aria-label="Group name" className="rounded-xl border border-border bg-card p-5 sm:p-6">
+    <div className="space-y-4">
+      <section aria-label="Group name" className="rounded-xl border border-border bg-card p-4">
         <form onSubmit={event => { event.preventDefault(); if (!pending && name.trim() && name.trim() !== savedName) void rename() }}
-          className="space-y-4">
+          className="space-y-3">
           <Label htmlFor="group-name" className="text-sm font-semibold tracking-wide text-foreground">GROUP NAME</Label>
-          <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <Input id="group-name" value={name} disabled={pending} onChange={event => setName(event.target.value)}
               className="min-w-0 flex-1 bg-background" />
             <Button variant="default" type="submit" disabled={pending || !name.trim() || name.trim() === savedName}
@@ -112,8 +112,8 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
       </section>
 
       <section aria-labelledby="group-players-heading" className="overflow-hidden rounded-xl border border-border bg-card">
-        <div className="flex items-center justify-between gap-4 border-b border-border px-5 py-5 sm:px-6">
-          <div className="flex items-center gap-2.5">
+        <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+          <div className="flex items-center gap-2">
             <h2 id="group-players-heading" className="text-sm font-semibold tracking-wide text-foreground">PLAYERS</h2>
             <span className="inline-flex min-w-6 items-center justify-center rounded-md bg-secondary px-1.5 py-0.5 text-xs font-medium tabular-nums text-muted-foreground">{groupPlayers.length}</span>
           </div>
@@ -121,18 +121,18 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
         </div>
 
         <div>
-          <div aria-hidden="true" className="hidden grid-cols-[minmax(0,1fr)_11rem_6rem] gap-4 border-b border-border bg-muted/40 px-6 py-3 text-[10px] font-medium tracking-widest text-muted-foreground sm:grid">
+          <div aria-hidden="true" className="hidden grid-cols-[minmax(0,1fr)_11rem_6rem] gap-4 border-b border-border bg-muted/40 px-4 py-2 text-[10px] font-medium tracking-widest text-muted-foreground sm:grid">
             <span>PLAYER</span><span>JOINED AT</span><span />
           </div>
           <ul className="divide-y divide-border">
             {groupPlayers.map(row => <li key={row.group_player.id}
-              className="grid min-h-18 grid-cols-[minmax(0,1fr)_6rem] items-center gap-x-3 px-5 py-4 transition-colors hover:bg-muted/40 sm:grid-cols-[minmax(0,1fr)_11rem_6rem] sm:gap-x-4 sm:px-6">
+              className="grid min-h-14 grid-cols-[minmax(0,1fr)_6rem] items-center gap-x-3 px-4 py-2.5 transition-colors hover:bg-muted/40 sm:grid-cols-[minmax(0,1fr)_11rem_6rem] sm:gap-x-4">
               <Link href={`/groups/${group.id}/players/${row.player.id}`} title={row.player.name}
                 className="min-w-0 truncate text-sm font-medium text-foreground underline-offset-4 transition-colors hover:underline focus-visible:outline-ring">
                 {row.player.name}
               </Link>
               <span aria-label={`Joined time for ${row.player.name}`}
-                className="col-start-1 row-start-2 mt-1 text-xs tabular-nums text-muted-foreground sm:col-start-2 sm:row-start-1 sm:mt-0">
+                className="col-start-1 row-start-2 mt-0.5 text-xs tabular-nums text-muted-foreground sm:col-start-2 sm:row-start-1 sm:mt-0">
                 <BrowserTime value={row.group_player.created_at} includeDate />
               </span>
               <Button variant="ghost" className="col-start-2 row-span-2 row-start-1 size-8 justify-self-end p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive sm:col-start-3 sm:row-span-1" type="button" onClick={() => setPlayerToDelete(row)} disabled={pending} aria-label={`Remove ${row.player.name} from group`}
@@ -141,7 +141,7 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
               </Button>
             </li>)}
           </ul>
-          {groupPlayers.length === 0 && <p className="px-5 py-12 text-center text-sm text-muted-foreground">No players yet.</p>}
+          {groupPlayers.length === 0 && <p className="px-4 py-8 text-center text-sm text-muted-foreground">No players yet.</p>}
         </div>
       </section>
       {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}

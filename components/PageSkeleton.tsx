@@ -40,15 +40,15 @@ export function LeaderboardSkeleton() {
 }
 
 export function SettingsSkeleton() {
-  return <LoadingSkeleton label="Loading settings" className="space-y-6">
-    <div className="rounded-xl border border-border bg-card p-5 sm:p-6">
-      <Skeleton className="mb-4 h-5 w-28" />
-      <div className="flex gap-3 sm:gap-4"><Skeleton className="h-10 flex-1" /><Skeleton className="h-10 w-24" /></div>
+  return <LoadingSkeleton label="Loading settings" className="space-y-4">
+    <div className="rounded-xl border border-border bg-card p-4">
+      <Skeleton className="mb-3 h-5 w-28" />
+      <div className="flex gap-2 sm:gap-3"><Skeleton className="h-10 flex-1" /><Skeleton className="h-10 w-24" /></div>
     </div>
     <div className="overflow-hidden rounded-xl border border-border bg-card">
-      <div className="flex items-center justify-between border-b px-5 py-5 sm:px-6"><Skeleton className="h-5 w-28" /><Skeleton className="h-10 w-24" /></div>
-      <div className="hidden border-b px-6 py-3 sm:block"><Skeleton className="h-4 w-3/4" /></div>
-      {Array.from({ length: 5 }, (_, i) => <div key={i} className="flex min-h-18 items-center justify-between border-b px-5 py-4 last:border-0 sm:px-6"><Skeleton className="h-5 w-32" /><Skeleton className="h-10 w-24" /></div>)}
+      <div className="flex items-center justify-between border-b px-4 py-3"><Skeleton className="h-5 w-28" /><Skeleton className="h-10 w-24" /></div>
+      <div className="hidden border-b px-4 py-2 sm:block"><Skeleton className="h-4 w-3/4" /></div>
+      {Array.from({ length: 5 }, (_, i) => <div key={i} className="flex min-h-14 items-center justify-between border-b px-4 py-2.5 last:border-0"><Skeleton className="h-5 w-32" /><Skeleton className="size-8" /></div>)}
     </div>
   </LoadingSkeleton>
 }
