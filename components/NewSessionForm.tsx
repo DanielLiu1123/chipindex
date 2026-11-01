@@ -38,6 +38,7 @@ export default function NewSessionForm({ groupId, initialPlayers }: { groupId: s
   const [starting, setStarting] = useState(false)
   const [error, setError] = useState('')
 
+  const hasPlayers = rows.length > 0
   const validRows = rows.filter(row => parseBuyInAmount(row.buyin) !== null)
 
   async function handleStart(e: React.FormEvent) {
@@ -87,41 +88,44 @@ export default function NewSessionForm({ groupId, initialPlayers }: { groupId: s
         />
         <div>
           <div className="mb-3 flex items-center justify-between gap-3">
-            <span className="text-xs text-muted-foreground tracking-normal">PLAYERS</span>
+            <h2 className="text-xs font-normal text-muted-foreground tracking-normal">PLAYERS</h2>
             <PlayerActionButton action="add-player" variant="default" disabled={starting} onClick={() => setAddPlayersOpen(true)} />
           </div>
-          {rows.length === 0 && (
+          {!hasPlayers ? (
             <p className="rounded-lg border border-dashed border-input px-3 py-6 text-center text-sm text-muted-foreground">No players</p>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              {rows.map(row => {
+                const playerName = directory.players.find(player => player.id === row.playerId)?.name
+                const accessibleName = playerName ?? row.playerId
+                return <div key={row.playerId}
+                  className="group flex gap-2 items-center rounded-lg border border-border bg-muted/30 px-3 py-1.5 transition-colors hover:border-ring/30">
+                    <span className="flex-1 min-w-0 text-foreground text-sm px-1 truncate">
+                      {playerName ?? row.playerId}
+                    </span>
+                  <Input type="number" value={row.buyin} disabled={starting} onChange={e => updateBuyIn(row.playerId, e.target.value)}
+                    aria-label={`buy-in for ${accessibleName}`}
+                    placeholder="buy-in" min="1" max={MAX_BUY_IN_AMOUNT} step="1"
+                    className="w-28 shrink-0 text-right" />
+                  <Button variant="ghost" type="button" disabled={starting} onClick={() => removeRow(row.playerId)}
+                    aria-label={`remove ${accessibleName}`}
+                    className="size-8 shrink-0 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
+                    <Trash2 className="size-4" aria-hidden="true" />
+                  </Button>
+                </div>
+              })}
+            </div>
           )}
-          <div className="flex flex-col gap-1.5">
-            {rows.map(row => {
-              const playerName = directory.players.find(player => player.id === row.playerId)?.name
-              const accessibleName = playerName ?? row.playerId
-              return <div key={row.playerId}
-                className="group flex gap-2 items-center rounded-lg border border-border bg-muted/30 px-3 py-1.5 transition-colors hover:border-ring/30">
-                  <span className="flex-1 min-w-0 text-foreground text-sm px-1 truncate">
-                    {playerName ?? row.playerId}
-                  </span>
-                <Input type="number" value={row.buyin} disabled={starting} onChange={e => updateBuyIn(row.playerId, e.target.value)}
-                  aria-label={`buy-in for ${accessibleName}`}
-                  placeholder="buy-in" min="1" max={MAX_BUY_IN_AMOUNT} step="1"
-                  className="w-28 shrink-0 text-right" />
-                <Button variant="ghost" type="button" disabled={starting} onClick={() => removeRow(row.playerId)}
-                  aria-label={`remove ${accessibleName}`}
-                  className="size-8 shrink-0 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
-                  <Trash2 className="size-4" aria-hidden="true" />
-                </Button>
-              </div>
-            })}
-          </div>
         </div>
         {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
-        <Button variant="default" type="submit" disabled={starting || validRows.length === 0 || validRows.length !== rows.length}
-          className="justify-center">
-          <span className="inline-block w-2 h-2 rounded-full bg-accent" />
-          {starting ? 'STARTING...' : 'START'}
-        </Button>
-        {rows.length === 0 && <p className="-mt-4 text-xs text-muted-foreground">Add at least one player to start.</p>}
+        <div className="flex flex-col gap-2">
+          <Button variant="default" type="submit" disabled={starting || validRows.length === 0 || validRows.length !== rows.length}
+            className="w-full justify-center">
+            <span className="inline-block w-2 h-2 rounded-full bg-accent" />
+            {starting ? 'STARTING...' : 'START'}
+          </Button>
+          {!hasPlayers && <p className="text-xs text-muted-foreground">Add at least one player to start.</p>}
+        </div>
       </form>
     </>
   )

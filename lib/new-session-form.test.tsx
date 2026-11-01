@@ -117,3 +117,15 @@ it('rejects invalid staged amounts even when the form is submitted directly', as
   fireEvent.submit(button.form!)
   expect(start).not.toHaveBeenCalled()
 })
+
+it('restores the empty state and disables START when the last player is removed', async () => {
+  render(<NewSessionForm groupId="g1" initialPlayers={players} />)
+  expect(screen.getByText('No players')).toBeTruthy()
+  await stage(['Alice'])
+  expect(screen.queryByText('No players')).toBeNull()
+  expect((screen.getByRole('button', { name: 'START' }) as HTMLButtonElement).disabled).toBe(false)
+  fireEvent.click(screen.getByRole('button', { name: 'remove Alice' }))
+  expect(screen.getByText('No players')).toBeTruthy()
+  expect(screen.getByText('Add at least one player to start.')).toBeTruthy()
+  expect((screen.getByRole('button', { name: 'START' }) as HTMLButtonElement).disabled).toBe(true)
+})

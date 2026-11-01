@@ -47,13 +47,15 @@ it('expands buy-in history with keyboard interaction and preserves local event t
   expect(screen.queryByText('BUY-INS')).toBeNull()
 })
 
-
 it.each([0, 1000, -1000])('shows SUM only for an unbalanced session (total %i)', (total) => {
-  render(<SessionEntriesTable groupId="g1" entries={[]} exchangeRate={40} total={total} />)
+  render(<SessionEntriesTable groupId="g1" entries={[{
+    id: 'entry-1', player_id: 'alice', players: { name: 'Alice' },
+    chips: total, final_chips: 2000 + total, total_buyin: 2000, buy_ins: [],
+  }]} exchangeRate={40} total={total} />)
   if (total === 0) {
     expect(screen.queryByText('SUM')).toBeNull()
   } else {
     expect(screen.getByText('SUM')).toBeTruthy()
-    expect(screen.getByText(total > 0 ? '+1,000' : '-1,000')).toBeTruthy()
+    expect(screen.getByText('SUM').closest('tr')?.textContent).toContain(total > 0 ? '+1,000' : '-1,000')
   }
 })
