@@ -2,7 +2,6 @@
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
-import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
@@ -85,7 +84,13 @@ export default function NewSessionForm({ groupId, initialPlayers }: { groupId: s
           description={description} setDescription={setDescription}
         />
         <div>
-          <Label className="text-xs text-muted-foreground tracking-normal block mb-3">PLAYERS <span className="text-muted-foreground">(buy-in)</span></Label>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <span className="text-xs text-muted-foreground tracking-normal">PLAYERS (buy-in)</span>
+            <PlayerActionButton action="add-player" variant="default" disabled={starting} onClick={() => setAddPlayersOpen(true)} />
+          </div>
+          {rows.length === 0 && (
+            <p className="rounded-lg border border-dashed border-input px-3 py-6 text-center text-sm text-muted-foreground">No players</p>
+          )}
           <div className="flex flex-col gap-1.5">
             {rows.map(row => {
               const playerName = directory.players.find(player => player.id === row.playerId)?.name
@@ -104,7 +109,6 @@ export default function NewSessionForm({ groupId, initialPlayers }: { groupId: s
                   className="w-8 shrink-0 justify-center">×</Button>
               </div>
             })}
-            <PlayerActionButton action="add-player" disabled={starting} onClick={() => setAddPlayersOpen(true)} />
           </div>
         </div>
         {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
@@ -113,6 +117,7 @@ export default function NewSessionForm({ groupId, initialPlayers }: { groupId: s
           <span className="inline-block w-2 h-2 rounded-full bg-accent" />
           {starting ? 'STARTING...' : 'START'}
         </Button>
+        {rows.length === 0 && <p className="-mt-4 text-xs text-muted-foreground">Add at least one player to start.</p>}
       </form>
     </>
   )
