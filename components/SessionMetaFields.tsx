@@ -29,13 +29,13 @@ export default function SessionMetaFields({
           <DatePicker disabled={disabled} value={date} onChange={setDate} />
         </div>
         <div className="w-32">
-          <Label className="text-xs text-muted-foreground tracking-normal block mb-2">RATE <span className="text-muted-foreground">(opt)</span></Label>
+          <Label className="text-xs text-muted-foreground tracking-normal block mb-2">RATE</Label>
           <Input disabled={disabled} type="number" value={exchangeRate} onChange={e => setExchangeRate(e.target.value)} placeholder={String(DEFAULT_EXCHANGE_RATE)} min="1"
             className="w-full" />
         </div>
       </div>
       <div>
-        <Label className="text-xs text-muted-foreground tracking-normal block mb-2">DESCRIPTION <span className="text-muted-foreground">(opt)</span></Label>
+        <Label className="text-xs text-muted-foreground tracking-normal block mb-2">DESCRIPTION</Label>
         <Input disabled={disabled} type="text" value={description} onChange={e => setDescription(e.target.value)} placeholder="e.g. Friday game"
           className="w-full" />
       </div>

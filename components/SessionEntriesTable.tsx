@@ -137,15 +137,17 @@ export default function SessionEntriesTable({
           )
         })}
       </TableBody>
-      <TableFooter>
-        <TableRow className="text-muted-foreground text-xs">
-          <TableCell className="pt-4">SUM</TableCell>
-          <TableCell />
-          <TableCell className="pt-4 text-right">
-            <ChipValue chips={total} />
-          </TableCell>
-        </TableRow>
-      </TableFooter>
+      {total !== 0 && (
+        <TableFooter>
+          <TableRow className="text-muted-foreground text-xs">
+            <TableCell className="pt-4">SUM</TableCell>
+            <TableCell />
+            <TableCell className="pt-4 text-right">
+              <ChipValue chips={total} />
+            </TableCell>
+          </TableRow>
+        </TableFooter>
+      )}
     </Table>
   )
 }

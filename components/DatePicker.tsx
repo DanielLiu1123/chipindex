@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { CalendarIcon } from 'lucide-react'
+import { CalendarIcon, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import {
@@ -35,10 +35,11 @@ export default function DatePicker({
           variant="outline"
           disabled={disabled}
           aria-label={label}
-          className="w-full justify-start font-normal"
+          className="w-full justify-start border-input bg-card font-normal hover:border-ring hover:bg-card dark:bg-card dark:hover:bg-card"
         >
           <CalendarIcon />
-          {value || 'Pick a date'}
+          <span className="min-w-0 flex-1 text-left tabular-nums">{value || 'yyyy-MM-dd'}</span>
+          <ChevronDown className="text-muted-foreground" aria-hidden="true" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
