@@ -57,7 +57,7 @@ async function SessionsPage({ params, query }: {
           <Link href={`/groups/${groupId}/sessions/import`} className="text-xs text-primary tracking-normal hover:underline">IMPORT SESSION</Link>
         </div>
       </div>
-      <Table className="w-full table-fixed text-sm [&_th]:px-0.5 [&_td]:px-0.5 sm:[&_th]:px-2 sm:[&_td]:px-2">
+      <Table className="w-full table-fixed text-sm [&_th]:px-0.5 [&_td]:px-0.5 max-sm:[&_th:first-child]:pl-3 max-sm:[&_td:first-child]:pl-3 sm:[&_th]:px-2 sm:[&_td]:px-2">
         <colgroup>
           <col className="w-28" />
           <col className="hidden sm:table-column" />
