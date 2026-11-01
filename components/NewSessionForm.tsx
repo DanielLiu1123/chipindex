@@ -87,7 +87,7 @@ export default function NewSessionForm({ groupId, initialPlayers }: { groupId: s
         />
         <div>
           <div className="mb-3 flex items-center justify-between gap-3">
-            <span className="text-xs text-muted-foreground tracking-normal">PLAYERS (buy-in)</span>
+            <span className="text-xs text-muted-foreground tracking-normal">PLAYERS</span>
             <PlayerActionButton action="add-player" variant="default" disabled={starting} onClick={() => setAddPlayersOpen(true)} />
           </div>
           {rows.length === 0 && (
