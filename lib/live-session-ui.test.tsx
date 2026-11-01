@@ -116,7 +116,7 @@ it('keeps failed removal in its confirmation and restores actions after retry', 
   expect(
     (
       screen.getByRole('button', {
-        name: 'SETTLE SESSION',
+        name: 'SETTLE',
       }) as HTMLButtonElement
     ).disabled,
   ).toBe(false)
@@ -128,11 +128,11 @@ it('keeps settlement values after an unbalanced response and explicitly force-se
     )
     .mockResolvedValueOnce({ id: 's1', diff: 100 })
   mount()
-  click('SETTLE SESSION')
+  click('SETTLE')
   fireEvent.change(screen.getByLabelText('final chips for Alice'), {
     target: { value: '2100' },
   })
-  click('CONFIRM SETTLE')
+  click('CONFIRM')
   await screen.findByRole('button', { name: 'FORCE SETTLE →' })
   expect(
     (screen.getByLabelText('final chips for Alice') as HTMLInputElement).value,
@@ -159,15 +159,15 @@ it('keeps settlement values after an unbalanced response and explicitly force-se
 it('retains cancelled settlement drafts and clears stale errors when opening another operation', async () => {
   vi.mocked(settleSession).mockRejectedValueOnce(new Error('Unavailable'))
   mount()
-  click('SETTLE SESSION')
+  click('SETTLE')
   fireEvent.change(screen.getByLabelText('final chips for Alice'), {
     target: { value: '2000' },
   })
-  click('CONFIRM SETTLE')
+  click('CONFIRM')
   await screen.findByText('Unavailable')
   click('CANCEL')
   expect(screen.queryByText('Unavailable')).toBeNull()
-  click('SETTLE SESSION')
+  click('SETTLE')
   expect(
     (screen.getByLabelText('final chips for Alice') as HTMLInputElement).value,
   ).toBe('2000')
@@ -181,10 +181,10 @@ it('refreshes after revocation and keeps recoverable errors in the page', async 
     .mockResolvedValueOnce(undefined)
   mount()
   click('Alice buy-in history')
-  click('✕')
+  click('Revoke Alice buy-in')
   await screen.findByText('Cannot revoke')
   expect(nav.refresh).not.toHaveBeenCalled()
-  click('✕')
+  click('Revoke Alice buy-in')
   await waitFor(() => expect(nav.refresh).toHaveBeenCalledOnce())
   expect(screen.queryByText('Cannot revoke')).toBeNull()
 })
@@ -230,4 +230,24 @@ it('edits the rate, preserves failed drafts, and refreshes after a single succes
   click('20.5 chips = 1 CNY')
   expect((screen.getByRole('spinbutton') as HTMLInputElement).value).toBe('20.5')
   expect(updateSession).toHaveBeenCalledTimes(2)
+})
+
+it('hides the cashed-out summary while retaining participant results and expanded details', () => {
+  render(<LiveSession groupId="g1" session={{
+    ...session,
+    participants: [{
+      ...session.participants[0],
+      final_chips: 2500,
+      settled_at: '2026-09-22T09:00:00Z',
+    }],
+  }} allPlayers={[]} />)
+
+  expect(screen.queryByText('CASHED OUT')).toBeNull()
+  expect(screen.queryByText('NET')).toBeNull()
+  expect(screen.getByText('+500')).toBeTruthy()
+  expect(screen.getByRole('button', { name: 'undo Alice cash out' })).toBeTruthy()
+  click('Alice buy-in history')
+  expect(screen.getByText(/CASHED OUT/)).toBeTruthy()
+  expect(screen.getByText(/FINAL/)).toBeTruthy()
+  expect(screen.queryByRole('button', { name: 'Revoke Alice buy-in' })).toBeNull()
 })

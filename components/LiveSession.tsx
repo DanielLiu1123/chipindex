@@ -3,6 +3,7 @@
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 import { Button } from '@/components/ui/button'
+import styles from './live-session-actions.module.css'
 
 import { useState } from 'react'
 import Link from 'next/link'
@@ -37,7 +38,7 @@ export default function LiveSession({
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
   const unit = session.buy_in_unit
-  const { pot, cashedOutTotal } = summarizeLiveSession(
+  const { pot } = summarizeLiveSession(
     session.participants,
     finals,
   )
@@ -132,7 +133,7 @@ export default function LiveSession({
           </span>
         )}
       </div>
-      <div className="mb-3">
+      <div className="mb-6 flex items-baseline justify-between gap-2">
         <button
           type="button"
           onClick={flow.openRate}
@@ -142,25 +143,13 @@ export default function LiveSession({
         >
           {session.exchange_rate} chips = 1 CNY
         </button>
-      </div>
-      <div className="mb-6 flex flex-wrap items-baseline gap-2">
-        <span className="text-xs text-muted-foreground tracking-normal">
-          TOTAL BUY-IN
-        </span>
-        <span className="text-primary text-3xl font-medium tracking-tight">{pot.toLocaleString()}</span>
-        <span className="text-xs text-muted-foreground">chips</span>
-      </div>
-      {cashedOutTotal > 0 && (
-        <div className="-mt-5 mb-6 flex flex-wrap items-baseline gap-2">
+        <div className="flex shrink-0 items-baseline gap-1 sm:gap-2">
           <span className="text-xs text-muted-foreground tracking-normal">
-            CASHED OUT
+            TOTAL BUY-IN
           </span>
-          <span className="text-foreground text-sm">
-            {cashedOutTotal.toLocaleString()}
-          </span>
-          <span className="text-xs text-muted-foreground">chips</span>
+          <span className="text-primary text-2xl font-medium tracking-tight">{pot.toLocaleString()}</span>
         </div>
-      )}
+      </div>
 
       {error && panel.kind !== 'cash-out' && panel.kind !== 'rate' && (
         <Alert variant="destructive">
@@ -168,63 +157,13 @@ export default function LiveSession({
         </Alert>
       )}
 
-      {!settling && (
-        <div className="mb-5 grid grid-cols-2 gap-2">
-          <PlayerActionButton
-            action="add-player"
-            onClick={flow.openAddPlayers}
-            disabled={pending}
-          />
-          <PlayerActionButton
-            action="buy-in"
-            onClick={flow.openBuyIn}
-            disabled={
-              pending ||
-              !session.participants.some((p) => p.settled_at === null)
-            }
-          />
-        </div>
-      )}
-
-      {/* participants + buy-ins */}
-      {!settling && (
-        <div className="flex flex-col gap-1 mb-6">
-          <LiveParticipantList
-            participants={session.participants}
-            expanded={expanded}
-            pending={pending}
-            interactive
-            onToggle={toggleExpand}
-            onRevokeBuyIn={(buyInId) => {
-              void flow.revokeBuyIn(buyInId)
-            }}
-            onCashOut={flow.openCashOut}
-            onUndoCashOut={(playerId) => {
-              void flow.undoCashOut(playerId)
-            }}
-            onRemove={flow.openRemove}
-          />
-        </div>
-      )}
-
-      {/* settle */}
-      {!settling ? (
-        <Button
-          variant="default"
-          type="button"
-          onClick={flow.openSettlement}
-          disabled={pending || session.participants.length === 0}
-          className="w-full"
-        >
-          SETTLE SESSION
-        </Button>
-      ) : (
+      {panel.kind === 'settle' ? (
         <LiveSettlementPanel
           participants={session.participants}
           finals={finals}
           pending={pending}
           settleError={
-            panel.kind === 'settle' && panel.difference !== null
+            panel.difference !== null
               ? { diff: panel.difference }
               : null
           }
@@ -234,6 +173,51 @@ export default function LiveSession({
           }}
           onCancel={flow.close}
         />
+      ) : (
+        <>
+          <div className={styles.toolbar}>
+            <PlayerActionButton
+              action="add-player"
+              onClick={flow.openAddPlayers}
+              disabled={pending}
+            />
+            <PlayerActionButton
+              action="buy-in"
+              onClick={flow.openBuyIn}
+              disabled={
+                pending ||
+                !session.participants.some((p) => p.settled_at === null)
+              }
+            />
+            <Button
+              variant="secondary"
+              type="button"
+              onClick={flow.openSettlement}
+              disabled={pending || session.participants.length === 0}
+              className={styles.settle}
+            >
+              SETTLE
+            </Button>
+          </div>
+
+          <div className="flex flex-col gap-1 mb-6">
+            <LiveParticipantList
+              participants={session.participants}
+              expanded={expanded}
+              pending={pending}
+              interactive
+              onToggle={toggleExpand}
+              onRevokeBuyIn={(buyInId) => {
+                void flow.revokeBuyIn(buyInId)
+              }}
+              onCashOut={flow.openCashOut}
+              onUndoCashOut={(playerId) => {
+                void flow.undoCashOut(playerId)
+              }}
+              onRemove={flow.openRemove}
+            />
+          </div>
+        </>
       )}
     </>
   )

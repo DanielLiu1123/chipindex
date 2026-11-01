@@ -10,7 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { errorMessage } from '@/lib/error-message'
 import { useId, useRef, useState, type FormEvent } from 'react'
 import Dialog from './Dialog'
-import { MAX_BUY_IN_AMOUNT } from '@/lib/buy-in-policy'
+import { MAX_BUY_IN_AMOUNT, parseBuyInAmount } from '@/lib/buy-in-policy'
 import { PLAYER_PAGE_SIZE, type SelectablePlayer } from '@/lib/player-selection'
 import { usePlayerAction, type PlayerAction } from '@/lib/use-player-action'
 
@@ -51,6 +51,9 @@ export default function PlayerSelectionModal({
   const locked = creating || submission.locked
   const addingPlayers = picker === 'available'
   const amountId = `${id}-amount`
+  const presets = action.kind === 'players' ? [] : [1, 2, 3, 4]
+    .map(multiplier => action.unit * multiplier)
+    .filter(preset => parseBuyInAmount(String(preset)) !== null)
   const search = query.trim().toLowerCase()
   const visiblePlayers = !addingPlayers
     ? participants.filter((player) => player.settled_at === null)
@@ -274,8 +277,8 @@ export default function PlayerSelectionModal({
             >
               CHIPS PER PLAYER
             </Label>
-            <div className="mb-2 flex gap-2">
-              {[action.unit, action.unit * 2, action.unit * 3].map((preset) => (
+            <div className="mb-2 flex flex-wrap gap-2">
+              {presets.map((preset) => (
                 <Button
                   variant={amount === preset ? 'default' : 'outline'}
                   key={preset}

@@ -486,3 +486,17 @@ describe('player picker through real React and Radix', () => {
     expect(app.onClose).toHaveBeenCalledOnce()
   })
 })
+
+it('offers the fourth buy-in preset and omits presets beyond the amount limit', () => {
+  const props = {
+    open: true, participants: players, onClose: vi.fn(),
+    action: { kind: 'draft' as const, unit: 2000, submit: vi.fn() },
+  }
+  const view = render(<PlayerSelectionModal {...props} />)
+  fireEvent.click(button('8,000'))
+  expect((screen.getByRole('spinbutton') as HTMLInputElement).value).toBe('8000')
+
+  view.rerender(<PlayerSelectionModal {...props} action={{ ...props.action, unit: 600_000_000 }} />)
+  expect(button('1,800,000,000')).toBeTruthy()
+  expect(screen.queryByRole('button', { name: '2,400,000,000' })).toBeNull()
+})

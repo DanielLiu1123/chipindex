@@ -1,0 +1,45 @@
+@reference "../app/globals.css";
+
+.toolbar {
+  @apply mb-5 grid grid-cols-3 gap-2 sm:flex;
+}
+
+.toolbar > button {
+  @apply min-w-0 px-2 text-xs sm:px-4;
+}
+
+.cashOut {
+  --action-background: #f2e3ae;
+  --action-foreground: #655014;
+  --action-hover: #ead58a;
+}
+
+.settle {
+  @apply sm:ml-auto;
+  --action-background: #dedbd3;
+  --action-foreground: #343432;
+  --action-hover: #d2cec4;
+}
+
+:global(.dark) .cashOut {
+  --action-background: #40351b;
+  --action-foreground: #ecd58e;
+  --action-hover: #514323;
+}
+
+:global(.dark) .settle {
+  --action-background: #3a3935;
+  --action-foreground: #efeee9;
+  --action-hover: #474640;
+}
+
+.cashOut,
+.settle {
+  background-color: var(--action-background);
+  color: var(--action-foreground);
+}
+
+.cashOut:hover,
+.settle:hover {
+  background-color: var(--action-hover);
+}

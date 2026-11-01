@@ -3,8 +3,10 @@ import {
   CollapsibleTrigger,
   CollapsibleContent,
 } from '@/components/ui/collapsible'
-import { ChevronRight } from 'lucide-react'
+import { cn } from 'cn'
+import { ChevronRight, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import styles from './live-session-actions.module.css'
 import BrowserTime from '@/components/BrowserTime'
 import ChipValue from '@/components/ChipValue'
 import type { LiveParticipant } from '@/lib/domain-types'
@@ -55,7 +57,7 @@ export default function LiveParticipantList({
           aria-label={`${participant.name} buy-in history`}
           aria-expanded={isExpanded}
           title={participant.name}
-          className="min-w-0 flex-1 self-stretch text-left"
+          className="min-w-0 flex-1 self-stretch border-0 px-0 text-left"
         >
           {interactive && (
             <ChevronRight
@@ -63,17 +65,14 @@ export default function LiveParticipantList({
               className={`size-3 shrink-0 text-muted-foreground transition-transform motion-reduce:transition-none ${isExpanded ? 'rotate-90' : ''}`}
             />
           )}
-          <span className="min-w-0 flex-1 truncate text-sm leading-snug text-foreground sm:text-base">
+          <span className="min-w-0 flex-1 truncate text-sm font-normal leading-snug text-foreground sm:text-base">
             {participant.name}
           </span>
           {cashedOut ? (
-            <span className="shrink-0 whitespace-nowrap text-[10px] tracking-normal text-muted-foreground sm:text-xs">
-              NET{' '}
-              <ChipValue
-                chips={netChips}
-                className="tracking-normal tabular-nums"
-              />
-            </span>
+            <ChipValue
+              chips={netChips}
+              className="shrink-0 whitespace-nowrap text-[10px] tracking-normal tabular-nums sm:text-xs"
+            />
           ) : (
             <span className="shrink-0 whitespace-nowrap text-[11px] text-muted-foreground tabular-nums group-hover:text-foreground sm:text-xs">
               {participant.buy_ins.length}×{' '}
@@ -93,65 +92,37 @@ export default function LiveParticipantList({
         onOpenChange={() => onToggle(participant.player_id)}
         className="rounded-lg border border-border"
       >
-        {cashedOut ? (
-          <div className="flex flex-nowrap items-center gap-1.5 px-3 py-1.5 sm:gap-2">
-            {detailsToggle}
-            {interactive && (
-              <div className="contents">
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={() => onUndoCashOut(participant.player_id)}
-                  disabled={pending}
-                  className="w-[4.75rem] shrink-0 sm:w-24"
-                  aria-label={`undo ${participant.name} cash out`}
-                >
-                  UNDO
-                </Button>
-                <Button
-                  variant="destructive"
-                  type="button"
-                  onClick={() => onRemove(participant)}
-                  disabled={pending}
-                  className="shrink-0"
-                  aria-label="remove player"
-                >
-                  ✕
-                </Button>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="flex flex-nowrap items-center gap-1.5 px-3 py-1.5 sm:gap-2">
-            {detailsToggle}
-            {interactive && (
-              <div className="contents">
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={() => onCashOut(participant)}
-                  disabled={pending}
-                  className="w-[4.75rem] shrink-0 text-xs sm:w-24"
-                >
-                  CASH OUT
-                </Button>
-                <Button
-                  variant="destructive"
-                  type="button"
-                  onClick={() => onRemove(participant)}
-                  disabled={pending}
-                  className="shrink-0"
-                  aria-label="remove player"
-                >
-                  ✕
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
+        <div className="flex flex-nowrap items-center gap-1.5 px-3 py-1.5 sm:gap-2">
+          {detailsToggle}
+          {interactive && (
+            <>
+              <Button
+                variant={cashedOut ? 'secondary' : 'default'}
+                type="button"
+                onClick={() => cashedOut
+                  ? onUndoCashOut(participant.player_id)
+                  : onCashOut(participant)}
+                disabled={pending}
+                className={cn('w-[4.75rem] shrink-0 text-xs sm:w-24', !cashedOut && styles.cashOut)}
+                aria-label={cashedOut ? `undo ${participant.name} cash out` : undefined}
+              >
+                {cashedOut ? 'UNDO' : 'CASH OUT'}
+              </Button>
+              <Button
+                variant="ghost"
+                type="button"
+                onClick={() => onRemove(participant)}
+                disabled={pending}
+                className="size-8 shrink-0 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                aria-label="remove player"
+              >
+                <Trash2 className="size-4" aria-hidden="true" />
+              </Button>
+            </>
+          )}
+        </div>
 
-        {/* Align with the chevron after the row padding and trigger border/padding. */}
-        <CollapsibleContent className="border-t border-border pl-[calc(1.375rem+1px)] pr-3 py-2 bg-muted/50">
+        <CollapsibleContent className="border-t border-border px-3 py-2 bg-muted/50">
           {cashedOut && (
             <div className="mb-2 flex min-w-0 items-baseline gap-2 overflow-hidden text-[10px] text-muted-foreground">
               <span className="shrink-0 tracking-normal">
@@ -186,10 +157,11 @@ export default function LiveParticipantList({
                       size="icon-xs"
                       className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                       type="button"
+                      aria-label={`Revoke ${participant.name} buy-in`}
                       onClick={() => onRevokeBuyIn(buyIn.id)}
                       disabled={pending}
                     >
-                      ✕
+                      <Trash2 className="size-4" aria-hidden="true" />
                     </Button>
                   )}
                 </div>
