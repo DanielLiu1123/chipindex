@@ -13,35 +13,40 @@ vi.mock('./client', async original => ({
 }))
 afterEach(() => { cleanup(); vi.resetAllMocks() })
 
-it('disables empty imports, restores the empty state after removal and imports signed net chips', async () => {
-  const players: Player[] = ['Alice', 'Bob'].map(id => ({
-    id, name: id, created_at: '', updated_at: '', deleted_at: null,
-  }))
+const players: Player[] = ['Alice', 'Bob'].map(id => ({
+  id, name: id, created_at: '', updated_at: '', deleted_at: null,
+}))
+const importButton = () => screen.getByRole('button', { name: 'IMPORT' }) as HTMLButtonElement
+
+async function addPlayers(names: string[]) {
+  fireEvent.click(screen.getByRole('button', { name: '+ PLAYER' }))
+  const dialog = screen.getByRole('dialog')
+  names.forEach(name => fireEvent.click(within(dialog).getByRole('checkbox', { name })))
+  fireEvent.click(within(dialog).getByRole('button', { name: 'ADD' }))
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+}
+
+it('disables empty imports and restores the empty state after the last player is removed', async () => {
   render(<SessionForm groupId="g1" initialPlayers={players} />)
-  const importButton = () => screen.getByRole('button', { name: 'IMPORT' }) as HTMLButtonElement
   expect(importButton().disabled).toBe(true)
   expect(screen.getByText('No players')).toBeTruthy()
-
-  async function addPlayers(names: string[]) {
-    fireEvent.click(screen.getByRole('button', { name: '+ PLAYER' }))
-    const dialog = screen.getByRole('dialog')
-    names.forEach(name => fireEvent.click(within(dialog).getByRole('checkbox', { name })))
-    fireEvent.click(within(dialog).getByRole('button', { name: 'ADD' }))
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
-  }
   await addPlayers(['Alice'])
+  expect(screen.queryByText('No players')).toBeNull()
   fireEvent.click(screen.getByRole('button', { name: 'remove Alice' }))
   expect(importButton().disabled).toBe(true)
+  expect(screen.getByText('No players')).toBeTruthy()
   expect(screen.getByText('Add at least one player to import.')).toBeTruthy()
+})
 
+it('imports signed net chips and returns to the sessions page', async () => {
+  render(<SessionForm groupId="g1" initialPlayers={players} />)
   await addPlayers(['Alice', 'Bob'])
-  expect(screen.queryByText('No players')).toBeNull()
   fireEvent.change(screen.getByLabelText('net chips for Alice'), { target: { value: '-1000' } })
   fireEvent.change(screen.getByLabelText('net chips for Bob'), { target: { value: '1000' } })
   vi.mocked(importSession).mockResolvedValue({ id: 's1' })
   fireEvent.click(importButton())
-  await waitFor(() => expect(importSession).toHaveBeenCalledWith('g1', expect.objectContaining({
+  await waitFor(() => expect(navigation.push).toHaveBeenCalledWith('/groups/g1/sessions'))
+  expect(importSession).toHaveBeenCalledWith('g1', expect.objectContaining({
     status: 'SETTLED', entries: [{ player_id: 'Alice', chips: -1000 }, { player_id: 'Bob', chips: 1000 }],
-  })))
-  expect(navigation.push).toHaveBeenCalledWith('/groups/g1/sessions')
+  }))
 })

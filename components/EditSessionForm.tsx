@@ -2,7 +2,7 @@
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
-import { Trash2 } from 'lucide-react'
+import DeleteIconButton from '@/components/DeleteIconButton'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
@@ -15,7 +15,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import type { SessionForEdit } from '@/lib/domain-types'
 import PlayerSelectionModal from '@/components/PlayerSelectionModal'
-import PlayerActionButton from '@/components/PlayerActionButton'
+import SessionPlayersHeader from '@/components/SessionPlayersHeader'
 import SessionMetaFields from '@/components/SessionMetaFields'
 import ConfirmModal from '@/components/ConfirmModal'
 import ChipValue from '@/components/ChipValue'
@@ -165,10 +165,7 @@ function EditSessionEditor({ groupId, sessionId, session, initialPlayers }: {
         />
 
         <div>
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="text-xs font-normal text-muted-foreground tracking-normal">PLAYERS</h2>
-            <PlayerActionButton action="add-player" variant="default" disabled={submitting} onClick={() => setAddPlayersOpen(true)} />
-          </div>
+          <SessionPlayersHeader disabled={submitting} onAdd={() => setAddPlayersOpen(true)} />
           <div className="flex flex-col gap-2">
             {rows.map(row => {
               const total = buyinTotal(row)
@@ -184,10 +181,7 @@ function EditSessionEditor({ groupId, sessionId, session, initialPlayers }: {
                       placeholder="final" min="0"
                       className="w-24 text-right" />
                     <span className="w-20 text-right text-sm"><ChipValue chips={net} /></span>
-                    <Button variant="ghost" type="button" disabled={submitting} onClick={() => setConfirmRemove(row)} aria-label={`remove ${row.name}`}
-                      className="size-8 shrink-0 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
-                      <Trash2 className="size-4" aria-hidden="true" />
-                    </Button>
+                    <DeleteIconButton disabled={submitting} onClick={() => setConfirmRemove(row)} label={`remove ${row.name}`} />
                   </div>
 
                   {expanded.has(row.playerId) && (
@@ -203,11 +197,8 @@ function EditSessionEditor({ groupId, sessionId, session, initialPlayers }: {
                             <Input disabled={submitting} type="number" value={b.amount} min="1"
                               onChange={e => updateRow(row.playerId, { buyins: row.buyins.map((x, j) => j === i ? { ...x, amount: e.target.value } : x) })}
                               className="flex-1 text-right" />
-                            <Button variant="ghost" disabled={submitting} type="button" onClick={() => updateRow(row.playerId, { buyins: row.buyins.filter((_, j) => j !== i) })}
-                              aria-label={`remove buy-in ${i + 1} for ${row.name}`}
-                              className="size-8 shrink-0 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
-                              <Trash2 className="size-4" aria-hidden="true" />
-                            </Button>
+                            <DeleteIconButton disabled={submitting} onClick={() => updateRow(row.playerId, { buyins: row.buyins.filter((_, j) => j !== i) })}
+                              label={`remove buy-in ${i + 1} for ${row.name}`} />
                           </div>
                         ))}
                         <Button variant="ghost" disabled={submitting} type="button" onClick={() => updateRow(row.playerId, { buyins: [...row.buyins, { amount: String(unit), created_at: defaultEventTime }] })}

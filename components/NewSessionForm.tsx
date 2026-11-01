@@ -1,6 +1,6 @@
 'use client'
 
-import { Trash2 } from 'lucide-react'
+import DeleteIconButton from '@/components/DeleteIconButton'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
@@ -13,7 +13,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import PlayerSelectionModal from '@/components/PlayerSelectionModal'
-import PlayerActionButton from '@/components/PlayerActionButton'
+import SessionPlayersHeader from '@/components/SessionPlayersHeader'
 import SessionMetaFields from '@/components/SessionMetaFields'
 import { startSession } from '@/lib/client'
 import { usePlayerDirectory } from '@/lib/use-player-directory'
@@ -87,10 +87,7 @@ export default function NewSessionForm({ groupId, initialPlayers }: { groupId: s
           description={description} setDescription={setDescription}
         />
         <div>
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="text-xs font-normal text-muted-foreground tracking-normal">PLAYERS</h2>
-            <PlayerActionButton action="add-player" variant="default" disabled={starting} onClick={() => setAddPlayersOpen(true)} />
-          </div>
+          <SessionPlayersHeader disabled={starting} onAdd={() => setAddPlayersOpen(true)} />
           {!hasPlayers ? (
             <p className="rounded-lg border border-dashed border-input px-3 py-6 text-center text-sm text-muted-foreground">No players</p>
           ) : (
@@ -107,11 +104,8 @@ export default function NewSessionForm({ groupId, initialPlayers }: { groupId: s
                     aria-label={`buy-in for ${accessibleName}`}
                     placeholder="buy-in" min="1" max={MAX_BUY_IN_AMOUNT} step="1"
                     className="w-28 shrink-0 text-right" />
-                  <Button variant="ghost" type="button" disabled={starting} onClick={() => removeRow(row.playerId)}
-                    aria-label={`remove ${accessibleName}`}
-                    className="size-8 shrink-0 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
-                    <Trash2 className="size-4" aria-hidden="true" />
-                  </Button>
+                  <DeleteIconButton disabled={starting} onClick={() => removeRow(row.playerId)}
+                    label={`remove ${accessibleName}`} />
                 </div>
               })}
             </div>

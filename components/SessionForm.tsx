@@ -1,6 +1,6 @@
 'use client'
 
-import { Trash2 } from 'lucide-react'
+import DeleteIconButton from '@/components/DeleteIconButton'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import PlayerSelectionModal from './PlayerSelectionModal'
-import PlayerActionButton from './PlayerActionButton'
+import SessionPlayersHeader from '@/components/SessionPlayersHeader'
 import SessionMetaFields from './SessionMetaFields'
 import { usePlayerDirectory } from '@/lib/use-player-directory'
 import { importSession } from '@/lib/client'
@@ -35,6 +35,8 @@ export default function SessionForm({ groupId, initialPlayers }: { groupId: stri
   const busy = useRef(false)
   const directory = usePlayerDirectory({ groupId, players: initialPlayers,
     excludedIds: rows.map(row => row.playerId), excludedMessage: 'This player is already selected.' })
+
+  const hasPlayers = rows.length > 0
 
   async function selectPlayers(ids: string[]) {
     setRows(current => [...current, ...[...new Set(ids)]
@@ -68,35 +70,29 @@ export default function SessionForm({ groupId, initialPlayers }: { groupId: stri
       <SessionMetaFields date={date} setDate={setDate} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate}
         description={description} setDescription={setDescription} disabled={submitting} />
       <div>
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="text-xs font-normal text-muted-foreground tracking-normal">PLAYERS</h2>
-          <PlayerActionButton action="add-player" variant="default" disabled={submitting} onClick={() => setPickerOpen(true)} />
-        </div>
-        {rows.length === 0 ? (
+        <SessionPlayersHeader disabled={submitting} onAdd={() => setPickerOpen(true)} />
+        {!hasPlayers ? (
           <p className="rounded-lg border border-dashed border-input px-3 py-6 text-center text-sm text-muted-foreground">No players</p>
         ) : (
           <div className="flex flex-col gap-1.5">
-          {rows.map(row => {
-            const name = directory.players.find(player => player.id === row.playerId)?.name ?? row.playerId
-            return <div key={row.playerId} className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-1.5">
-              <span className="min-w-0 flex-1 truncate text-sm text-foreground">{name}</span>
-              <Input aria-label={`net chips for ${name}`} type="number" step="1" required value={row.chips} disabled={submitting}
-                onChange={event => setRows(current => current.map(item => item.playerId === row.playerId ? { ...item, chips: event.target.value } : item))}
-                placeholder="chips (±)" className="w-28 shrink-0 text-right" />
-              <Button variant="ghost" type="button" aria-label={`remove ${name}`} disabled={submitting}
-                onClick={() => setRows(current => current.filter(item => item.playerId !== row.playerId))}
-                className="size-8 shrink-0 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
-                <Trash2 className="size-4" aria-hidden="true" />
-              </Button>
-            </div>
-          })}
+            {rows.map(row => {
+              const name = directory.players.find(player => player.id === row.playerId)?.name ?? row.playerId
+              return <div key={row.playerId} className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-1.5">
+                <span className="min-w-0 flex-1 truncate text-sm text-foreground">{name}</span>
+                <Input aria-label={`net chips for ${name}`} type="number" step="1" required value={row.chips} disabled={submitting}
+                  onChange={event => setRows(current => current.map(item => item.playerId === row.playerId ? { ...item, chips: event.target.value } : item))}
+                  placeholder="chips (±)" className="w-28 shrink-0 text-right" />
+                <DeleteIconButton label={`remove ${name}`} disabled={submitting}
+                  onClick={() => setRows(current => current.filter(item => item.playerId !== row.playerId))} />
+              </div>
+            })}
           </div>
         )}
       </div>
       {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
       <div className="flex flex-col gap-2">
-        <Button variant="default" type="submit" disabled={submitting || !date || rows.length === 0} className="w-full">{submitting ? 'IMPORTING...' : 'IMPORT'}</Button>
-        {rows.length === 0 && <p className="text-xs text-muted-foreground">Add at least one player to import.</p>}
+        <Button variant="default" type="submit" disabled={submitting || !date || !hasPlayers} className="w-full">{submitting ? 'IMPORTING...' : 'IMPORT'}</Button>
+        {!hasPlayers && <p className="text-xs text-muted-foreground">Add at least one player to import.</p>}
       </div>
     </form>
   </>
