@@ -18,15 +18,13 @@ describe('player history client navigation', () => {
     ['Previous page', 1],
     ['Next page', 3],
     ['Go to page 4', 4],
-  ])('navigates with %s without scrolling or replacing the current table', (label, page) => {
+  ])('navigates with %s without scrolling', (label, page) => {
     setup()
-    const table = screen.getByRole('table')
     fireEvent.click(screen.getByRole('link', { name: label }))
     expect(push).toHaveBeenCalledWith(`/groups/g1/players/p1?page=${page}&page_size=10`, { scroll: false })
-    expect(screen.getByRole('table')).toBe(table)
   })
 
-  it('keeps existing content and disables pagination until the new page is ready', async () => {
+  it('replaces only history with a skeleton and disables pagination until the new page is ready', async () => {
     let resolve!: () => void
     const ready = new Promise<void>(done => { resolve = done })
     function IncomingPage({ next }: { next: boolean }) {
@@ -42,17 +40,18 @@ describe('player history client navigation', () => {
       </Suspense>
     }
     render(<Profile />)
-    const table = screen.getByRole('table')
     const chart = screen.getByRole('textbox', { name: 'Chart state' })
     fireEvent.change(chart, { target: { value: 'CHIPS' } })
     await act(async () => { fireEvent.click(screen.getByRole('link', { name: 'Next page' })) })
-    expect(screen.getByRole('table')).toBe(table)
-    expect(screen.getByRole('status').textContent).toContain('Loading session history')
+    expect(screen.queryByRole('table')).toBeNull()
+    expect(screen.queryByRole('link', { name: '2026-10-30' })).toBeNull()
+    expect(screen.getByRole('status', { name: 'Loading session history' })).toBeTruthy()
     expect(screen.getByRole('region', { name: 'Session history' }).getAttribute('aria-busy')).toBe('true')
     expect(screen.getByRole('navigation').parentElement?.parentElement?.hasAttribute('inert')).toBe(true)
     expect(screen.queryByText('Loading entire profile')).toBeNull()
     await act(async () => { resolve(); await ready })
     expect(screen.getByRole('link', { name: '2026-10-29' })).toBeTruthy()
+    expect(screen.queryByRole('status')).toBeNull()
     expect(screen.getByRole('region', { name: 'Session history' }).getAttribute('aria-busy')).toBe('false')
     expect(screen.getByRole('textbox', { name: 'Chart state' })).toBe(chart)
     expect((chart as HTMLInputElement).value).toBe('CHIPS')
