@@ -54,7 +54,7 @@ export default function SessionEntriesTable({
     <Table className="w-full text-sm">
       <TableHeader>
         <TableRow className="border-b border-border text-muted-foreground text-xs tracking-normal">
-          <TableHead className="text-left py-3 font-normal">PLAYER</TableHead>
+          <TableHead className="px-3 text-left py-3 font-normal">PLAYER</TableHead>
           <TableHead className="text-right py-3 font-normal">CNY</TableHead>
           <TableHead className="text-right py-3 font-normal">CHIPS</TableHead>
         </TableRow>
@@ -68,11 +68,12 @@ export default function SessionEntriesTable({
                 onClick={() => toggle(e.id)}
                 className="border-b border-border hover:bg-muted transition-colors cursor-pointer"
               >
-                <TableCell className="py-4">
+                <TableCell className="px-3 py-4">
                   <span className="flex items-center gap-2">
                     <Button
                       variant="ghost"
                       size="icon-sm"
+                      className="w-3 border-0 p-0"
                       aria-label={`${e.players?.name ?? e.player_id} buy-in history`}
                       aria-expanded={open}
                       onClick={(event) => {
@@ -81,7 +82,8 @@ export default function SessionEntriesTable({
                       }}
                     >
                       <ChevronRight
-                        className={`size-3 text-muted-foreground transition-transform ${open ? 'rotate-90' : ''}`}
+                        aria-hidden="true"
+                        className={`size-3 text-muted-foreground transition-transform motion-reduce:transition-none ${open ? 'rotate-90' : ''}`}
                       />
                     </Button>
                     <Link
@@ -102,7 +104,7 @@ export default function SessionEntriesTable({
               </TableRow>
               {open && (
                 <TableRow className="border-b border-border bg-muted/40">
-                  <TableCell colSpan={3} className="py-3 px-1">
+                  <TableCell colSpan={3} className="px-3 py-3">
                     <div className="text-xs text-muted-foreground">
                       <p className="tracking-normal mb-2">BUY-INS</p>
                       {e.buy_ins.length > 0 ? (
@@ -140,7 +142,7 @@ export default function SessionEntriesTable({
       {total !== 0 && (
         <TableFooter>
           <TableRow className="text-muted-foreground text-xs">
-            <TableCell className="pt-4">SUM</TableCell>
+            <TableCell className="px-3 pt-4">SUM</TableCell>
             <TableCell />
             <TableCell className="pt-4 text-right">
               <ChipValue chips={total} />
