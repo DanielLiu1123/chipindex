@@ -25,7 +25,7 @@ import {
 } from '@/lib/leaderboard'
 import LeaderboardDateFilter from '@/components/LeaderboardDateFilter'
 import { useSearchParams } from 'next/navigation'
-import { readLeaderboardFilters, writeLeaderboardFilters, type LeaderboardFilters } from '@/lib/leaderboard-filter-query'
+import { readLeaderboardFilters, updateLeaderboardFilterQuery, type LeaderboardFilters } from '@/lib/leaderboard-filter-query'
 import type { LeaderboardSessionRow, Player } from '@/lib/domain-types'
 
 function SortHeader({
@@ -72,7 +72,7 @@ export default function LeaderboardView({
 
   function updateFilters(patch: Partial<LeaderboardFilters>) {
     const url = new URL(window.location.href)
-    writeLeaderboardFilters(url.searchParams, { ...readLeaderboardFilters(url.searchParams), ...patch })
+    url.search = updateLeaderboardFilterQuery(url.search, patch).toString()
     window.history.replaceState(null, '', url)
   }
   const range = filter.period === 'all' ? null : filter.range

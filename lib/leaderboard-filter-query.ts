@@ -17,12 +17,20 @@ export function readLeaderboardFilters(query: Pick<URLSearchParams, 'get'>, now 
   return { filter, hideLowActivity: query.get('active') !== '0' }
 }
 
-export function writeLeaderboardFilters(query: URLSearchParams, { filter, hideLowActivity }: LeaderboardFilters): void {
-  for (const key of ['period', 'start', 'end', 'active']) query.delete(key)
-  if (filter.period !== 'all') query.set('period', filter.period)
-  if (filter.period === 'custom') {
-    query.set('start', filter.range.start)
-    query.set('end', filter.range.end)
+export function updateLeaderboardFilterQuery(search: string, patch: Partial<LeaderboardFilters>): URLSearchParams {
+  const query = new URLSearchParams(search)
+  if (patch.filter !== undefined) {
+    for (const key of ['period', 'start', 'end']) query.delete(key)
+    const { filter } = patch
+    if (filter.period !== 'all') query.set('period', filter.period)
+    if (filter.period === 'custom') {
+      query.set('start', filter.range.start)
+      query.set('end', filter.range.end)
+    }
   }
-  if (!hideLowActivity) query.set('active', '0')
+  if (patch.hideLowActivity !== undefined) {
+    query.delete('active')
+    if (!patch.hideLowActivity) query.set('active', '0')
+  }
+  return query
 }

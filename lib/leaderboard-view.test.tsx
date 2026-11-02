@@ -20,7 +20,11 @@ vi.mock('next/navigation', () => ({
     const search = useSyncExternalStore(
       notify => {
         window.addEventListener('popstate', notify)
-        return () => window.removeEventListener('popstate', notify)
+        window.addEventListener('test:search-params', notify)
+        return () => {
+          window.removeEventListener('popstate', notify)
+          window.removeEventListener('test:search-params', notify)
+        }
       },
       () => window.location.search,
     )
@@ -44,7 +48,7 @@ beforeEach(() => {
   const replaceState = window.history.replaceState.bind(window.history)
   vi.spyOn(window.history, 'replaceState').mockImplementation((...args) => {
     replaceState(...args)
-    window.dispatchEvent(new PopStateEvent('popstate'))
+    window.dispatchEvent(new Event('test:search-params'))
   })
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(new Date(2026, 0, 15, 12))
