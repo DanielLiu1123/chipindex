@@ -1,7 +1,7 @@
 'use client'
 
 
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { SegmentedControl } from '@/components/ui/segmented-control'
 import { useState } from 'react'
 import ChipValue from '@/components/ChipValue'
 import PlayerChart from '@/components/PlayerChart'
@@ -54,10 +54,13 @@ export default function PlayerStatsChart({
               {mode === 'cny' ? 'CUMULATIVE CNY' : 'CUMULATIVE CHIPS'}
             </p>
             <div className="flex flex-wrap items-center gap-4">
-              <ToggleGroup type="single" value={mode} onValueChange={value => { if (value === 'cny' || value === 'chips') setMode(value) }} aria-label="Value unit" variant="outline">
-                <ToggleGroupItem value="cny">CNY</ToggleGroupItem>
-                <ToggleGroupItem value="chips">CHIPS</ToggleGroupItem>
-              </ToggleGroup>
+              <SegmentedControl
+                value={mode}
+                onValueChange={setMode}
+                label="Value unit"
+                compact
+                options={[{ value: 'cny', label: 'CNY' }, { value: 'chips', label: 'CHIPS' }]}
+              />
             </div>
           </div>
           <PlayerChart groupId={groupId} data={data} mode={mode} />

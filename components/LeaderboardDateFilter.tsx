@@ -58,7 +58,7 @@ export default function LeaderboardDateFilter({
     setPanel(null)
   }
   return (
-    <div className="mb-4">
+    <div>
       <Popover
         open={panel !== null}
         onOpenChange={(open) => setPanel(open ? 'options' : null)}

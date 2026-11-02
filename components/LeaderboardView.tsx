@@ -12,7 +12,8 @@ import { Button } from '@/components/ui/button'
 
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { SegmentedControl } from '@/components/ui/segmented-control'
+import { Table2, ChartNoAxesCombined } from 'lucide-react'
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import ChipValue from '@/components/ChipValue'
@@ -70,7 +71,6 @@ export default function LeaderboardView({
   const {
     sessionCount,
     playerCount,
-    activityFilter,
     emptyRange,
     sortedStats,
     chartPlayers,
@@ -100,39 +100,30 @@ export default function LeaderboardView({
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-        <ToggleGroup
-          type="single"
+        <SegmentedControl
           value={view}
-          onValueChange={(value) => {
-            if (value === 'table' || value === 'chart') setView(value)
-          }}
-          aria-label="Leaderboard view"
-          variant="outline"
-        >
-          <ToggleGroupItem value="table">TABLE</ToggleGroupItem>
-          <ToggleGroupItem value="chart">CHART</ToggleGroupItem>
-        </ToggleGroup>
+          onValueChange={setView}
+          label="Leaderboard view"
+          options={[
+            { value: 'table', label: 'Table', icon: <Table2 aria-hidden="true" /> },
+            { value: 'chart', label: 'Chart', icon: <ChartNoAxesCombined aria-hidden="true" /> },
+          ]}
+        />
         <Button asChild>
           <Link href={`/groups/${groupId}/sessions/new`}>+ NEW SESSION</Link>
         </Button>
       </div>
 
-      <LeaderboardDateFilter filter={filter} onChange={setFilter} />
-
-      <div className="flex flex-wrap items-center justify-between gap-2 min-h-8 mb-3 text-[10px] tracking-normal text-muted-foreground">
-        <Label className="flex items-center gap-2 text-sm">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <LeaderboardDateFilter filter={filter} onChange={setFilter} />
+        <Label className="ml-auto flex min-h-11 items-center gap-2 text-sm">
           <Switch
             checked={hideLowActivity}
             onCheckedChange={setHideLowActivity}
-            aria-label="HIDE LOW-ACTIVITY PLAYERS"
+            aria-label="Active only"
           />
-          HIDE LOW-ACTIVITY PLAYERS
+          Active only
         </Label>
-        <span>
-          {hideLowActivity && activityFilter.hiddenCount > 0
-            ? `${activityFilter.hiddenCount} HIDDEN · FEWER THAN ${activityFilter.threshold} SESSIONS`
-            : `SHOWING ALL ${playerCount} PLAYERS`}
-        </span>
       </div>
 
       {emptyRange && (
@@ -270,18 +261,13 @@ export default function LeaderboardView({
       {showResults && view === 'chart' && (
         <div className="surface">
           <div className="flex justify-end px-2 mb-4">
-            <ToggleGroup
-              type="single"
+            <SegmentedControl
               value={chartMode}
-              onValueChange={(value) => {
-                if (value === 'cny' || value === 'chips') setChartMode(value)
-              }}
-              aria-label="Value unit"
-              variant="outline"
-            >
-              <ToggleGroupItem value="cny">CNY</ToggleGroupItem>
-              <ToggleGroupItem value="chips">CHIPS</ToggleGroupItem>
-            </ToggleGroup>
+              onValueChange={setChartMode}
+              label="Value unit"
+              compact
+              options={[{ value: 'cny', label: 'CNY' }, { value: 'chips', label: 'CHIPS' }]}
+            />
           </div>
           {sessionCount < 2 ? (
             <p className="text-muted-foreground text-xs tracking-normal px-2">

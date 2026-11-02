@@ -126,7 +126,7 @@ it('shares an applied calendar range between rankings and rebased CNY/chip curve
   expect(within(row).getByRole('link', { name: '+¥5' })).toBeTruthy()
   expect(within(row).getByRole('link', { name: '50%' })).toBeTruthy()
   expect(screen.queryByRole('link', { name: 'Bob' })).toBeNull()
-  fireEvent.click(screen.getByRole('radio', { name: 'CHART' }))
+  fireEvent.click(screen.getByRole('radio', { name: 'Chart' }))
   expect(
     JSON.parse(screen.getByTestId('leaderboard-chart').textContent!).data,
   ).toEqual([
@@ -148,7 +148,7 @@ it('shares an applied calendar range between rankings and rebased CNY/chip curve
 it('applies presets and keeps the activity switch visible for empty periods', () => {
   render(<LeaderboardView groupId="g1" players={players} sessions={[]} />)
   const toggle = screen.getByRole('switch', {
-    name: 'HIDE LOW-ACTIVITY PLAYERS',
+    name: 'Active only',
   })
   for (const label of ['THIS MONTH', 'LAST MONTH', 'THIS YEAR']) {
     openOptions()
