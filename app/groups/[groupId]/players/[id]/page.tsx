@@ -1,6 +1,5 @@
 import { Suspense } from 'react'
 import Loading from './loading'
-import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import PlayerStatsChart from '@/components/PlayerStatsChart'
 import PlayerSessionHistory from '@/components/PlayerSessionHistory'
@@ -40,7 +39,6 @@ async function PlayerDetailPage({ params, query }: {
   // The chart and headline statistics continue to describe all sessions.
   const rows = [...history].reverse().slice((page - 1) * pageSize, page * pageSize)
   return <>
-    <div className="mb-6"><Link href={`/groups/${groupId}`} className="text-muted-foreground text-xs hover:text-foreground tracking-normal">← LEADERBOARD</Link></div>
     <PlayerStatsChart groupId={groupId} id={id} initialName={player.name} data={history} totalCny={totalCny}
       totalChips={totalChips} sessions={history.length} wins={wins} pogCount={pogCount} />
     <p className="text-xs text-muted-foreground tracking-normal mb-4">SESSION HISTORY</p>

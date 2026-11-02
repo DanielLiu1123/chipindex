@@ -11,7 +11,6 @@ import { errorMessage } from '@/lib/error-message'
 import { DEFAULT_EXCHANGE_RATE, BUY_IN_UNIT } from '@/lib/session-rules'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import PlayerSelectionModal from '@/components/PlayerSelectionModal'
 import SessionPlayersHeader from '@/components/SessionPlayersHeader'
 import SessionMetaFields from '@/components/SessionMetaFields'
@@ -76,9 +75,6 @@ export default function NewSessionForm({ groupId, initialPlayers }: { groupId: s
         action={{ kind: 'draft', unit: BUY_IN_UNIT, submit: (ids, amount) => setRows(current => [...current,
           ...ids.filter(id => !current.some(row => row.playerId === id)).map(playerId => ({ playerId, buyin: String(amount) })),
         ]) }} />
-      <div className="mb-6">
-        <Link href={`/groups/${groupId}/sessions`} className="text-muted-foreground text-xs hover:text-foreground tracking-normal">← SESSIONS</Link>
-      </div>
       <h1 className="text-2xl font-medium tracking-tight mb-6">NEW SESSION</h1>
       <form onSubmit={handleStart} className="surface flex flex-col gap-6 max-w-lg">
         <SessionMetaFields disabled={starting}

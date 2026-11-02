@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button'
 import styles from './live-session-actions.module.css'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import ConfirmModal from '@/components/ConfirmModal'
 import SessionRateModal from '@/components/SessionRateModal'
 import CashOutModal from '@/components/CashOutModal'
@@ -114,14 +113,6 @@ export default function LiveSession({
         onConfirm={flow.confirmCashOut}
         onCancel={flow.close}
       />
-      <div className="mb-6">
-        <Link
-          href={`/groups/${groupId}/sessions`}
-          className="text-muted-foreground text-xs hover:text-foreground tracking-normal"
-        >
-          ← SESSIONS
-        </Link>
-      </div>
 
       <div className="flex flex-wrap items-center gap-2 mb-3">
         <span className="inline-block w-2 h-2 rounded-full bg-live motion-safe:animate-pulse" />

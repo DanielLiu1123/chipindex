@@ -24,7 +24,8 @@ import {
   type LeaderboardSortKey as SortKey,
 } from '@/lib/leaderboard'
 import LeaderboardDateFilter from '@/components/LeaderboardDateFilter'
-import type { LeaderboardFilter } from '@/lib/leaderboard-range'
+import { useSearchParams } from 'next/navigation'
+import { readLeaderboardFilters, writeLeaderboardFilters, type LeaderboardFilters } from '@/lib/leaderboard-filter-query'
 import type { LeaderboardSessionRow, Player } from '@/lib/domain-types'
 
 function SortHeader({
@@ -66,8 +67,14 @@ export default function LeaderboardView({
   const [chartMode, setChartMode] = useState<'chips' | 'cny'>('cny')
   const [sortKey, setSortKey] = useState<SortKey>('total_yuan')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
-  const [hideLowActivity, setHideLowActivity] = useState(true)
-  const [filter, setFilter] = useState<LeaderboardFilter>({ period: 'all' })
+  const searchParams = useSearchParams()
+  const { filter, hideLowActivity } = useMemo(() => readLeaderboardFilters(searchParams), [searchParams])
+
+  function updateFilters(patch: Partial<LeaderboardFilters>) {
+    const url = new URL(window.location.href)
+    writeLeaderboardFilters(url.searchParams, { ...readLeaderboardFilters(url.searchParams), ...patch })
+    window.history.replaceState(null, '', url)
+  }
   const range = filter.period === 'all' ? null : filter.range
   const {
     sessionCount,
@@ -116,11 +123,11 @@ export default function LeaderboardView({
       </div>
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <LeaderboardDateFilter filter={filter} onChange={setFilter} />
+        <LeaderboardDateFilter filter={filter} onChange={filter => updateFilters({ filter })} />
         <Label className="ml-auto flex min-h-11 items-center gap-2 text-sm">
           <Switch
             checked={hideLowActivity}
-            onCheckedChange={setHideLowActivity}
+            onCheckedChange={hideLowActivity => updateFilters({ hideLowActivity })}
             aria-label="Active only"
           />
           Active only

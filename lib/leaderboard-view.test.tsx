@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import { createElement, type ReactNode } from 'react'
+import { createElement, useMemo, useSyncExternalStore, type ReactNode } from 'react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -13,6 +14,19 @@ import userEvent from '@testing-library/user-event'
 import LeaderboardView from '../components/LeaderboardView'
 import type { Player } from './domain-types'
 
+// Model Next's search-param subscription; native replaceState does not emit popstate.
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => {
+    const search = useSyncExternalStore(
+      notify => {
+        window.addEventListener('popstate', notify)
+        return () => window.removeEventListener('popstate', notify)
+      },
+      () => window.location.search,
+    )
+    return useMemo(() => new URLSearchParams(search), [search])
+  },
+}))
 vi.mock('next/link', () => ({
   default: ({ children, ...props }: { children: ReactNode }) =>
     createElement('a', props, children),
@@ -26,12 +40,19 @@ vi.mock('../components/LeaderboardChart', () => ({
     ),
 }))
 beforeEach(() => {
+  window.history.replaceState(null, '', '/groups/g1')
+  const replaceState = window.history.replaceState.bind(window.history)
+  vi.spyOn(window.history, 'replaceState').mockImplementation((...args) => {
+    replaceState(...args)
+    window.dispatchEvent(new PopStateEvent('popstate'))
+  })
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(new Date(2026, 0, 15, 12))
 })
 afterEach(() => {
   cleanup()
   vi.useRealTimers()
+  vi.restoreAllMocks()
 })
 const players: Player[] = ['Alice', 'Bob', 'Carol'].map((name) => ({
   id: name,
@@ -217,4 +238,38 @@ it('starts a new custom range from the clicked date instead of keeping the old s
   day('2026-01-20')
   apply()
   expect(screen.getByRole('button', { name: 'Date range: 2026-01-15–01-20' })).toBeTruthy()
+})
+
+it('restores only date and activity filters after leaving for a player and returning', async () => {
+  const user = userEvent.setup()
+  const initialHistoryLength = window.history.length
+  const board = render(<LeaderboardView groupId="g1" players={players} sessions={sessions} />)
+  openOptions()
+  fireEvent.click(screen.getByRole('button', { name: 'THIS MONTH' }))
+  fireEvent.click(screen.getByRole('switch'))
+  expect(window.location.search).toBe('?period=month&active=0')
+  expect(window.history.length).toBe(initialHistoryLength)
+  fireEvent.click(screen.getByRole('radio', { name: 'Chart' }))
+  fireEvent.click(screen.getByRole('radio', { name: 'CHIPS' }))
+  const leaderboardUrl = window.location.href
+  board.unmount()
+  window.history.pushState(null, '', '/groups/g1/players/Alice')
+  window.history.back()
+  await waitFor(() => expect(window.location.href).toBe(leaderboardUrl))
+  render(<LeaderboardView groupId="g1" players={players} sessions={sessions} />)
+  expect(screen.getByRole('button', { name: 'Date range: THIS MONTH' })).toBeTruthy()
+  expect(screen.getByRole('switch').getAttribute('aria-checked')).toBe('false')
+  expect(screen.getByRole('radio', { name: 'Table' }).getAttribute('aria-checked')).toBe('true')
+  await user.click(screen.getByRole('radio', { name: 'Chart' }))
+  expect(screen.getByRole('radio', { name: 'CNY' }).getAttribute('aria-checked')).toBe('true')
+})
+
+it('restores a custom range on reload and updates mounted filters on history navigation', () => {
+  act(() => window.history.replaceState(null, '', '/groups/g1?period=custom&start=2026-01-01&end=2026-01-31&active=0'))
+  render(<LeaderboardView groupId="g1" players={players} sessions={sessions} />)
+  expect(screen.getByRole('button', { name: 'Date range: 2026-01-01–01-31' })).toBeTruthy()
+  expect(screen.getByRole('switch').getAttribute('aria-checked')).toBe('false')
+  act(() => window.history.replaceState(null, '', '/groups/g1'))
+  expect(screen.getByRole('button', { name: 'Date range: ALL TIME' })).toBeTruthy()
+  expect(screen.getByRole('switch').getAttribute('aria-checked')).toBe('true')
 })

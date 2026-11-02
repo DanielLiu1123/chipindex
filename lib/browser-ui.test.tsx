@@ -20,7 +20,7 @@ import { localDate, localTime } from './browser-time'
 const client = vi.hoisted(() => ({ updateSession: vi.fn(), importSession: vi.fn(), createPlayerInGroup: vi.fn(),
   startSession: vi.fn(), listGroups: vi.fn(), logout: vi.fn(), renamePlayer: vi.fn(), deleteSession: vi.fn(), push: vi.fn(), refresh: vi.fn() }))
 vi.mock('./client', async importOriginal => ({ ...await importOriginal<typeof import('./client')>(), ...client }))
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: client.push, refresh: client.refresh }), usePathname: () => '/groups/g1' }))
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: client.push, refresh: client.refresh }), usePathname: () => '/groups/g1', useSearchParams: () => new URLSearchParams() }))
 vi.mock('next/link', () => ({ default: ({ children, ...props }: { children: ReactNode }) => createElement('a', props, children) }))
 vi.mock('next/image', () => ({ default: () => null }))
 vi.mock('../components/LeaderboardChart', () => ({ default: () => null }))
