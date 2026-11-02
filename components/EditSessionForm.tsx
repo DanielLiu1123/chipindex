@@ -12,7 +12,6 @@ import { toDateTimeLocal, toIsoTimestamp } from '@/lib/browser-time'
 import { useBrowserReady } from '@/lib/use-browser-ready'
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import type { SessionForEdit } from '@/lib/domain-types'
 import PlayerSelectionModal from '@/components/PlayerSelectionModal'
 import SessionPlayersHeader from '@/components/SessionPlayersHeader'
@@ -152,9 +151,6 @@ function EditSessionEditor({ groupId, sessionId, session, initialPlayers }: {
         onCancel={() => setConfirmRemove(null)}
       />
 
-      <div className="mb-6">
-        <Link href={`/groups/${groupId}/sessions/${sessionId}`} className="text-muted-foreground text-xs hover:text-foreground tracking-normal">← SESSION</Link>
-      </div>
       <h1 className="text-2xl font-medium tracking-tight mb-6">EDIT SESSION</h1>
 
       <div className="surface flex flex-col gap-6 max-w-lg">

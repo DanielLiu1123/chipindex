@@ -12,7 +12,9 @@ import { Button } from '@/components/ui/button'
 
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { SegmentedControl } from '@/components/ui/segmented-control'
+import ValueUnitControl from '@/components/ValueUnitControl'
+import { Table2, ChartNoAxesCombined } from 'lucide-react'
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import ChipValue from '@/components/ChipValue'
@@ -22,8 +24,11 @@ import {
   type LeaderboardSortKey as SortKey,
 } from '@/lib/leaderboard'
 import LeaderboardDateFilter from '@/components/LeaderboardDateFilter'
-import type { LeaderboardFilter } from '@/lib/leaderboard-range'
+import { useSearchParams } from 'next/navigation'
+import { readLeaderboardFilters, updateLeaderboardFilterQuery, type LeaderboardFilters } from '@/lib/leaderboard-filter-query'
 import type { LeaderboardSessionRow, Player } from '@/lib/domain-types'
+import { useBrowserReady } from '@/lib/use-browser-ready'
+import { LeaderboardSkeleton } from '@/components/PageSkeleton'
 
 function SortHeader({
   label,
@@ -51,26 +56,43 @@ function SortHeader({
   )
 }
 
-export default function LeaderboardView({
-  groupId,
-  players,
-  sessions,
-}: {
+interface Props {
   groupId: string
   players: Player[]
   sessions: LeaderboardSessionRow[]
-}) {
+}
+
+export default function LeaderboardView(props: Props) {
+  const searchParams = useSearchParams()
+  const ready = useBrowserReady()
+  const filters = useMemo(() => {
+    const period = searchParams.get('period')
+    // Relative dates must never be resolved using the server's local timezone.
+    if (!ready && (period === 'month' || period === 'last-month' || period === 'year')) return null
+    return readLeaderboardFilters(searchParams)
+  }, [searchParams, ready])
+
+  return filters
+    ? <LeaderboardContent {...props} filters={filters} />
+    : <LeaderboardSkeleton />
+}
+
+function LeaderboardContent({ groupId, players, sessions, filters }: Props & { filters: LeaderboardFilters }) {
   const [view, setView] = useState<'table' | 'chart'>('table')
   const [chartMode, setChartMode] = useState<'chips' | 'cny'>('cny')
   const [sortKey, setSortKey] = useState<SortKey>('total_yuan')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
-  const [hideLowActivity, setHideLowActivity] = useState(true)
-  const [filter, setFilter] = useState<LeaderboardFilter>({ period: 'all' })
+  const { filter, hideLowActivity } = filters
+
+  function updateFilters(patch: Partial<LeaderboardFilters>) {
+    const url = new URL(window.location.href)
+    url.search = updateLeaderboardFilterQuery(url.search, patch).toString()
+    window.history.replaceState(null, '', url)
+  }
   const range = filter.period === 'all' ? null : filter.range
   const {
     sessionCount,
     playerCount,
-    activityFilter,
     emptyRange,
     sortedStats,
     chartPlayers,
@@ -100,39 +122,30 @@ export default function LeaderboardView({
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-        <ToggleGroup
-          type="single"
+        <SegmentedControl
           value={view}
-          onValueChange={(value) => {
-            if (value === 'table' || value === 'chart') setView(value)
-          }}
-          aria-label="Leaderboard view"
-          variant="outline"
-        >
-          <ToggleGroupItem value="table">TABLE</ToggleGroupItem>
-          <ToggleGroupItem value="chart">CHART</ToggleGroupItem>
-        </ToggleGroup>
+          onValueChange={setView}
+          label="Leaderboard view"
+          options={[
+            { value: 'table', label: 'Table', icon: <Table2 aria-hidden="true" /> },
+            { value: 'chart', label: 'Chart', icon: <ChartNoAxesCombined aria-hidden="true" /> },
+          ]}
+        />
         <Button asChild>
           <Link href={`/groups/${groupId}/sessions/new`}>+ NEW SESSION</Link>
         </Button>
       </div>
 
-      <LeaderboardDateFilter filter={filter} onChange={setFilter} />
-
-      <div className="flex flex-wrap items-center justify-between gap-2 min-h-8 mb-3 text-[10px] tracking-normal text-muted-foreground">
-        <Label className="flex items-center gap-2 text-sm">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <LeaderboardDateFilter filter={filter} onChange={filter => updateFilters({ filter })} />
+        <Label className="ml-auto flex min-h-11 items-center gap-2 text-sm">
           <Switch
             checked={hideLowActivity}
-            onCheckedChange={setHideLowActivity}
-            aria-label="HIDE LOW-ACTIVITY PLAYERS"
+            onCheckedChange={hideLowActivity => updateFilters({ hideLowActivity })}
+            aria-label="Active only"
           />
-          HIDE LOW-ACTIVITY PLAYERS
+          Active only
         </Label>
-        <span>
-          {hideLowActivity && activityFilter.hiddenCount > 0
-            ? `${activityFilter.hiddenCount} HIDDEN · FEWER THAN ${activityFilter.threshold} SESSIONS`
-            : `SHOWING ALL ${playerCount} PLAYERS`}
-        </span>
       </div>
 
       {emptyRange && (
@@ -270,18 +283,7 @@ export default function LeaderboardView({
       {showResults && view === 'chart' && (
         <div className="surface">
           <div className="flex justify-end px-2 mb-4">
-            <ToggleGroup
-              type="single"
-              value={chartMode}
-              onValueChange={(value) => {
-                if (value === 'cny' || value === 'chips') setChartMode(value)
-              }}
-              aria-label="Value unit"
-              variant="outline"
-            >
-              <ToggleGroupItem value="cny">CNY</ToggleGroupItem>
-              <ToggleGroupItem value="chips">CHIPS</ToggleGroupItem>
-            </ToggleGroup>
+            <ValueUnitControl value={chartMode} onValueChange={setChartMode} />
           </div>
           {sessionCount < 2 ? (
             <p className="text-muted-foreground text-xs tracking-normal px-2">

@@ -1,7 +1,6 @@
 'use client'
 
-
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import ValueUnitControl from '@/components/ValueUnitControl'
 import { useState } from 'react'
 import ChipValue from '@/components/ChipValue'
 import PlayerChart from '@/components/PlayerChart'
@@ -53,12 +52,7 @@ export default function PlayerStatsChart({
             <p className="text-xs text-muted-foreground tracking-normal">
               {mode === 'cny' ? 'CUMULATIVE CNY' : 'CUMULATIVE CHIPS'}
             </p>
-            <div className="flex flex-wrap items-center gap-4">
-              <ToggleGroup type="single" value={mode} onValueChange={value => { if (value === 'cny' || value === 'chips') setMode(value) }} aria-label="Value unit" variant="outline">
-                <ToggleGroupItem value="cny">CNY</ToggleGroupItem>
-                <ToggleGroupItem value="chips">CHIPS</ToggleGroupItem>
-              </ToggleGroup>
-            </div>
+            <ValueUnitControl value={mode} onValueChange={setMode} />
           </div>
           <PlayerChart groupId={groupId} data={data} mode={mode} />
         </div>
