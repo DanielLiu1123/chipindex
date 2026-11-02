@@ -11,6 +11,8 @@ import {
   waitFor,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { renderToString } from 'react-dom/server'
+import { hydrateRoot } from 'react-dom/client'
 import LeaderboardView from '../components/LeaderboardView'
 import type { Player } from './domain-types'
 
@@ -26,6 +28,7 @@ vi.mock('next/navigation', () => ({
           window.removeEventListener('test:search-params', notify)
         }
       },
+      () => window.location.search,
       () => window.location.search,
     )
     return useMemo(() => new URLSearchParams(search), [search])
@@ -279,4 +282,39 @@ it('restores a custom range on reload and updates mounted filters on history nav
   act(() => window.history.replaceState(null, '', '/groups/g1'))
   expect(screen.getByRole('button', { name: 'Date range: ALL TIME' })).toBeTruthy()
   expect(screen.getByRole('switch').getAttribute('aria-checked')).toBe('true')
+})
+
+it.each(['month', 'last-month', 'year'])('defers %s until hydration and uses the browser date without a mismatch', async period => {
+  window.history.replaceState(null, '', `/groups/g1?period=${period}`)
+  const decemberSessions = [{ ...sessions[0], date: '2026-12-31' }]
+  const view = <LeaderboardView groupId="g1" players={players} sessions={decemberSessions} />
+  // Advance across both a month and a year between SSR and browser hydration.
+  vi.setSystemTime(new Date(2026, 11, 31, 23, 30))
+  const serverHtml = renderToString(view)
+  expect(serverHtml).toContain('Loading leaderboard')
+  expect(serverHtml).not.toContain('Alice')
+  vi.setSystemTime(new Date(2027, 0, 1, 7, 30))
+  const container = document.createElement('div')
+  document.body.appendChild(container)
+  container.innerHTML = serverHtml
+  const onRecoverableError = vi.fn()
+  const root = hydrateRoot(container, view, { onRecoverableError })
+  try {
+    await waitFor(() => expect(within(container).queryByRole('status', { name: 'Loading leaderboard' })).toBeNull())
+    expect(onRecoverableError).not.toHaveBeenCalled()
+    // Only last month (December 2026) overlaps our fixtures; month/year are 2027.
+    expect(Boolean(within(container).queryByText('NO SESSIONS'))).toBe(period !== 'last-month')
+  } finally {
+    act(() => root.unmount())
+    container.remove()
+  }
+})
+
+it('keeps all-time and custom filters server-rendered', () => {
+  for (const query of ['', '?period=custom&start=2026-01-01&end=2026-01-31']) {
+    window.history.replaceState(null, '', `/groups/g1${query}`)
+    const html = renderToString(<LeaderboardView groupId="g1" players={players} sessions={sessions} />)
+    expect(html).not.toContain('Loading leaderboard')
+    expect(html).toContain('Alice')
+  }
 })

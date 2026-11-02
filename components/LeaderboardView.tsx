@@ -27,6 +27,8 @@ import LeaderboardDateFilter from '@/components/LeaderboardDateFilter'
 import { useSearchParams } from 'next/navigation'
 import { readLeaderboardFilters, updateLeaderboardFilterQuery, type LeaderboardFilters } from '@/lib/leaderboard-filter-query'
 import type { LeaderboardSessionRow, Player } from '@/lib/domain-types'
+import { useBrowserReady } from '@/lib/use-browser-ready'
+import { LeaderboardSkeleton } from '@/components/PageSkeleton'
 
 function SortHeader({
   label,
@@ -54,21 +56,33 @@ function SortHeader({
   )
 }
 
-export default function LeaderboardView({
-  groupId,
-  players,
-  sessions,
-}: {
+interface Props {
   groupId: string
   players: Player[]
   sessions: LeaderboardSessionRow[]
-}) {
+}
+
+export default function LeaderboardView(props: Props) {
+  const searchParams = useSearchParams()
+  const ready = useBrowserReady()
+  const filters = useMemo(() => {
+    const period = searchParams.get('period')
+    // Relative dates must never be resolved using the server's local timezone.
+    if (!ready && (period === 'month' || period === 'last-month' || period === 'year')) return null
+    return readLeaderboardFilters(searchParams)
+  }, [searchParams, ready])
+
+  return filters
+    ? <LeaderboardContent {...props} filters={filters} />
+    : <LeaderboardSkeleton />
+}
+
+function LeaderboardContent({ groupId, players, sessions, filters }: Props & { filters: LeaderboardFilters }) {
   const [view, setView] = useState<'table' | 'chart'>('table')
   const [chartMode, setChartMode] = useState<'chips' | 'cny'>('cny')
   const [sortKey, setSortKey] = useState<SortKey>('total_yuan')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
-  const searchParams = useSearchParams()
-  const { filter, hideLowActivity } = useMemo(() => readLeaderboardFilters(searchParams), [searchParams])
+  const { filter, hideLowActivity } = filters
 
   function updateFilters(patch: Partial<LeaderboardFilters>) {
     const url = new URL(window.location.href)
