@@ -205,13 +205,16 @@ it('discards unapplied dates on Escape and outside interaction and returns focus
     screen.getByRole('button', { name: 'Date range: ALL TIME' }),
   ).toBeTruthy()
 })
-it('Back discards the draft and custom ranges display compact same-year dates', () => {
+it('closing the calendar discards its draft and custom ranges display compact same-year dates', async () => {
+  const user = userEvent.setup()
   render(<LeaderboardView groupId="g1" players={players} sessions={[]} />)
   openCustom()
   day('2026-01-10')
   day('2026-01-20')
-  fireEvent.click(screen.getByRole('button', { name: 'BACK' }))
-  fireEvent.click(screen.getByRole('button', { name: 'CUSTOM…' }))
+  expect(screen.queryByRole('button', { name: 'BACK' })).toBeNull()
+  await user.keyboard('{Escape}')
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  openCustom()
   apply()
   expect(
     screen.getByRole('button', { name: 'Date range: 2026-01-01–01-31' }),

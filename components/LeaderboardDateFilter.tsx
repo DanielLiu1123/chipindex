@@ -81,7 +81,6 @@ export default function LeaderboardDateFilter({
                 ? presetLeaderboardRange('month')
                 : filter.range
             }
-            onBack={() => setPanel('options')}
             onApply={(range) => {
               onChange({ period: 'custom', range })
               setPanel(null)

@@ -9,11 +9,9 @@ import type { LeaderboardRange } from '@/lib/leaderboard-range'
 
 export default function LeaderboardCustomRangeForm({
   initialRange,
-  onBack,
   onApply,
 }: {
   initialRange: LeaderboardRange
-  onBack: () => void
   onApply: (range: LeaderboardRange) => void
 }) {
   const [draft, setDraft] = useState<DateRange | undefined>({
@@ -43,10 +41,7 @@ export default function LeaderboardCustomRangeForm({
           {draft?.from ? localDate(draft.from) : 'Start date'} –{' '}
           {draft?.to ? localDate(draft.to) : 'End date'}
         </p>
-        <div className="flex justify-between gap-2">
-          <Button type="button" variant="ghost" onClick={onBack}>
-            BACK
-          </Button>
+        <div className="flex justify-end">
           <Button type="submit" disabled={!draft?.from || !draft.to}>
             APPLY
           </Button>
