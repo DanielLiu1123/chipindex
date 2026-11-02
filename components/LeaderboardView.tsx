@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { SegmentedControl } from '@/components/ui/segmented-control'
+import ValueUnitControl from '@/components/ValueUnitControl'
 import { Table2, ChartNoAxesCombined } from 'lucide-react'
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
@@ -261,13 +262,7 @@ export default function LeaderboardView({
       {showResults && view === 'chart' && (
         <div className="surface">
           <div className="flex justify-end px-2 mb-4">
-            <SegmentedControl
-              value={chartMode}
-              onValueChange={setChartMode}
-              label="Value unit"
-              compact
-              options={[{ value: 'cny', label: 'CNY' }, { value: 'chips', label: 'CHIPS' }]}
-            />
+            <ValueUnitControl value={chartMode} onValueChange={setChartMode} />
           </div>
           {sessionCount < 2 ? (
             <p className="text-muted-foreground text-xs tracking-normal px-2">

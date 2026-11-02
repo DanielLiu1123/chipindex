@@ -1,7 +1,6 @@
 'use client'
 
-
-import { SegmentedControl } from '@/components/ui/segmented-control'
+import ValueUnitControl from '@/components/ValueUnitControl'
 import { useState } from 'react'
 import ChipValue from '@/components/ChipValue'
 import PlayerChart from '@/components/PlayerChart'
@@ -53,15 +52,7 @@ export default function PlayerStatsChart({
             <p className="text-xs text-muted-foreground tracking-normal">
               {mode === 'cny' ? 'CUMULATIVE CNY' : 'CUMULATIVE CHIPS'}
             </p>
-            <div className="flex flex-wrap items-center gap-4">
-              <SegmentedControl
-                value={mode}
-                onValueChange={setMode}
-                label="Value unit"
-                compact
-                options={[{ value: 'cny', label: 'CNY' }, { value: 'chips', label: 'CHIPS' }]}
-              />
-            </div>
+            <ValueUnitControl value={mode} onValueChange={setMode} />
           </div>
           <PlayerChart groupId={groupId} data={data} mode={mode} />
         </div>

@@ -1,7 +1,7 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import { ToggleGroup } from 'radix-ui'
+import { RadioGroup } from 'radix-ui'
 
 type Option<T extends string> = {
   value: T
@@ -25,8 +25,7 @@ export function SegmentedControl<T extends string>({
   const index = options.findIndex(option => option.value === value)
 
   return (
-    <ToggleGroup.Root
-      type="single"
+    <RadioGroup.Root
       value={value}
       onValueChange={next => {
         const option = options.find(option => option.value === next)
@@ -45,16 +44,15 @@ export function SegmentedControl<T extends string>({
         />
       </span>
       {options.map(option => (
-        <ToggleGroup.Item
+        <RadioGroup.Item
           key={option.value}
           value={option.value}
-          onFocus={() => onValueChange(option.value)}
-          className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background data-[state=on]:text-foreground motion-reduce:transition-none [&_svg]:size-4 [&_svg]:shrink-0 ${compact ? 'min-h-9 px-3' : 'min-h-10 px-4'}`}
+          className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background data-[state=checked]:text-foreground motion-reduce:transition-none [&_svg]:size-4 [&_svg]:shrink-0 ${compact ? 'min-h-9 px-3' : 'min-h-10 px-4'}`}
         >
           {option.icon}
           {option.label}
-        </ToggleGroup.Item>
+        </RadioGroup.Item>
       ))}
-    </ToggleGroup.Root>
+    </RadioGroup.Root>
   )
 }

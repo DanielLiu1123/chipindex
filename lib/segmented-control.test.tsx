@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { useState } from 'react'
 import { afterEach, expect, it } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { SegmentedControl } from '../components/ui/segmented-control'
 
@@ -21,12 +21,22 @@ it('keeps exactly one option selected and supports keyboard selection', async ()
   const chart = screen.getByRole('radio', { name: 'Chart' })
   await user.click(table)
   expect(table.getAttribute('aria-checked')).toBe('true')
-  await user.keyboard('{ArrowRight}')
+  await user.keyboard('{ArrowRight>}')
+  await waitFor(() => expect(document.activeElement).toBe(chart))
+  await user.keyboard('{/ArrowRight}')
   expect(document.activeElement).toBe(chart)
   expect(chart.getAttribute('aria-checked')).toBe('true')
   expect(table.getAttribute('aria-checked')).toBe('false')
   await user.click(chart)
   expect(chart.getAttribute('aria-checked')).toBe('true')
-  await user.keyboard('{ArrowRight}')
+  await user.keyboard('{ArrowRight>}')
+  await waitFor(() => expect(document.activeElement).toBe(table))
+  await user.keyboard('{/ArrowRight}')
   expect(table.getAttribute('aria-checked')).toBe('true')
+})
+
+it('does not change selection on focus alone', () => {
+  render(<Example />)
+  screen.getByRole('radio', { name: 'Chart' }).focus()
+  expect(screen.getByRole('radio', { name: 'Table' }).getAttribute('aria-checked')).toBe('true')
 })

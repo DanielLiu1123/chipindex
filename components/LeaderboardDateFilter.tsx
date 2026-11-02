@@ -58,57 +58,55 @@ export default function LeaderboardDateFilter({
     setPanel(null)
   }
   return (
-    <div>
-      <Popover
-        open={panel !== null}
-        onOpenChange={(open) => setPanel(open ? 'options' : null)}
+    <Popover
+      open={panel !== null}
+      onOpenChange={(open) => setPanel(open ? 'options' : null)}
+    >
+      <PopoverTrigger asChild>
+        <Button variant="outline" aria-label={`Date range: ${label}`}>
+          <CalendarIcon />
+          {label}
+          <ChevronDown />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        className="w-auto max-w-[calc(100vw-2rem)] p-0"
+        aria-label="Date range"
       >
-        <PopoverTrigger asChild>
-          <Button variant="outline" aria-label={`Date range: ${label}`}>
-            <CalendarIcon />
-            {label}
-            <ChevronDown />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent
-          align="start"
-          className="w-auto max-w-[calc(100vw-2rem)] p-0"
-          aria-label="Date range"
-        >
-          {panel === 'custom' ? (
-            <LeaderboardCustomRangeForm
-              initialRange={
-                filter.period === 'all'
-                  ? presetLeaderboardRange('month')
-                  : filter.range
-              }
-              onBack={() => setPanel('options')}
-              onApply={(range) => {
-                onChange({ period: 'custom', range })
-                setPanel(null)
-              }}
-            />
-          ) : (
-            <div className="w-48 p-1">
-              {PERIODS.map((period) => (
-                <Button
-                  key={period}
-                  type="button"
-                  variant="ghost"
-                  className="w-full justify-start"
-                  aria-pressed={filter.period === period}
-                  onClick={() => select(period)}
-                >
-                  <Check
-                    className={filter.period === period ? '' : 'invisible'}
-                  />
-                  {LABELS[period]}
-                </Button>
-              ))}
-            </div>
-          )}
-        </PopoverContent>
-      </Popover>
-    </div>
+        {panel === 'custom' ? (
+          <LeaderboardCustomRangeForm
+            initialRange={
+              filter.period === 'all'
+                ? presetLeaderboardRange('month')
+                : filter.range
+            }
+            onBack={() => setPanel('options')}
+            onApply={(range) => {
+              onChange({ period: 'custom', range })
+              setPanel(null)
+            }}
+          />
+        ) : (
+          <div className="w-48 p-1">
+            {PERIODS.map((period) => (
+              <Button
+                key={period}
+                type="button"
+                variant="ghost"
+                className="w-full justify-start"
+                aria-pressed={filter.period === period}
+                onClick={() => select(period)}
+              >
+                <Check
+                  className={filter.period === period ? '' : 'invisible'}
+                />
+                {LABELS[period]}
+              </Button>
+            ))}
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
   )
 }
