@@ -36,6 +36,7 @@ export default function Nav() {
   const [loggingOut, setLoggingOut] = useState(false)
   const logoutLabel = loggingOut ? 'Signing out' : 'Sign out'
   const logoutBusy = useRef(false)
+  const restoreGroupFocus = useRef(true)
   const [groups, setGroups] = useState<Group[]>([])
   const groupId = pathname.match(/^\/groups\/([^/]+)/)?.[1]
   const current = groups.find((group) => group.id === groupId)
@@ -112,12 +113,26 @@ export default function Nav() {
           >
             <Image src="/icon.svg" alt="" width={28} height={28} className="dark:invert" /> CHIPINDEX
           </Link>
-          <div className={cn(navigationFont, "min-w-0 sm:ml-1 sm:border-l sm:border-border sm:pl-5")}>
+          <div
+            className={cn(navigationFont, "min-w-0 sm:ml-1 sm:border-l sm:border-border sm:pl-5")}
+            onPointerDownCapture={() => { restoreGroupFocus.current = false }}
+            onKeyDownCapture={() => { restoreGroupFocus.current = true }}
+          >
             <Select value={current?.id ?? ''} onValueChange={changeGroup}>
               <SelectTrigger aria-label="Current group" className="w-auto max-w-[40vw] gap-5 rounded-md border-0 px-1.5 font-medium hover:bg-muted data-[state=open]:bg-muted dark:bg-transparent dark:hover:bg-muted sm:max-w-48">
                 <SelectValue placeholder="Select group" />
               </SelectTrigger>
-              <SelectContent position="popper" align="end" sideOffset={4} className={cn(navigationFont, "min-w-44 max-w-[calc(100vw-2rem)] rounded-[10px] p-1.5")}>
+              <SelectContent
+                position="popper"
+                align="end"
+                sideOffset={4}
+                className={cn(navigationFont, "min-w-44 max-w-[calc(100vw-2rem)] rounded-[10px] p-1.5")}
+                onPointerDownOutside={() => { restoreGroupFocus.current = false }}
+                onCloseAutoFocus={(event) => {
+                  // Pointer selection should not leave a focus ring; keyboard users return to the trigger.
+                  if (!restoreGroupFocus.current) event.preventDefault()
+                }}
+              >
                 {groups.map((group) => (
                   <SelectItem key={group.id} value={group.id} className="min-h-9 pl-2.5 data-[state=checked]:bg-muted">
                     {group.name}
