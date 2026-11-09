@@ -318,3 +318,67 @@ it('keeps all-time and custom filters server-rendered', () => {
     expect(html).toContain('Alice')
   }
 })
+
+it('measures long names with the rendered font when the font shorthand is empty', () => {
+  vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(720)
+  const originalGetComputedStyle = window.getComputedStyle.bind(window)
+  vi.spyOn(window, 'getComputedStyle').mockImplementation(element => {
+    const style = originalGetComputedStyle(element)
+    Object.defineProperties(style, {
+      font: { value: '' },
+      fontStyle: { value: 'normal' },
+      fontWeight: { value: '400' },
+      fontSize: { value: '14px' },
+      fontFamily: { value: 'Arial' },
+    })
+    return style
+  })
+  const context = {
+    font: '10px sans-serif',
+    measureText(text: string) {
+      // Model the difference between the default Canvas font and the rendered font.
+      return { width: text.length * (this.font === 'normal 400 14px Arial' ? 7 : 5) }
+    },
+  }
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context as unknown as CanvasRenderingContext2D)
+  const name = 'Christopher Alexander Williams'
+  render(<LeaderboardView groupId="g1" players={players.map((player, index) => index === 0 ? { ...player, name } : player)} sessions={sessions} />)
+  const playerColumn = document.querySelectorAll('col')[1] as HTMLTableColElement
+  expect(context.font).toBe('normal 400 14px Arial')
+  expect(parseFloat(playerColumn.style.width)).toBeGreaterThanOrEqual(name.length * 7)
+})
+
+it('resets hidden sorting after resize and keeps CNY when expanded again', () => {
+  let resize!: () => void
+  let width = 720
+  vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(() => width)
+  const measureText = vi.fn((text: string) => ({ width: text.length * 7 }))
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+    font: '', measureText,
+  } as unknown as CanvasRenderingContext2D)
+  const OriginalObserver = globalThis.ResizeObserver
+  globalThis.ResizeObserver = class extends OriginalObserver {
+    constructor(callback: ResizeObserverCallback) {
+      super(() => {})
+      resize = () => callback([], this)
+    }
+  }
+  try {
+    render(<LeaderboardView groupId="g1" players={players} sessions={sessions} />)
+    fireEvent.click(screen.getByRole('button', { name: 'CHIPS' }))
+    const measurements = measureText.mock.calls.length
+    width = 700
+    act(() => resize())
+    expect(measureText).toHaveBeenCalledTimes(measurements)
+    width = 320
+    act(() => resize())
+    expect(screen.getByRole('columnheader', { name: 'CNY ↓' }).getAttribute('aria-sort')).toBe('descending')
+    expect(document.querySelector('th[data-column="total_chips"]')?.classList.contains('hidden')).toBe(true)
+    width = 720
+    act(() => resize())
+    expect(document.querySelector('th[data-column="total_chips"]')?.classList.contains('hidden')).toBe(false)
+    expect(screen.getByRole('button', { name: 'CNY ↓' })).toBeTruthy()
+  } finally {
+    globalThis.ResizeObserver = OriginalObserver
+  }
+})

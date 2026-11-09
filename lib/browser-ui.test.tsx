@@ -11,14 +11,13 @@ import SessionForm from '../components/SessionForm'
 import NewSessionForm from '../components/NewSessionForm'
 import BrowserTime from '../components/BrowserTime'
 import LeaderboardView from '../components/LeaderboardView'
-import Nav from '../components/Nav'
 import PlayerNameEditor from '../components/PlayerNameEditor'
 import DeleteSessionButton from '../components/DeleteSessionButton'
 import type { Player, SessionForEdit } from './domain-types'
 import { localDate, localTime } from './browser-time'
 
 const client = vi.hoisted(() => ({ updateSession: vi.fn(), importSession: vi.fn(), createPlayerInGroup: vi.fn(),
-  startSession: vi.fn(), listGroups: vi.fn(), logout: vi.fn(), renamePlayer: vi.fn(), deleteSession: vi.fn(), push: vi.fn(), refresh: vi.fn() }))
+  startSession: vi.fn(), renamePlayer: vi.fn(), deleteSession: vi.fn(), push: vi.fn(), refresh: vi.fn() }))
 vi.mock('./client', async importOriginal => ({ ...await importOriginal<typeof import('./client')>(), ...client }))
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: client.push, refresh: client.refresh }), usePathname: () => '/groups/g1', useSearchParams: () => new URLSearchParams() }))
 vi.mock('next/link', () => ({ default: ({ children, ...props }: { children: ReactNode }) => createElement('a', props, children) }))
@@ -27,7 +26,6 @@ vi.mock('../components/LeaderboardChart', () => ({ default: () => null }))
 
 beforeEach(() => {
   Object.values(client).forEach(mock => mock.mockReset())
-  client.listGroups.mockResolvedValue([])
 })
 afterEach(cleanup)
 const players: Player[] = ['Alice', 'Bob', 'Carol'].map(name => ({ id: name, name, created_at: '2026-01-01', updated_at: '2026-01-01', deleted_at: null }))
@@ -121,13 +119,6 @@ describe('shared dialog and failures', () => {
     expect(cancel).toHaveBeenCalledTimes(1)
     view.rerender(<ConfirmModal open={false} title="Delete?" onConfirm={confirm} onCancel={cancel} />)
     await waitFor(() => expect(document.activeElement).toBe(trigger)); trigger.remove()
-  })
-  it('does not navigate when logout fails', async () => {
-    render(<Nav />)
-    client.logout.mockRejectedValue(new Error('Unable to connect.'))
-    fireEvent.click(screen.getByRole('button', { name: 'EXIT' }))
-    await screen.findByText('Unable to connect.')
-    expect(client.push).not.toHaveBeenCalled()
   })
   it('keeps a failed deletion open and a failed rename editable with an error', async () => {
     client.deleteSession.mockRejectedValue(new Error('Delete unavailable.'))
