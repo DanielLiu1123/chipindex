@@ -113,11 +113,7 @@ export default function Nav() {
           >
             <Image src="/icon.svg" alt="" width={28} height={28} className="dark:invert" /> CHIPINDEX
           </Link>
-          <div
-            className={cn(navigationFont, "min-w-0 sm:ml-1 sm:border-l sm:border-border sm:pl-5")}
-            onPointerDownCapture={() => { restoreGroupFocus.current = false }}
-            onKeyDownCapture={() => { restoreGroupFocus.current = true }}
-          >
+          <div className={cn(navigationFont, "min-w-0 sm:ml-1 sm:border-l sm:border-border sm:pl-5")}>
             <Select value={current?.id ?? ''} onValueChange={changeGroup}>
               <SelectTrigger aria-label="Current group" className="w-auto max-w-[40vw] gap-5 rounded-md border-0 px-1.5 font-medium hover:bg-muted data-[state=open]:bg-muted dark:bg-transparent dark:hover:bg-muted sm:max-w-48">
                 <SelectValue placeholder="Select group" />
@@ -127,10 +123,13 @@ export default function Nav() {
                 align="end"
                 sideOffset={4}
                 className={cn(navigationFont, "min-w-44 max-w-[calc(100vw-2rem)] rounded-[10px] p-1.5")}
+                onPointerUpCapture={() => { restoreGroupFocus.current = false }}
+                onKeyDownCapture={() => { restoreGroupFocus.current = true }}
                 onPointerDownOutside={() => { restoreGroupFocus.current = false }}
                 onCloseAutoFocus={(event) => {
-                  // Pointer selection should not leave a focus ring; keyboard users return to the trigger.
+                  // Only pointer dismissal skips refocusing; start each menu interaction fresh.
                   if (!restoreGroupFocus.current) event.preventDefault()
+                  restoreGroupFocus.current = true
                 }}
               >
                 {groups.map((group) => (
