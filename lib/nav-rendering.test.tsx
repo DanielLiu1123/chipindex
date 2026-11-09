@@ -1,17 +1,19 @@
 // @vitest-environment jsdom
-import { act, fireEvent, render, screen, cleanup } from '@testing-library/react'
+import { act, fireEvent, render, screen, cleanup, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import Nav from '../components/Nav'
+import userEvent from '@testing-library/user-event'
 const state = vi.hoisted(() => ({ pathname: '/' }))
-const client = vi.hoisted(() => ({ logout: vi.fn(), push: vi.fn(), refresh: vi.fn() }))
+const client = vi.hoisted(() => ({ logout: vi.fn(), push: vi.fn(), refresh: vi.fn(), listGroups: vi.fn() }))
 vi.mock('next/navigation', () => ({
   usePathname: () => state.pathname,
   useRouter: () => ({ push: client.push, refresh: client.refresh }),
 }))
-vi.mock('./client', () => ({ listGroups: async () => [], logout: client.logout }))
+vi.mock('./client', () => ({ listGroups: client.listGroups, logout: client.logout }))
 beforeEach(() => {
   state.pathname = '/'
   Object.values(client).forEach(mock => mock.mockReset())
+  client.listGroups.mockResolvedValue([])
 })
 afterEach(cleanup)
 it('waits for a group pathname before rendering group navigation', () => {
@@ -56,4 +58,54 @@ it('does not navigate when logout fails', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
   await screen.findByText('Unable to connect.')
   expect(client.push).not.toHaveBeenCalled()
+})
+
+async function renderGroupNav() {
+  const user = userEvent.setup()
+  client.listGroups.mockResolvedValue([{ id: 'g1', name: 'Group one' }, { id: 'g2', name: 'Group two' }])
+  state.pathname = '/groups/g1'
+  render(<Nav />)
+  await screen.findByText('Group one')
+  return { user, trigger: screen.getByRole('combobox', { name: 'Current group' }) }
+}
+
+it('does not restore trigger focus after pointer selection', async () => {
+  const { user, trigger } = await renderGroupNav()
+  await user.click(trigger)
+  await user.click(await screen.findByRole('option', { name: 'Group two' }))
+  await screen.findByRole('combobox', { expanded: false })
+  expect(client.push).toHaveBeenCalledWith('/groups/g2')
+  expect(document.activeElement).not.toBe(trigger)
+})
+
+it('restores trigger focus after keyboard selection', async () => {
+  const { user, trigger } = await renderGroupNav()
+  trigger.focus()
+  await user.keyboard('{Enter}')
+  await screen.findByRole('option', { name: 'Group two' })
+  await user.keyboard('{ArrowDown}{Enter}')
+  await screen.findByRole('combobox', { expanded: false })
+  expect(client.push).toHaveBeenCalledWith('/groups/g2')
+  await waitFor(() => expect(document.activeElement).toBe(trigger))
+})
+
+it('restores focus when a pointer-opened menu is dismissed with Escape', async () => {
+  const { user, trigger } = await renderGroupNav()
+  await user.click(trigger)
+  await screen.findByRole('option', { name: 'Group two' })
+  await user.keyboard('{Escape}')
+  await waitFor(() => expect(document.activeElement).toBe(trigger))
+  expect(trigger.getAttribute('aria-expanded')).toBe('false')
+})
+
+it('does not carry pointer dismissal into the next keyboard interaction', async () => {
+  const { user, trigger } = await renderGroupNav()
+  await user.click(trigger)
+  await user.click(await screen.findByRole('option', { name: 'Group two' }))
+  await screen.findByRole('combobox', { expanded: false })
+  trigger.focus()
+  await user.keyboard('{Enter}')
+  await screen.findByRole('option', { name: 'Group two' })
+  await user.keyboard('{Escape}')
+  await waitFor(() => expect(document.activeElement).toBe(trigger))
 })
