@@ -319,6 +319,35 @@ it('keeps all-time and custom filters server-rendered', () => {
   }
 })
 
+it('measures long names with the rendered font when the font shorthand is empty', () => {
+  vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(720)
+  const originalGetComputedStyle = window.getComputedStyle.bind(window)
+  vi.spyOn(window, 'getComputedStyle').mockImplementation(element => {
+    const style = originalGetComputedStyle(element)
+    Object.defineProperties(style, {
+      font: { value: '' },
+      fontStyle: { value: 'normal' },
+      fontWeight: { value: '400' },
+      fontSize: { value: '14px' },
+      fontFamily: { value: 'Arial' },
+    })
+    return style
+  })
+  const context = {
+    font: '10px sans-serif',
+    measureText(text: string) {
+      // Model the difference between the default Canvas font and the rendered font.
+      return { width: text.length * (this.font === 'normal 400 14px Arial' ? 7 : 5) }
+    },
+  }
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context as unknown as CanvasRenderingContext2D)
+  const name = 'Christopher Alexander Williams'
+  render(<LeaderboardView groupId="g1" players={players.map((player, index) => index === 0 ? { ...player, name } : player)} sessions={sessions} />)
+  const playerColumn = document.querySelectorAll('col')[1] as HTMLTableColElement
+  expect(context.font).toBe('normal 400 14px Arial')
+  expect(parseFloat(playerColumn.style.width)).toBeGreaterThanOrEqual(name.length * 7)
+})
+
 it('resets hidden sorting after resize and keeps CNY when expanded again', () => {
   let resize!: () => void
   let width = 720

@@ -13,7 +13,9 @@ function measureColumns(table: HTMLTableElement, context: CanvasRenderingContext
     let maximum = 0
     for (const cell of table.querySelectorAll<HTMLElement>(`[data-column="${key}"]`)) {
       const text = cell.querySelector('button, a') ?? cell
-      context.font = getComputedStyle(text).font
+      const textStyle = getComputedStyle(text)
+      // The font shorthand can be empty when tabular-nums is inherited.
+      context.font = `${textStyle.fontStyle} ${textStyle.fontWeight} ${textStyle.fontSize} ${textStyle.fontFamily}`
       const content = text.textContent ?? ''
       // Reserve the arrow's space even when this column is not sorted.
       const value = cell.tagName === 'TH' && cell.querySelector('button')
