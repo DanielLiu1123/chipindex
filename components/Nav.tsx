@@ -3,6 +3,7 @@
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 import { Button } from '@/components/ui/button'
+import { LoaderCircle, LogOut } from 'lucide-react'
 
 import {
   Select,
@@ -123,47 +124,54 @@ export default function Nav() {
             </SelectContent>
           </Select>
         </div>
-        <nav className="flex flex-wrap items-center gap-1">
-          <ThemeToggle />
+        <div className="flex w-full items-center justify-between gap-1 sm:w-auto sm:justify-end sm:gap-2">
           {manage && (
-            <>
+            <nav aria-label="Main navigation" className="flex items-center sm:gap-1">
               <Link
                 href={home}
                 aria-current={homeActive ? 'page' : undefined}
-                className={`rounded-md px-1.5 py-2 text-[10px] sm:text-xs tracking-normal transition-colors ${homeActive ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`rounded-md px-0.5 py-2 text-[10px] sm:px-1.5 sm:text-xs tracking-normal transition-colors ${homeActive ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 LEADERBOARD
               </Link>
               <Link
                 href={sessions}
                 aria-current={sessionsActive ? 'page' : undefined}
-                className={`rounded-md px-1.5 py-2 text-[10px] sm:text-xs tracking-normal transition-colors ${sessionsActive ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`rounded-md px-0.5 py-2 text-[10px] sm:px-1.5 sm:text-xs tracking-normal transition-colors ${sessionsActive ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 SESSIONS
               </Link>
               <Link
                 href={manage}
                 aria-current={manageActive ? 'page' : undefined}
-                className={`rounded-md px-1.5 py-2 text-[10px] sm:text-xs tracking-normal transition-colors ${manageActive ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`rounded-md px-0.5 py-2 text-[10px] sm:px-1.5 sm:text-xs tracking-normal transition-colors ${manageActive ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 MANAGE
               </Link>
-            </>
+            </nav>
           )}
-          <Button
-            variant="destructive"
-            type="button"
-            disabled={loggingOut}
-            onClick={handleLogout}
-          >
-            EXIT
-          </Button>
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-        </nav>
+          <div className={`ml-auto flex shrink-0 items-center sm:gap-1 ${manage ? 'border-l border-border pl-1 sm:pl-2' : ''}`}>
+            <ThemeToggle />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-muted-foreground hover:text-foreground"
+              type="button"
+              aria-label={loggingOut ? 'Signing out' : 'Sign out'}
+              title={loggingOut ? 'Signing out' : 'Sign out'}
+              aria-busy={loggingOut}
+              disabled={loggingOut}
+              onClick={handleLogout}
+            >
+              {loggingOut ? <LoaderCircle aria-hidden="true" className="motion-safe:animate-spin" /> : <LogOut aria-hidden="true" />}
+            </Button>
+          </div>
+        </div>
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
       </div>
     </header>
   )

@@ -122,10 +122,24 @@ describe('shared dialog and failures', () => {
     view.rerender(<ConfirmModal open={false} title="Delete?" onConfirm={confirm} onCancel={cancel} />)
     await waitFor(() => expect(document.activeElement).toBe(trigger)); trigger.remove()
   })
+  it('shows pending logout, prevents repeat submissions, and returns to login', async () => {
+    let resolve!: () => void
+    client.logout.mockReturnValue(new Promise<void>(done => { resolve = done }))
+    render(<Nav />)
+    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
+    const pending = screen.getByRole('button', { name: 'Signing out' }) as HTMLButtonElement
+    expect(pending.disabled).toBe(true)
+    expect(pending.getAttribute('aria-busy')).toBe('true')
+    fireEvent.click(pending)
+    expect(client.logout).toHaveBeenCalledTimes(1)
+    await act(async () => resolve())
+    expect(client.push).toHaveBeenCalledWith('/login')
+    expect(client.refresh).toHaveBeenCalledTimes(1)
+  })
   it('does not navigate when logout fails', async () => {
     render(<Nav />)
     client.logout.mockRejectedValue(new Error('Unable to connect.'))
-    fireEvent.click(screen.getByRole('button', { name: 'EXIT' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
     await screen.findByText('Unable to connect.')
     expect(client.push).not.toHaveBeenCalled()
   })

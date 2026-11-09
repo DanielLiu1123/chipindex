@@ -15,7 +15,7 @@ it('waits for a group pathname before rendering group navigation', () => {
   expect(screen.queryByRole('link', { name: 'LEADERBOARD' })).toBeNull()
   expect(screen.queryByRole('link', { name: 'SESSIONS' })).toBeNull()
   expect(screen.queryByRole('link', { name: 'MANAGE' })).toBeNull()
-  expect(screen.getByRole('button', { name: 'EXIT' })).toBeTruthy()
+  expect(screen.getByRole('button', { name: 'Sign out' })).toBeTruthy()
 })
 it('renders group navigation with the correct active destination', () => {
   state.pathname = '/groups/g1/sessions'
