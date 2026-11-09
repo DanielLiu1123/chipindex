@@ -318,3 +318,30 @@ it('keeps all-time and custom filters server-rendered', () => {
     expect(html).toContain('Alice')
   }
 })
+
+it('resets to CNY descending when resizing hides the sorted column', () => {
+  let resize!: () => void
+  const observe = vi.spyOn(ResizeObserver.prototype, 'observe')
+  const OriginalObserver = globalThis.ResizeObserver
+  globalThis.ResizeObserver = class extends OriginalObserver {
+    constructor(callback: ResizeObserverCallback) {
+      super(() => {})
+      resize = () => callback([], this)
+    }
+  }
+  try {
+    render(<LeaderboardView groupId="g1" players={players} sessions={sessions} />)
+    fireEvent.click(screen.getByRole('button', { name: 'CHIPS' }))
+    const header = screen.getByRole('columnheader', { name: 'CHIPS ↓' })
+    header.style.display = 'none'
+    act(() => resize())
+    expect(screen.getByRole('columnheader', { name: 'CNY ↓' }).getAttribute('aria-sort')).toBe('descending')
+    header.style.display = ''
+    act(() => resize())
+    expect(screen.getByRole('button', { name: 'CHIPS' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'CNY ↓' })).toBeTruthy()
+    expect(observe).toHaveBeenCalled()
+  } finally {
+    globalThis.ResizeObserver = OriginalObserver
+  }
+})

@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import ValueUnitControl from '@/components/ValueUnitControl'
 import { Table2, ChartNoAxesCombined } from 'lucide-react'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import ChipValue from '@/components/ChipValue'
 import LeaderboardChart from '@/components/LeaderboardChart'
@@ -37,8 +37,10 @@ function SortHeader({
   sortDir,
   onSort,
   align = 'right',
+  className = '',
 }: {
   label: string
+  className?: string
   align?: 'right' | 'center'
   sortKey: SortKey
   currentKey: SortKey
@@ -47,8 +49,8 @@ function SortHeader({
 }) {
   const active = currentKey === key
   return (
-    <TableHead className={`py-3 font-normal ${align === 'center' ? 'text-center' : 'text-right'}`}>
-      <Button variant="ghost" type="button" onClick={() => onSort(key)}>
+    <TableHead aria-sort={active ? (sortDir === 'desc' ? 'descending' : 'ascending') : undefined} className={`${className} px-1.5 @min-[720px]/leaderboard:px-4 py-3 font-normal ${align === 'center' ? 'text-center' : 'text-right'}`}>
+      <Button variant="ghost" className="px-0 text-xs @min-[720px]/leaderboard:px-4 @min-[720px]/leaderboard:text-sm" type="button" onClick={() => onSort(key)}>
         {label}
         {active ? (sortDir === 'desc' ? ' ↓' : ' ↑') : ''}
       </Button>
@@ -78,6 +80,7 @@ export default function LeaderboardView(props: Props) {
 }
 
 function LeaderboardContent({ groupId, players, sessions, filters }: Props & { filters: LeaderboardFilters }) {
+  const tableContainer = useRef<HTMLDivElement>(null)
   const [view, setView] = useState<'table' | 'chart'>('table')
   const [chartMode, setChartMode] = useState<'chips' | 'cny'>('cny')
   const [sortKey, setSortKey] = useState<SortKey>('total_yuan')
@@ -109,6 +112,23 @@ function LeaderboardContent({ groupId, players, sessions, filters }: Props & { f
     [players, sessions, range, hideLowActivity, chartMode, sortKey, sortDir],
   )
   const showResults = !emptyRange
+
+  useEffect(() => {
+    const container = tableContainer.current
+    if (!container) return
+    // Let CSS own the breakpoints; only reset sorting if its header is hidden.
+    function resetHiddenSort() {
+      const header = container?.querySelector('th[aria-sort]')
+      if (header && getComputedStyle(header).display === 'none') {
+        setSortKey('total_yuan')
+        setSortDir('desc')
+      }
+    }
+    const observer = new ResizeObserver(resetHiddenSort)
+    observer.observe(container)
+    resetHiddenSort()
+    return () => observer.disconnect()
+  }, [view, showResults, sortKey])
 
   function toggleSort(key: SortKey) {
     if (key === sortKey) {
@@ -154,131 +174,137 @@ function LeaderboardContent({ groupId, players, sessions, filters }: Props & { f
         </p>
       )}
       {showResults && view === 'table' && (
-        <Table className="w-full text-sm tabular-nums">
-          <TableHeader>
-            <TableRow className="border-b border-border text-muted-foreground text-xs tracking-normal">
-              <TableHead className="text-left py-3 font-normal w-8">
-                #
-              </TableHead>
-              <TableHead className="text-left py-3 font-normal">
-                PLAYER
-              </TableHead>
-              <SortHeader
-                currentKey={sortKey}
-                sortDir={sortDir}
-                onSort={toggleSort}
-                label="CNY"
-                sortKey="total_yuan"
-              />
-              <SortHeader
-                currentKey={sortKey}
-                sortDir={sortDir}
-                onSort={toggleSort}
-                label="CHIPS"
-                sortKey="total_chips"
-              />
-              <SortHeader
-                currentKey={sortKey}
-                sortDir={sortDir}
-                onSort={toggleSort}
-                label="SESSIONS"
-                align="center"
-                sortKey="sessions_played"
-              />
-              <SortHeader
-                currentKey={sortKey}
-                sortDir={sortDir}
-                onSort={toggleSort}
-                label="WIN%"
-                align="center"
-                sortKey="win_rate"
-              />
-              <SortHeader
-                currentKey={sortKey}
-                sortDir={sortDir}
-                onSort={toggleSort}
-                label="POG"
-                align="center"
-                sortKey="pog_count"
-              />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {playerCount === 0 && (
-              <TableRow>
-                <TableCell
-                  colSpan={7}
-                  className="py-12 text-center text-xs text-muted-foreground tracking-normal"
+        <div ref={tableContainer} className="@container/leaderboard">
+          <Table className="w-full text-sm tabular-nums">
+            <TableHeader>
+              <TableRow className="border-b border-border text-muted-foreground text-xs tracking-normal">
+                <TableHead className="text-left px-1.5 @min-[720px]/leaderboard:px-4 py-3 font-normal w-8">
+                  #
+                </TableHead>
+                <TableHead className="text-left px-1.5 @min-[720px]/leaderboard:px-4 py-3 font-normal">
+                  PLAYER
+                </TableHead>
+                <SortHeader
+                  currentKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={toggleSort}
+                  label="CNY"
+                  sortKey="total_yuan"
+                />
+                <SortHeader
+                  currentKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={toggleSort}
+                  label="CHIPS"
+                  className="hidden @min-[720px]/leaderboard:table-cell"
+                  sortKey="total_chips"
+                />
+                <SortHeader
+                  currentKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={toggleSort}
+                  label="SESSIONS"
+                  className="hidden @min-[360px]/leaderboard:table-cell"
+                  align="center"
+                  sortKey="sessions_played"
+                />
+                <SortHeader
+                  currentKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={toggleSort}
+                  label="WIN%"
+                  className="hidden @min-[440px]/leaderboard:table-cell"
+                  align="center"
+                  sortKey="win_rate"
+                />
+                <SortHeader
+                  currentKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={toggleSort}
+                  label="POG"
+                  className="hidden @min-[560px]/leaderboard:table-cell"
+                  align="center"
+                  sortKey="pog_count"
+                />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {playerCount === 0 && (
+                <TableRow>
+                  <TableCell
+                    colSpan={7}
+                    className="py-12 text-center text-xs text-muted-foreground tracking-normal"
+                  >
+                    NO PLAYERS YET
+                  </TableCell>
+                </TableRow>
+              )}
+              {sortedStats.map((s, i) => (
+                <TableRow
+                  key={s.player.id}
+                  className="border-b border-border hover:bg-muted transition-colors"
                 >
-                  NO PLAYERS YET
-                </TableCell>
-              </TableRow>
-            )}
-            {sortedStats.map((s, i) => (
-              <TableRow
-                key={s.player.id}
-                className="border-b border-border hover:bg-muted transition-colors"
-              >
-                <TableCell className="py-4 text-muted-foreground text-xs">
-                  <Link
-                    href={`/groups/${groupId}/players/${s.player.id}`}
-                    className="block"
-                  >
-                    {i + 1}
-                  </Link>
-                </TableCell>
-                <TableCell className="py-4">
-                  <Link
-                    href={`/groups/${groupId}/players/${s.player.id}`}
-                    className="block"
-                  >
-                    {s.player.name}
-                  </Link>
-                </TableCell>
-                <TableCell className="py-4 text-right">
-                  <Link
-                    href={`/groups/${groupId}/players/${s.player.id}`}
-                    className="block"
-                  >
-                    <ChipValue chips={s.total_yuan} prefix="¥" />
-                  </Link>
-                </TableCell>
-                <TableCell className="py-4 text-right">
-                  <Link
-                    href={`/groups/${groupId}/players/${s.player.id}`}
-                    className="block"
-                  >
-                    <ChipValue chips={s.total_chips} />
-                  </Link>
-                </TableCell>
-                <TableCell className="py-4 text-center text-muted-foreground">
-                  <Link
-                    href={`/groups/${groupId}/players/${s.player.id}`}
-                    className="block"
-                  >
-                    {s.sessions_played}
-                  </Link>
-                </TableCell>
-                <TableCell className="py-4 text-center text-muted-foreground">
-                  <Link
-                    href={`/groups/${groupId}/players/${s.player.id}`}
-                    className="block"
-                  >
-                    {(s.win_rate * 100).toFixed(0)}%
-                  </Link>
-                </TableCell>
-                <TableCell className="py-4 text-center text-muted-foreground">
-                  <Link
-                    href={`/groups/${groupId}/players/${s.player.id}`}
-                    className="block"
-                  >
-                    {s.pog_count}
-                  </Link>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                  <TableCell className="px-1.5 @min-[720px]/leaderboard:px-4 py-4 text-muted-foreground text-xs">
+                    <Link
+                      href={`/groups/${groupId}/players/${s.player.id}`}
+                      className="block"
+                    >
+                      {i + 1}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="px-1.5 @min-[720px]/leaderboard:px-4 py-4 whitespace-normal [overflow-wrap:anywhere]">
+                    <Link
+                      href={`/groups/${groupId}/players/${s.player.id}`}
+                      className="block"
+                    >
+                      {s.player.name}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="px-1.5 @min-[720px]/leaderboard:px-4 py-4 text-right">
+                    <Link
+                      href={`/groups/${groupId}/players/${s.player.id}`}
+                      className="block"
+                    >
+                      <ChipValue chips={s.total_yuan} prefix="¥" />
+                    </Link>
+                  </TableCell>
+                  <TableCell className="hidden @min-[720px]/leaderboard:table-cell px-1.5 @min-[720px]/leaderboard:px-4 py-4 text-right">
+                    <Link
+                      href={`/groups/${groupId}/players/${s.player.id}`}
+                      className="block"
+                    >
+                      <ChipValue chips={s.total_chips} />
+                    </Link>
+                  </TableCell>
+                  <TableCell className="hidden @min-[360px]/leaderboard:table-cell px-1.5 @min-[720px]/leaderboard:px-4 py-4 text-center text-muted-foreground">
+                    <Link
+                      href={`/groups/${groupId}/players/${s.player.id}`}
+                      className="block"
+                    >
+                      {s.sessions_played}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="hidden @min-[440px]/leaderboard:table-cell px-1.5 @min-[720px]/leaderboard:px-4 py-4 text-center text-muted-foreground">
+                    <Link
+                      href={`/groups/${groupId}/players/${s.player.id}`}
+                      className="block"
+                    >
+                      {(s.win_rate * 100).toFixed(0)}%
+                    </Link>
+                  </TableCell>
+                  <TableCell className="hidden @min-[560px]/leaderboard:table-cell px-1.5 @min-[720px]/leaderboard:px-4 py-4 text-center text-muted-foreground">
+                    <Link
+                      href={`/groups/${groupId}/players/${s.player.id}`}
+                      className="block"
+                    >
+                      {s.pog_count}
+                    </Link>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       )}
       {showResults && view === 'chart' && (
         <div className="surface">
