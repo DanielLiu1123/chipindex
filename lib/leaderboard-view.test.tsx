@@ -323,8 +323,9 @@ it('resets hidden sorting after resize and keeps CNY when expanded again', () =>
   let resize!: () => void
   let width = 720
   vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(() => width)
+  const measureText = vi.fn((text: string) => ({ width: text.length * 7 }))
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
-    font: '', measureText: (text: string) => ({ width: text.length * 7 }),
+    font: '', measureText,
   } as unknown as CanvasRenderingContext2D)
   const OriginalObserver = globalThis.ResizeObserver
   globalThis.ResizeObserver = class extends OriginalObserver {
@@ -336,6 +337,10 @@ it('resets hidden sorting after resize and keeps CNY when expanded again', () =>
   try {
     render(<LeaderboardView groupId="g1" players={players} sessions={sessions} />)
     fireEvent.click(screen.getByRole('button', { name: 'CHIPS' }))
+    const measurements = measureText.mock.calls.length
+    width = 700
+    act(() => resize())
+    expect(measureText).toHaveBeenCalledTimes(measurements)
     width = 320
     act(() => resize())
     expect(screen.getByRole('columnheader', { name: 'CNY ↓' }).getAttribute('aria-sort')).toBe('descending')

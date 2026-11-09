@@ -1,3 +1,5 @@
+export const LEADERBOARD_RANK_WIDTH = 28
+
 export const leaderboardColumns = ['player', 'total_yuan', 'total_chips', 'sessions_played', 'win_rate', 'pog_count'] as const
 export type LeaderboardColumn = typeof leaderboardColumns[number]
 export const leaderboardMinWidths: Record<LeaderboardColumn, number> = {
@@ -7,7 +9,7 @@ const hideOrder: LeaderboardColumn[] = ['total_chips', 'sessions_played', 'win_r
 
 // Widths include cell padding. The caller measures text using the rendered font.
 export function allocateLeaderboardColumns(width: number, measured: Partial<Record<LeaderboardColumn, number>> = {}) {
-  const rank = 28
+  const rank = LEADERBOARD_RANK_WIDTH
   const minimum = { ...leaderboardMinWidths }
   for (const key of leaderboardColumns) minimum[key] = Math.max(minimum[key], measured[key] ?? 0)
   let visible: LeaderboardColumn[] = [...leaderboardColumns]

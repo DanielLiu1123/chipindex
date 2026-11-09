@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import ValueUnitControl from '@/components/ValueUnitControl'
 import { Table2, ChartNoAxesCombined } from 'lucide-react'
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import ChipValue from '@/components/ChipValue'
 import LeaderboardChart from '@/components/LeaderboardChart'
@@ -28,7 +28,8 @@ import { useSearchParams } from 'next/navigation'
 import { readLeaderboardFilters, updateLeaderboardFilterQuery, type LeaderboardFilters } from '@/lib/leaderboard-filter-query'
 import type { LeaderboardSessionRow, Player } from '@/lib/domain-types'
 import { useBrowserReady } from '@/lib/use-browser-ready'
-import { allocateLeaderboardColumns, leaderboardColumns, type LeaderboardColumn } from '@/lib/leaderboard-layout'
+import { LEADERBOARD_RANK_WIDTH, leaderboardColumns, type LeaderboardColumn } from '@/lib/leaderboard-layout'
+import { useLeaderboardLayout } from '@/lib/use-leaderboard-layout'
 import { LeaderboardSkeleton } from '@/components/PageSkeleton'
 
 function SortHeader({
@@ -81,8 +82,6 @@ export default function LeaderboardView(props: Props) {
 }
 
 function LeaderboardContent({ groupId, players, sessions, filters }: Props & { filters: LeaderboardFilters }) {
-  const tableContainer = useRef<HTMLDivElement>(null)
-  const [layout, setLayout] = useState<ReturnType<typeof allocateLeaderboardColumns> | null>(null)
   const [view, setView] = useState<'table' | 'chart'>('table')
   const [chartMode, setChartMode] = useState<'chips' | 'cny'>('cny')
   const [sortKey, setSortKey] = useState<SortKey>('total_yuan')
@@ -115,44 +114,7 @@ function LeaderboardContent({ groupId, players, sessions, filters }: Props & { f
   )
   const showResults = !emptyRange
 
-  useEffect(() => {
-    const container = tableContainer.current
-    if (!container) return
-    let active = true
-    function measure() {
-      if (!active || !container) return
-      const width = container.clientWidth - 2 // Table border.
-      if (width <= 0) return
-      const context = document.createElement('canvas').getContext('2d')
-      if (!context) return
-      const table = container.querySelector('table')!
-      const measured: Partial<Record<LeaderboardColumn, number>> = {}
-      for (const key of leaderboardColumns) {
-        let maximum = 0
-        for (const cell of table.querySelectorAll<HTMLElement>(`[data-column="${key}"]`)) {
-          const text = cell.querySelector('button, a') ?? cell
-          const style = getComputedStyle(text)
-          context.font = style.font
-          // Reserve space for the sorting arrow regardless of current sort.
-          const value = cell.tagName === 'TH' ? text.textContent!.replace(/[↑↓]/g, '').trim() + ' ↓' : text.textContent ?? ''
-          maximum = Math.max(maximum, context.measureText(value).width + 16)
-        }
-        measured[key] = Math.ceil(maximum)
-      }
-      const next = allocateLeaderboardColumns(width, measured)
-      setLayout(previous => JSON.stringify(previous) === JSON.stringify(next) ? previous : next)
-    }
-    const observer = new ResizeObserver(measure)
-    observer.observe(container)
-    measure()
-    void document.fonts?.ready.then(measure)
-    document.fonts?.addEventListener('loadingdone', measure)
-    return () => {
-      active = false
-      observer.disconnect()
-      document.fonts?.removeEventListener('loadingdone', measure)
-    }
-  }, [view, showResults, sortedStats])
+  const { containerRef, layout } = useLeaderboardLayout(sortedStats, showResults && view === 'table')
 
   useEffect(() => {
     if (layout && !layout.visible.includes(sortKey)) {
@@ -209,10 +171,10 @@ function LeaderboardContent({ groupId, players, sessions, filters }: Props & { f
         </p>
       )}
       {showResults && view === 'table' && (
-        <div ref={tableContainer}>
+        <div ref={containerRef}>
           <Table className="w-full table-fixed text-sm tabular-nums">
             <colgroup>
-              <col style={{ width: 28 }} />
+              <col style={{ width: LEADERBOARD_RANK_WIDTH }} />
               {(layout?.visible ?? leaderboardColumns).map(key => (
                 <col key={key} style={{ width: layout?.widths[key] }} />
               ))}
