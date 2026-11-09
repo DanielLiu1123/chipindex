@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import { Pencil } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { notFound } from 'next/navigation'
 import SessionEntriesTable from '@/components/SessionEntriesTable'
 import LiveSession from '@/components/LiveSession'
@@ -42,7 +44,12 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
       <h1 className="text-2xl font-medium tracking-tight text-foreground">{settled.date}</h1>
       <div className="flex items-center gap-2">
         <CopySessionSummaryButton summary={summary} />
-        <Link href={`/groups/${groupId}/sessions/${id}/edit`} className="text-xs text-primary tracking-normal rounded-lg border border-border hover:border-primary px-2.5 py-1 transition-colors">EDIT</Link>
+        <Button asChild variant="outline" className="h-9 gap-2 rounded-[8px] px-3 text-xs text-muted-foreground">
+          <Link href={`/groups/${groupId}/sessions/${id}/edit`}>
+            <Pencil aria-hidden="true" className="size-3.5" strokeWidth={1.6} />
+            EDIT
+          </Link>
+        </Button>
       </div>
     </div>
     <div className="mb-2"><span className="text-xs text-muted-foreground">{settled.exchange_rate} chips = 1 CNY</span></div>
