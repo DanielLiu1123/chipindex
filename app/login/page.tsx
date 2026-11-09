@@ -1,14 +1,11 @@
 'use client'
 
-import { Alert, AlertDescription } from '@/components/ui/alert'
-
+import { Suspense, useState } from 'react'
+import Image from 'next/image'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { ArrowRight, LoaderCircle } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { Suspense } from 'react'
 import { errorMessage } from '@/lib/error-message'
 import { login } from '@/lib/client'
 
@@ -36,31 +33,35 @@ function LoginForm() {
   }
 
   return (
-    <div className="flex min-h-[70vh] items-center justify-center">
-      <Card className="w-full max-w-sm border-t-4 border-primary shadow-[0_16px_60px_-30px_rgba(0,0,0,0.25)] [--card-spacing:--spacing(8)]">
-        <CardHeader className="gap-3"><CardTitle className="text-3xl font-semibold tracking-tight">ChipIndex</CardTitle><CardDescription className="leading-relaxed">Enter your group password to continue.</CardDescription></CardHeader>
-        <CardContent>
-
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <Input
-            type="password" aria-label="Password" className="h-12"
-            value={password}
-            onChange={e => { setPassword(e.target.value); setError('') }}
-            placeholder="password"
-            autoFocus
-
-          />
-          {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
-          <Button variant="default" className="h-12 tracking-[0.12em]"
-            type="submit"
-            disabled={loading}
-
-          >
-            {loading ? '...' : 'ENTER'}
-          </Button>
+    <div className="flex min-h-[70svh] items-center justify-center">
+      <div className="w-full max-w-xs">
+        <h1 className="mb-8 flex items-center justify-center gap-3 text-[28px] font-semibold tracking-tight">
+          <Image src="/icon.svg" alt="" width={40} height={40} className="shrink-0 dark:invert" />
+          CHIPINDEX
+        </h1>
+        <form onSubmit={handleSubmit} aria-busy={loading}>
+          <div className="flex items-center gap-1 rounded-xl border border-input bg-card p-1 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/50">
+            <Input
+              type="password"
+              aria-label="Password"
+              aria-invalid={Boolean(error)}
+              aria-describedby={error ? 'login-error' : undefined}
+              className="h-11 border-0 bg-transparent px-2.5 shadow-none focus-visible:ring-0 dark:bg-transparent"
+              value={password}
+              onChange={e => { setPassword(e.target.value); setError('') }}
+              placeholder="Password"
+              autoComplete="current-password"
+              autoFocus
+            />
+            <Button type="submit" size="icon" className="size-11 shrink-0" disabled={loading} aria-label={loading ? 'Signing in' : 'Enter'}>
+              {loading ? <LoaderCircle aria-hidden="true" className="motion-safe:animate-spin" /> : <ArrowRight aria-hidden="true" />}
+            </Button>
+          </div>
+          <div className="mt-3 min-h-5 text-center text-xs text-destructive">
+            {error && <p id="login-error" role="alert">{error}</p>}
+          </div>
         </form>
-        </CardContent>
-      </Card>
+      </div>
     </div>
   )
 }
