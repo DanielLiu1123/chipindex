@@ -109,42 +109,44 @@ export default function Nav() {
           >
             <Image src="/icon.svg" alt="" width={28} height={28} className="dark:invert" /> CHIPINDEX
           </Link>
-          <Select value={current?.id ?? ''} onValueChange={changeGroup}>
-            <SelectTrigger aria-label="Current group" className="w-32 sm:w-40">
-              <SelectValue placeholder="Select group" />
-            </SelectTrigger>
-            <SelectContent position="popper" align="end" sideOffset={4} className="min-w-44 max-w-[calc(100vw-2rem)] p-1">
-              {groups.map((group) => (
-                <SelectItem key={group.id} value={group.id} className="min-h-9 pl-2">
-                  {group.name}
-                </SelectItem>
-              ))}
-              <SelectSeparator className="mx-0" />
-              <SelectItem value="__new__" className="min-h-9 pl-2">+ NEW GROUP</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="nav-group min-w-0">
+            <Select value={current?.id ?? ''} onValueChange={changeGroup}>
+              <SelectTrigger aria-label="Current group" className="nav-group-trigger">
+                <SelectValue placeholder="Select group" />
+              </SelectTrigger>
+              <SelectContent position="popper" align="end" sideOffset={4} className="nav-group-menu min-w-44 max-w-[calc(100vw-2rem)] p-1.5">
+                {groups.map((group) => (
+                  <SelectItem key={group.id} value={group.id} className="min-h-9 pl-2.5 data-[state=checked]:bg-muted">
+                    {group.name}
+                  </SelectItem>
+                ))}
+                <SelectSeparator className="mx-0" />
+                <SelectItem value="__new__" className="min-h-9 pl-2">+ NEW GROUP</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         <div className="flex w-full flex-wrap items-center justify-between gap-2 sm:w-auto sm:justify-end">
           {manage && (
-            <nav aria-label="Main navigation" className="flex flex-wrap items-center gap-1">
+            <nav aria-label="Main navigation" className="main-navigation">
               <Link
                 href={home}
                 aria-current={homeActive ? 'page' : undefined}
-                className={`rounded-md px-1.5 py-2 text-[10px] sm:text-xs tracking-normal transition-colors ${homeActive ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                className="main-navigation-link"
               >
                 LEADERBOARD
               </Link>
               <Link
                 href={sessions}
                 aria-current={sessionsActive ? 'page' : undefined}
-                className={`rounded-md px-1.5 py-2 text-[10px] sm:text-xs tracking-normal transition-colors ${sessionsActive ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                className="main-navigation-link"
               >
                 SESSIONS
               </Link>
               <Link
                 href={manage}
                 aria-current={manageActive ? 'page' : undefined}
-                className={`rounded-md px-1.5 py-2 text-[10px] sm:text-xs tracking-normal transition-colors ${manageActive ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                className="main-navigation-link"
               >
                 MANAGE
               </Link>

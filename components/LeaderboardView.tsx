@@ -170,7 +170,7 @@ function LeaderboardContent({ groupId, players, sessions, filters }: Props & { f
       )}
       {showResults && view === 'table' && (
         <div ref={containerRef}>
-          <Table className="w-full table-fixed text-sm tabular-nums">
+          <Table className="leaderboard-table w-full table-fixed text-sm tabular-nums">
             <colgroup>
               <col style={{ width: LEADERBOARD_RANK_WIDTH }} />
               {(layout?.visible ?? leaderboardColumns).map(key => (
@@ -179,7 +179,7 @@ function LeaderboardContent({ groupId, players, sessions, filters }: Props & { f
             </colgroup>
             <TableHeader>
               <TableRow className="border-b border-border text-muted-foreground text-xs tracking-normal">
-                <TableHead className="text-right px-0.5 py-3 font-normal">
+                <TableHead className="text-left pl-5 pr-0 py-3 font-normal">
                   #
                 </TableHead>
                 <TableHead data-column="player" className="text-left px-2 py-3 font-normal">
