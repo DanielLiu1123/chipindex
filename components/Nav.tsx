@@ -1,10 +1,9 @@
 'use client'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
-
 import { Button } from '@/components/ui/button'
 import { LoaderCircle, LogOut } from 'lucide-react'
-
+import { cn } from '@/lib/utils'
 import {
   Select,
   SelectTrigger,
@@ -32,6 +31,7 @@ export default function Nav() {
   const router = useRouter()
   const [error, setError] = useState('')
   const [loggingOut, setLoggingOut] = useState(false)
+  const logoutLabel = loggingOut ? 'Signing out' : 'Sign out'
   const logoutBusy = useRef(false)
   const [groups, setGroups] = useState<Group[]>([])
   const groupId = pathname.match(/^\/groups\/([^/]+)/)?.[1]
@@ -150,20 +150,24 @@ export default function Nav() {
               </Link>
             </nav>
           )}
-          <div className={`ml-auto flex shrink-0 items-center sm:gap-1 ${manage ? 'border-l border-border pl-1 sm:pl-2' : ''}`}>
+          <div className={cn('ml-auto flex shrink-0 items-center sm:gap-1', manage && 'border-l border-border pl-1 sm:pl-2')}>
             <ThemeToggle />
             <Button
               variant="ghost"
               size="icon"
               className="text-muted-foreground hover:text-foreground"
               type="button"
-              aria-label={loggingOut ? 'Signing out' : 'Sign out'}
-              title={loggingOut ? 'Signing out' : 'Sign out'}
+              aria-label={logoutLabel}
+              title={logoutLabel}
               aria-busy={loggingOut}
               disabled={loggingOut}
               onClick={handleLogout}
             >
-              {loggingOut ? <LoaderCircle aria-hidden="true" className="motion-safe:animate-spin" /> : <LogOut aria-hidden="true" />}
+              {loggingOut ? (
+                <LoaderCircle aria-hidden="true" className="motion-safe:animate-spin" />
+              ) : (
+                <LogOut aria-hidden="true" />
+              )}
             </Button>
           </div>
         </div>
