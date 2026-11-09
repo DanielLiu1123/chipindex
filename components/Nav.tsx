@@ -115,7 +115,7 @@ export default function Nav() {
           </Link>
           <div className={cn(navigationFont, "min-w-0 sm:ml-1 sm:border-l sm:border-border sm:pl-5")}>
             <Select value={current?.id ?? ''} onValueChange={changeGroup}>
-              <SelectTrigger aria-label="Current group" className="w-auto max-w-[40vw] gap-5 rounded-md border-0 px-1.5 font-medium hover:bg-muted data-[state=open]:bg-muted dark:bg-transparent dark:hover:bg-muted sm:max-w-48">
+              <SelectTrigger aria-label="Current group" className="w-auto max-w-[40vw] gap-2 rounded-md border-0 px-1.5 font-medium hover:bg-muted data-[state=open]:bg-muted dark:bg-transparent dark:hover:bg-muted sm:max-w-48">
                 <SelectValue placeholder="Select group" />
               </SelectTrigger>
               <SelectContent
