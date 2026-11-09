@@ -1,6 +1,8 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import { Check, Copy } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 import { useEffect, useRef, useState } from 'react'
 import { buildSessionSummary, type SessionSummaryData } from '@/lib/session-summary'
@@ -54,8 +56,18 @@ export default function CopySessionSummaryButton({ summary }: { summary: Session
   }
 
   const label = state === 'copied' ? 'COPIED' : state === 'error' ? 'COPY FAILED' : 'COPY SUMMARY'
-  return <Button variant={state === 'error' ? 'destructive' : 'outline'} type="button" onClick={copySummary}
-    >
-    {label}
+  const Icon = state === 'copied' ? Check : Copy
+  return <Button
+    variant={state === 'error' ? 'destructive' : 'secondary'}
+    className={cn(
+      'h-9 w-37 gap-2 rounded-[8px] border-border px-3 text-xs',
+      state === 'copied' && 'border-profit/20 bg-profit/10 text-profit hover:bg-profit/15',
+      state === 'error' && 'border-destructive/20',
+    )}
+    type="button"
+    onClick={copySummary}
+  >
+    <Icon aria-hidden="true" className="size-3.5" strokeWidth={1.6} />
+    <span aria-live="polite">{label}</span>
   </Button>
 }
