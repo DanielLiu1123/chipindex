@@ -9,6 +9,7 @@ import {
   TableCell,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
@@ -49,7 +50,7 @@ function SortHeader({
 }) {
   const active = currentKey === key
   return (
-    <TableHead data-column={key} aria-sort={active ? (sortDir === 'desc' ? 'descending' : 'ascending') : undefined} className={`${className} px-2 py-3 font-normal text-right`}>
+    <TableHead data-column={key} aria-sort={active ? (sortDir === 'desc' ? 'descending' : 'ascending') : undefined} className={cn("px-2 py-3 font-normal text-right", className)}>
       <Button variant="ghost" className="px-0 text-xs" type="button" onClick={() => onSort(key)}>
         {label}
         {active ? (sortDir === 'desc' ? ' ↓' : ' ↑') : ''}
@@ -136,7 +137,7 @@ function LeaderboardContent({ groupId, players, sessions, filters }: Props & { f
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
         <SegmentedControl
           value={view}
           onValueChange={setView}
@@ -151,7 +152,7 @@ function LeaderboardContent({ groupId, players, sessions, filters }: Props & { f
         </Button>
       </div>
 
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <LeaderboardDateFilter filter={filter} onChange={filter => updateFilters({ filter })} />
         <Label className="ml-auto flex min-h-11 items-center gap-2 text-sm">
           <Switch
@@ -179,7 +180,7 @@ function LeaderboardContent({ groupId, players, sessions, filters }: Props & { f
             </colgroup>
             <TableHeader>
               <TableRow className="border-b border-border text-muted-foreground text-xs tracking-normal">
-                <TableHead className="text-right px-0.5 py-3 font-normal">
+                <TableHead className="text-left pl-5 pr-0 py-3 font-normal">
                   #
                 </TableHead>
                 <TableHead data-column="player" className="text-left px-2 py-3 font-normal">
@@ -221,7 +222,7 @@ function LeaderboardContent({ groupId, players, sessions, filters }: Props & { f
                   sortDir={sortDir}
                   onSort={toggleSort}
                   label="POG"
-                  className={columnClass('pog_count')}
+                  className={cn(columnClass('pog_count'), 'pr-5')}
                   sortKey="pog_count"
                 />
               </TableRow>
@@ -290,7 +291,7 @@ function LeaderboardContent({ groupId, players, sessions, filters }: Props & { f
                       {(s.win_rate * 100).toFixed(0)}%
                     </Link>
                   </TableCell>
-                  <TableCell data-column="pog_count" className={`${columnClass('pog_count')} px-2 py-4 text-right text-muted-foreground`}>
+                  <TableCell data-column="pog_count" className={`${columnClass('pog_count')} pl-2 pr-5 py-4 text-right text-muted-foreground`}>
                     <Link
                       href={`/groups/${groupId}/players/${s.player.id}`}
                       className="block"

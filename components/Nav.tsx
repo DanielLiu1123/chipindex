@@ -26,6 +26,9 @@ import {
 } from '@/lib/session-pagination'
 import type { Group } from '@/lib/domain-types'
 
+// The group menu is portaled, so apply the same font explicitly there.
+const navigationFont = "font-[-apple-system,BlinkMacSystemFont,Segoe_UI,sans-serif]"
+
 export default function Nav() {
   const pathname = usePathname()
   const router = useRouter()
@@ -101,7 +104,7 @@ export default function Nav() {
 
   return (
     <header className="border-b border-border bg-card">
-      <div className="max-w-5xl mx-auto px-4 sm:px-8 min-h-18 py-4 flex flex-wrap items-center justify-between gap-4">
+      <div className="max-w-5xl mx-auto px-4 sm:px-8 min-h-14 [--header-inset:--spacing(2)] py-(--header-inset) flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4 min-w-0 w-full sm:w-auto justify-between sm:justify-start">
           <Link
             href={home}
@@ -109,45 +112,46 @@ export default function Nav() {
           >
             <Image src="/icon.svg" alt="" width={28} height={28} className="dark:invert" /> CHIPINDEX
           </Link>
-          <Select value={current?.id ?? ''} onValueChange={changeGroup}>
-            <SelectTrigger aria-label="Current group" className="w-32 sm:w-40">
-              <SelectValue placeholder="Select group" />
-            </SelectTrigger>
-            <SelectContent position="popper" align="end" sideOffset={4} className="min-w-44 max-w-[calc(100vw-2rem)] p-1">
-              {groups.map((group) => (
-                <SelectItem key={group.id} value={group.id} className="min-h-9 pl-2">
-                  {group.name}
-                </SelectItem>
-              ))}
-              <SelectSeparator className="mx-0" />
-              <SelectItem value="__new__" className="min-h-9 pl-2">+ NEW GROUP</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className={cn(navigationFont, "min-w-0 sm:ml-1 sm:border-l sm:border-border sm:pl-5")}>
+            <Select value={current?.id ?? ''} onValueChange={changeGroup}>
+              <SelectTrigger aria-label="Current group" className="w-auto max-w-[40vw] gap-5 rounded-md border-0 px-1.5 font-medium hover:bg-muted data-[state=open]:bg-muted dark:bg-transparent dark:hover:bg-muted sm:max-w-48">
+                <SelectValue placeholder="Select group" />
+              </SelectTrigger>
+              <SelectContent position="popper" align="end" sideOffset={4} className={cn(navigationFont, "min-w-44 max-w-[calc(100vw-2rem)] rounded-[10px] p-1.5")}>
+                {groups.map((group) => (
+                  <SelectItem key={group.id} value={group.id} className="min-h-9 pl-2.5 data-[state=checked]:bg-muted">
+                    {group.name}
+                  </SelectItem>
+                ))}
+                <SelectSeparator className="mx-0" />
+                <SelectItem value="__new__" className="min-h-9 pl-2">+ NEW GROUP</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         <div className="flex w-full flex-wrap items-center justify-between gap-2 sm:w-auto sm:justify-end">
           {manage && (
-            <nav aria-label="Main navigation" className="flex flex-wrap items-center gap-1">
-              <Link
-                href={home}
-                aria-current={homeActive ? 'page' : undefined}
-                className={`rounded-md px-1.5 py-2 text-[10px] sm:text-xs tracking-normal transition-colors ${homeActive ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-              >
-                LEADERBOARD
-              </Link>
-              <Link
-                href={sessions}
-                aria-current={sessionsActive ? 'page' : undefined}
-                className={`rounded-md px-1.5 py-2 text-[10px] sm:text-xs tracking-normal transition-colors ${sessionsActive ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-              >
-                SESSIONS
-              </Link>
-              <Link
-                href={manage}
-                aria-current={manageActive ? 'page' : undefined}
-                className={`rounded-md px-1.5 py-2 text-[10px] sm:text-xs tracking-normal transition-colors ${manageActive ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-              >
-                MANAGE
-              </Link>
+            <nav
+              aria-label="Main navigation"
+              className={cn(navigationFont, "flex items-center gap-3 min-[360px]:gap-4 sm:mr-4 sm:gap-6.5")}
+            >
+              {[
+                { label: 'LEADERBOARD', href: home, active: homeActive },
+                { label: 'SESSIONS', href: sessions, active: sessionsActive },
+                { label: 'MANAGE', href: manage, active: manageActive },
+              ].map(({ label, href, active }) => (
+                <Link
+                  key={label}
+                  href={href}
+                  aria-current={active ? 'page' : undefined}
+                  className={cn(
+                    "relative flex h-10 items-center whitespace-nowrap text-xs font-medium tracking-normal text-muted-foreground transition-colors hover:text-foreground min-[360px]:text-[13px] sm:text-sm",
+                    active && "text-foreground after:absolute after:inset-x-0 after:bottom-[calc(-1*var(--header-inset))] after:h-0.5 after:rounded-sm after:bg-foreground",
+                  )}
+                >
+                  {label}
+                </Link>
+              ))}
             </nav>
           )}
           <div className={cn('ml-auto flex shrink-0 items-center sm:gap-1', manage && 'border-l border-border pl-1 sm:pl-2')}>
