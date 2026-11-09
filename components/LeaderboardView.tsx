@@ -179,7 +179,7 @@ function LeaderboardContent({ groupId, players, sessions, filters }: Props & { f
             </colgroup>
             <TableHeader>
               <TableRow className="border-b border-border text-muted-foreground text-xs tracking-normal">
-                <TableHead className="text-center px-0.5 py-3 font-normal">
+                <TableHead className="text-right px-0.5 py-3 font-normal">
                   #
                 </TableHead>
                 <TableHead data-column="player" className="text-left px-2 py-3 font-normal">
@@ -242,7 +242,7 @@ function LeaderboardContent({ groupId, players, sessions, filters }: Props & { f
                   key={s.player.id}
                   className="border-b border-border hover:bg-muted transition-colors"
                 >
-                  <TableCell className="px-0.5 py-4 text-center text-muted-foreground text-xs">
+                  <TableCell className="px-0.5 py-4 text-right text-muted-foreground text-xs">
                     <Link
                       href={`/groups/${groupId}/players/${s.player.id}`}
                       className="block"
@@ -250,7 +250,7 @@ function LeaderboardContent({ groupId, players, sessions, filters }: Props & { f
                       {i + 1}
                     </Link>
                   </TableCell>
-                  <TableCell data-column="player" className="px-2 py-4 whitespace-normal [overflow-wrap:anywhere]">
+                  <TableCell data-column="player" className="px-2 py-4 text-left whitespace-normal [overflow-wrap:anywhere]">
                     <Link
                       href={`/groups/${groupId}/players/${s.player.id}`}
                       className="block"
