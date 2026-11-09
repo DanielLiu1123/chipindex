@@ -2,12 +2,36 @@ import { describe, expect, it } from 'vitest'
 
 import {
   getSessionPaginationItems,
+  getCompactSessionPaginationItems,
   hasCanonicalSessionPageParams,
   normalizeSessionPageParam,
   sessionPageHref,
 } from './session-pagination'
 
 describe('session pagination parameters', () => {
+  it.each([
+    [1, 4, [1, 2, 3, 4]],
+    [1, 8, [1, 2, 3, 'ellipsis', 8]],
+    [4, 8, [1, 'ellipsis', 4, 'ellipsis', 8]],
+    [8, 8, [1, 'ellipsis', 6, 7, 8]],
+  ])('provides compact page choices for page %s of %s', (page, total, items) => {
+    expect(getCompactSessionPaginationItems(page, total)).toEqual(items)
+  })
+
+  it('keeps compact ranges ordered, bounded, and includes the current page and endpoints', () => {
+    for (const total of [6, 8, 20, 100]) {
+      for (let page = 1; page <= total; page++) {
+        const items = getCompactSessionPaginationItems(page, total)
+        const numbers = items.filter((item): item is number => typeof item === 'number')
+        expect(items.length).toBeLessThanOrEqual(5)
+        expect(numbers).toContain(page)
+        expect(numbers[0]).toBe(1)
+        expect(numbers.at(-1)).toBe(total)
+        expect(numbers).toEqual([...new Set(numbers)].sort((a, b) => a - b))
+      }
+    }
+  })
+
   it('centers a long pagination range around the current page', () => {
     expect(getSessionPaginationItems(6, 20)).toEqual([
       1,
