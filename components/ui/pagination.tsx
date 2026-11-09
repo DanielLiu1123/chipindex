@@ -61,15 +61,10 @@ function PaginationLink({
   )
 }
 
-function PaginationPrevious({
-  className,
-  ...props
-}: React.ComponentProps<typeof PaginationLink>) {
+function PaginationPrevious(props: React.ComponentProps<typeof PaginationLink>) {
   return (
     <PaginationLink
       aria-label="Go to previous page"
-      size="icon"
-      className={className}
       {...props}
     >
       <ChevronLeftIcon aria-hidden="true" />
@@ -77,15 +72,10 @@ function PaginationPrevious({
   )
 }
 
-function PaginationNext({
-  className,
-  ...props
-}: React.ComponentProps<typeof PaginationLink>) {
+function PaginationNext(props: React.ComponentProps<typeof PaginationLink>) {
   return (
     <PaginationLink
       aria-label="Go to next page"
-      size="icon"
-      className={className}
       {...props}
     >
       <ChevronRightIcon aria-hidden="true" />
