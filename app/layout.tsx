@@ -39,7 +39,12 @@ export default async function RootLayout({
               <ThemeToggle />
             </div>
           )}
-          <main className={cn("max-w-5xl mx-auto px-4 pb-8 sm:px-8 sm:pb-10", authed ? "pt-5 sm:pt-6" : "pt-8 sm:pt-10")}>{children}</main>
+          <main className={cn(
+            'max-w-5xl mx-auto px-4 pb-8 sm:px-8 sm:pb-10',
+            authed ? 'pt-5 sm:pt-6' : 'pt-8 sm:pt-10',
+          )}>
+            {children}
+          </main>
           <Toaster />
         </ThemeProvider>
       </body>

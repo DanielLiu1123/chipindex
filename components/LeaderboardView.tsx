@@ -9,6 +9,7 @@ import {
   TableCell,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
@@ -49,7 +50,7 @@ function SortHeader({
 }) {
   const active = currentKey === key
   return (
-    <TableHead data-column={key} aria-sort={active ? (sortDir === 'desc' ? 'descending' : 'ascending') : undefined} className={`${className} px-2 py-3 font-normal text-right`}>
+    <TableHead data-column={key} aria-sort={active ? (sortDir === 'desc' ? 'descending' : 'ascending') : undefined} className={cn("px-2 py-3 font-normal text-right", className)}>
       <Button variant="ghost" className="px-0 text-xs" type="button" onClick={() => onSort(key)}>
         {label}
         {active ? (sortDir === 'desc' ? ' ↓' : ' ↑') : ''}
@@ -170,7 +171,7 @@ function LeaderboardContent({ groupId, players, sessions, filters }: Props & { f
       )}
       {showResults && view === 'table' && (
         <div ref={containerRef}>
-          <Table className="leaderboard-table w-full table-fixed text-sm tabular-nums">
+          <Table className="w-full table-fixed text-sm tabular-nums">
             <colgroup>
               <col style={{ width: LEADERBOARD_RANK_WIDTH }} />
               {(layout?.visible ?? leaderboardColumns).map(key => (
@@ -221,7 +222,7 @@ function LeaderboardContent({ groupId, players, sessions, filters }: Props & { f
                   sortDir={sortDir}
                   onSort={toggleSort}
                   label="POG"
-                  className={columnClass('pog_count')}
+                  className={cn(columnClass('pog_count'), 'pr-5')}
                   sortKey="pog_count"
                 />
               </TableRow>
@@ -290,7 +291,7 @@ function LeaderboardContent({ groupId, players, sessions, filters }: Props & { f
                       {(s.win_rate * 100).toFixed(0)}%
                     </Link>
                   </TableCell>
-                  <TableCell data-column="pog_count" className={`${columnClass('pog_count')} px-2 py-4 text-right text-muted-foreground`}>
+                  <TableCell data-column="pog_count" className={`${columnClass('pog_count')} pl-2 pr-5 py-4 text-right text-muted-foreground`}>
                     <Link
                       href={`/groups/${groupId}/players/${s.player.id}`}
                       className="block"
