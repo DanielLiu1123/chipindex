@@ -319,9 +319,13 @@ it('keeps all-time and custom filters server-rendered', () => {
   }
 })
 
-it('resets to CNY descending when resizing hides the sorted column', () => {
+it('resets hidden sorting after resize and keeps CNY when expanded again', () => {
   let resize!: () => void
-  const observe = vi.spyOn(ResizeObserver.prototype, 'observe')
+  let width = 720
+  vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(() => width)
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+    font: '', measureText: (text: string) => ({ width: text.length * 7 }),
+  } as unknown as CanvasRenderingContext2D)
   const OriginalObserver = globalThis.ResizeObserver
   globalThis.ResizeObserver = class extends OriginalObserver {
     constructor(callback: ResizeObserverCallback) {
@@ -332,15 +336,14 @@ it('resets to CNY descending when resizing hides the sorted column', () => {
   try {
     render(<LeaderboardView groupId="g1" players={players} sessions={sessions} />)
     fireEvent.click(screen.getByRole('button', { name: 'CHIPS' }))
-    const header = screen.getByRole('columnheader', { name: 'CHIPS ↓' })
-    header.style.display = 'none'
+    width = 320
     act(() => resize())
     expect(screen.getByRole('columnheader', { name: 'CNY ↓' }).getAttribute('aria-sort')).toBe('descending')
-    header.style.display = ''
+    expect(document.querySelector('th[data-column="total_chips"]')?.classList.contains('hidden')).toBe(true)
+    width = 720
     act(() => resize())
-    expect(screen.getByRole('button', { name: 'CHIPS' })).toBeTruthy()
+    expect(document.querySelector('th[data-column="total_chips"]')?.classList.contains('hidden')).toBe(false)
     expect(screen.getByRole('button', { name: 'CNY ↓' })).toBeTruthy()
-    expect(observe).toHaveBeenCalled()
   } finally {
     globalThis.ResizeObserver = OriginalObserver
   }
