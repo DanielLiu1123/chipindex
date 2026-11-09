@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import DeleteSessionButton from '@/components/DeleteSessionButton'
 import SessionPagination from '@/components/SessionPagination'
+import { Button } from '@/components/ui/button'
 import { getGroup, getSessionsPage } from '@/lib/queries'
 import {
   DEFAULT_SESSION_PAGE_SIZE,
@@ -51,11 +52,15 @@ async function SessionsPage({ params, query }: {
 
   return (
     <>
-      <div className="flex flex-wrap items-baseline justify-between gap-4 mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <span className="text-xs text-muted-foreground tracking-normal">{total} SESSIONS</span>
-        <div className="flex items-center gap-4">
-          <Link href={`/groups/${groupId}/sessions/new`} className="text-xs text-primary tracking-normal hover:underline">+ NEW SESSION</Link>
-          <Link href={`/groups/${groupId}/sessions/import`} className="text-xs text-primary tracking-normal hover:underline">IMPORT SESSION</Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button asChild className="px-3 text-xs sm:px-4 sm:text-sm">
+            <Link href={`/groups/${groupId}/sessions/new`}>+ NEW SESSION</Link>
+          </Button>
+          <Button asChild variant="outline" className="px-3 text-xs sm:px-4 sm:text-sm">
+            <Link href={`/groups/${groupId}/sessions/import`}>IMPORT SESSION</Link>
+          </Button>
         </div>
       </div>
       <Table className={`table-fixed ${styles.table}`}>

@@ -40,10 +40,6 @@
     padding-inline: 2px !important;
   }
 
-  .pages [data-slot='pagination-link'] span {
-    display: none;
-  }
-
   .pages [data-slot='pagination-ellipsis'] {
     width: 12px;
   }
