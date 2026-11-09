@@ -124,27 +124,27 @@ export default function Nav() {
             </SelectContent>
           </Select>
         </div>
-        <div className="flex w-full items-center justify-between gap-1 sm:w-auto sm:justify-end sm:gap-2">
+        <div className="flex w-full flex-wrap items-center justify-between gap-2 sm:w-auto sm:justify-end">
           {manage && (
-            <nav aria-label="Main navigation" className="flex items-center sm:gap-1">
+            <nav aria-label="Main navigation" className="flex flex-wrap items-center gap-1">
               <Link
                 href={home}
                 aria-current={homeActive ? 'page' : undefined}
-                className={`rounded-md px-0.5 py-2 text-[10px] sm:px-1.5 sm:text-xs tracking-normal transition-colors ${homeActive ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`rounded-md px-1.5 py-2 text-[10px] sm:text-xs tracking-normal transition-colors ${homeActive ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 LEADERBOARD
               </Link>
               <Link
                 href={sessions}
                 aria-current={sessionsActive ? 'page' : undefined}
-                className={`rounded-md px-0.5 py-2 text-[10px] sm:px-1.5 sm:text-xs tracking-normal transition-colors ${sessionsActive ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`rounded-md px-1.5 py-2 text-[10px] sm:text-xs tracking-normal transition-colors ${sessionsActive ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 SESSIONS
               </Link>
               <Link
                 href={manage}
                 aria-current={manageActive ? 'page' : undefined}
-                className={`rounded-md px-0.5 py-2 text-[10px] sm:px-1.5 sm:text-xs tracking-normal transition-colors ${manageActive ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`rounded-md px-1.5 py-2 text-[10px] sm:text-xs tracking-normal transition-colors ${manageActive ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 MANAGE
               </Link>
