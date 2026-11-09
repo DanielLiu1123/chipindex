@@ -38,12 +38,10 @@ function SortHeader({
   currentKey,
   sortDir,
   onSort,
-  align = 'right',
   className = '',
 }: {
   label: string
   className?: string
-  align?: 'right' | 'center'
   sortKey: SortKey
   currentKey: SortKey
   sortDir: 'asc' | 'desc'
@@ -51,7 +49,7 @@ function SortHeader({
 }) {
   const active = currentKey === key
   return (
-    <TableHead data-column={key} aria-sort={active ? (sortDir === 'desc' ? 'descending' : 'ascending') : undefined} className={`${className} px-2 py-3 font-normal ${align === 'center' ? 'text-center' : 'text-right'}`}>
+    <TableHead data-column={key} aria-sort={active ? (sortDir === 'desc' ? 'descending' : 'ascending') : undefined} className={`${className} px-2 py-3 font-normal text-right`}>
       <Button variant="ghost" className="px-0 text-xs" type="button" onClick={() => onSort(key)}>
         {label}
         {active ? (sortDir === 'desc' ? ' ↓' : ' ↑') : ''}
@@ -208,7 +206,6 @@ function LeaderboardContent({ groupId, players, sessions, filters }: Props & { f
                   onSort={toggleSort}
                   label="SESSIONS"
                   className={columnClass('sessions_played')}
-                  align="center"
                   sortKey="sessions_played"
                 />
                 <SortHeader
@@ -217,7 +214,6 @@ function LeaderboardContent({ groupId, players, sessions, filters }: Props & { f
                   onSort={toggleSort}
                   label="WIN%"
                   className={columnClass('win_rate')}
-                  align="center"
                   sortKey="win_rate"
                 />
                 <SortHeader
@@ -226,7 +222,6 @@ function LeaderboardContent({ groupId, players, sessions, filters }: Props & { f
                   onSort={toggleSort}
                   label="POG"
                   className={columnClass('pog_count')}
-                  align="center"
                   sortKey="pog_count"
                 />
               </TableRow>
@@ -279,7 +274,7 @@ function LeaderboardContent({ groupId, players, sessions, filters }: Props & { f
                       <ChipValue chips={s.total_chips} />
                     </Link>
                   </TableCell>
-                  <TableCell data-column="sessions_played" className={`${columnClass('sessions_played')} px-2 py-4 text-center text-muted-foreground`}>
+                  <TableCell data-column="sessions_played" className={`${columnClass('sessions_played')} px-2 py-4 text-right text-muted-foreground`}>
                     <Link
                       href={`/groups/${groupId}/players/${s.player.id}`}
                       className="block"
@@ -287,7 +282,7 @@ function LeaderboardContent({ groupId, players, sessions, filters }: Props & { f
                       {s.sessions_played}
                     </Link>
                   </TableCell>
-                  <TableCell data-column="win_rate" className={`${columnClass('win_rate')} px-2 py-4 text-center text-muted-foreground`}>
+                  <TableCell data-column="win_rate" className={`${columnClass('win_rate')} px-2 py-4 text-right text-muted-foreground`}>
                     <Link
                       href={`/groups/${groupId}/players/${s.player.id}`}
                       className="block"
@@ -295,7 +290,7 @@ function LeaderboardContent({ groupId, players, sessions, filters }: Props & { f
                       {(s.win_rate * 100).toFixed(0)}%
                     </Link>
                   </TableCell>
-                  <TableCell data-column="pog_count" className={`${columnClass('pog_count')} px-2 py-4 text-center text-muted-foreground`}>
+                  <TableCell data-column="pog_count" className={`${columnClass('pog_count')} px-2 py-4 text-right text-muted-foreground`}>
                     <Link
                       href={`/groups/${groupId}/players/${s.player.id}`}
                       className="block"
