@@ -101,7 +101,7 @@ export default function Nav() {
 
   return (
     <header className="border-b border-border bg-card">
-      <div className="max-w-5xl mx-auto px-4 sm:px-8 min-h-18 py-4 flex flex-wrap items-center justify-between gap-4">
+      <div className="max-w-5xl mx-auto px-4 sm:px-8 min-h-14 py-2 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4 min-w-0 w-full sm:w-auto justify-between sm:justify-start">
           <Link
             href={home}

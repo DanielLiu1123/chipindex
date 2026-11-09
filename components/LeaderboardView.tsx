@@ -136,7 +136,7 @@ function LeaderboardContent({ groupId, players, sessions, filters }: Props & { f
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
         <SegmentedControl
           value={view}
           onValueChange={setView}
@@ -151,7 +151,7 @@ function LeaderboardContent({ groupId, players, sessions, filters }: Props & { f
         </Button>
       </div>
 
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <LeaderboardDateFilter filter={filter} onChange={filter => updateFilters({ filter })} />
         <Label className="ml-auto flex min-h-11 items-center gap-2 text-sm">
           <Switch
