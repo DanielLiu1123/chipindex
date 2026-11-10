@@ -8,7 +8,7 @@ import { TableHeader, TableRow, TableBody } from '@/components/ui/table'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import DeleteSessionButton from '@/components/DeleteSessionButton'
-import SessionPagination from '@/components/SessionPagination'
+import PaginatedSessions from '@/components/PaginatedSessions'
 import { Button } from '@/components/ui/button'
 import { getGroup, getSessionsPage } from '@/lib/queries'
 import {
@@ -76,6 +76,7 @@ async function SessionsPage({ params, query }: {
           </Button>
         </div>
       </ResponsiveActions>
+      <PaginatedSessions sessionsPath={sessionsPath} page={page} pageSize={pageSize} totalPages={totalPages}>
       <ResponsiveTable visibility="container" columns={columns} hideOrder={hideOrder} className="[&_th]:px-2 [&_td]:px-2">
         <TableHeader><TableRow className="h-16 border-b border-border text-muted-foreground text-xs tracking-normal">
           <ResponsiveHead column="date" className="text-left py-3 font-normal">DATE</ResponsiveHead><ResponsiveHead column="description" className="text-left py-3 font-normal whitespace-normal [overflow-wrap:anywhere]">DESCRIPTION</ResponsiveHead><ResponsiveHead column="players" className="text-right py-3 font-normal">PLAYERS</ResponsiveHead>
@@ -104,7 +105,7 @@ async function SessionsPage({ params, query }: {
           })}
         </TableBody>
       </ResponsiveTable>
-      <SessionPagination sessionsPath={sessionsPath} page={page} pageSize={pageSize} totalPages={totalPages} />
+      </PaginatedSessions>
     </>
   )
 }
