@@ -157,10 +157,11 @@ function LeaderboardContent({ groupId, players, sessions, filters }: Props & { f
 
       <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <LeaderboardDateFilter filter={filter} onChange={filter => updateFilters({ filter })} />
-        <Label className="ml-auto flex min-h-11 items-center gap-2 text-sm">
+        <Label className="ml-auto min-h-9 gap-1.5 text-xs">
           <Switch
             checked={hideLowActivity}
             onCheckedChange={hideLowActivity => updateFilters({ hideLowActivity })}
+            size="compact"
             aria-label="Active only"
           />
           Active only

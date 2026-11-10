@@ -42,7 +42,7 @@ export default function LeaderboardCustomRangeForm({
           {draft?.to ? localDate(draft.to) : 'End date'}
         </p>
         <div className="flex justify-end">
-          <Button type="submit" disabled={!draft?.from || !draft.to}>
+          <Button type="submit" className="h-8 px-3 text-xs" disabled={!draft?.from || !draft.to}>
             APPLY
           </Button>
         </div>
