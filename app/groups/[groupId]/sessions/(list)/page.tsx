@@ -8,7 +8,7 @@ import { TableHeader, TableRow, TableBody } from '@/components/ui/table'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import DeleteSessionButton from '@/components/DeleteSessionButton'
-import SessionPagination from '@/components/SessionPagination'
+import PaginatedSessions from '@/components/PaginatedSessions'
 import { Button } from '@/components/ui/button'
 import { getGroup, getSessionsPage } from '@/lib/queries'
 import {
@@ -76,7 +76,8 @@ async function SessionsPage({ params, query }: {
           </Button>
         </div>
       </ResponsiveActions>
-      <ResponsiveTable columns={columns} hideOrder={hideOrder} className="[&_th]:px-2 [&_td]:px-2">
+      <PaginatedSessions sessionsPath={sessionsPath} page={page} pageSize={pageSize} totalPages={totalPages}>
+      <ResponsiveTable visibility="container" columns={columns} hideOrder={hideOrder} className="[&_th]:px-2 [&_td]:px-2">
         <TableHeader><TableRow className="h-16 border-b border-border text-muted-foreground text-xs tracking-normal">
           <ResponsiveHead column="date" className="text-left py-3 font-normal">DATE</ResponsiveHead><ResponsiveHead column="description" className="text-left py-3 font-normal whitespace-normal [overflow-wrap:anywhere]">DESCRIPTION</ResponsiveHead><ResponsiveHead column="players" className="text-right py-3 font-normal">PLAYERS</ResponsiveHead>
           <ResponsiveHead column="pog" className="text-right py-3 font-normal">POG</ResponsiveHead><ResponsiveHead column="rate" className="text-right py-3 font-normal">RATE</ResponsiveHead>
@@ -104,15 +105,15 @@ async function SessionsPage({ params, query }: {
           })}
         </TableBody>
       </ResponsiveTable>
-      <SessionPagination sessionsPath={sessionsPath} page={page} pageSize={pageSize} totalPages={totalPages} />
+      </PaginatedSessions>
     </>
   )
 }
 
-// Reset the loading boundary for pagination as well as path changes.
+// Preserve the rendered page while client-side pagination loads new data.
 export default async function Page(props: PageProps) {
   const query = await props.searchParams
-  return <Suspense key={JSON.stringify([query.page, query.page_size])} fallback={<Loading />}>
+  return <Suspense fallback={<Loading />}>
     <SessionsPage params={props.params} query={query} />
   </Suspense>
 }

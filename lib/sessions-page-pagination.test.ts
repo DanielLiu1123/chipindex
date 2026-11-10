@@ -13,6 +13,7 @@ vi.mock('./queries', () => ({
   }),
 }))
 vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn() }),
   notFound: () => { throw new Error('404') },
   redirect: (url: string) => { throw new Error(`redirect:${url}`) },
 }))

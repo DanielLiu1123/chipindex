@@ -30,3 +30,21 @@ it('keeps operation columns fixed and available', () => {
   expect(result.visible).toEqual(['date', 'players', 'actions'])
   expect(result.widths.actions).toBe(52)
 })
+
+it('keeps paginated session columns stable across different page contents', () => {
+  const sessionColumns = [
+    { key: 'date', minWidth: 120 }, { key: 'description', minWidth: 140, wrap: true },
+    { key: 'players', minWidth: 72 }, { key: 'pog', minWidth: 90, wrap: true },
+    { key: 'rate', minWidth: 60 }, { key: 'actions', minWidth: 52, fixed: true },
+  ]
+  const order = ['description', 'rate', 'pog']
+  for (const [width, count] of [[534, 6], [533, 5], [393, 4], [333, 3], [534, 6]]) {
+    const firstPage = allocateTableColumns(width, sessionColumns, order, {}, 'container')
+    const secondPage = allocateTableColumns(width, sessionColumns, order,
+      { description: 900, pog: 400 }, 'container')
+    expect(secondPage.visible).toEqual(firstPage.visible)
+    expect(secondPage.visible).toHaveLength(count)
+    expect(Object.values(secondPage.widths).reduce((a, b) => a + b, 0)).toBeCloseTo(width)
+    expect(secondPage.widths.actions).toBe(52)
+  }
+})

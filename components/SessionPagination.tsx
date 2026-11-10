@@ -32,18 +32,17 @@ export default function SessionPagination({
   page: number
   pageSize: number
   totalPages: number
-  onPageChange?: (href: string) => void
+  onPageChange: (href: string) => void
 }) {
   if (totalPages <= 1) return null
   const href = (next: number) => sessionPageHref(sessionsPath, next, pageSize)
   function navigate(event: MouseEvent<HTMLAnchorElement>) {
     const destination = event.currentTarget.getAttribute('href')
-    if (!onPageChange || !destination || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+    if (!destination || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
     event.preventDefault()
     onPageChange(destination)
   }
   function jumpToPage(event: FormEvent<HTMLFormElement>) {
-    if (!onPageChange) return
     event.preventDefault()
     const next = Number(new FormData(event.currentTarget).get('page'))
     if (Number.isSafeInteger(next) && next >= 1 && next <= totalPages) onPageChange(href(next))

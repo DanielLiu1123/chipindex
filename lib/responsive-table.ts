@@ -10,11 +10,11 @@ export interface ResponsiveColumn {
   fixed?: boolean
 }
 
-export function allocateTableColumns(width: number, columns: readonly ResponsiveColumn[], hideOrder: readonly string[], measured: Record<string, number> = {}) {
+export function allocateTableColumns(width: number, columns: readonly ResponsiveColumn[], hideOrder: readonly string[], measured: Record<string, number> = {}, visibility: 'content' | 'container' = 'content') {
   const minimum = Object.fromEntries(columns.map(column => [column.key, Math.max(column.minWidth, measured[column.key] ?? 0)]))
   let visible = [...columns]
   for (const key of hideOrder) {
-    if (visible.reduce((sum, column) => sum + minimum[column.key], 0) <= width) break
+    if (visible.reduce((sum, column) => sum + (visibility === 'container' ? column.minWidth : minimum[column.key]), 0) <= width) break
     visible = visible.filter(column => column.key !== key)
   }
   // Only shrink wrapping text; never silently clip amounts or action controls.
