@@ -23,7 +23,9 @@
   gap: calc(2px + 6px * var(--action-scale));
 }
 
-.action {
+.action,
+.segmented [role="radio"] {
+  min-height: 0;
   width: auto;
   height: calc(30px + 6px * var(--action-scale));
   gap: calc(2px + 6px * var(--action-scale));
@@ -33,7 +35,8 @@
   transition-property: color, background-color, border-color, box-shadow;
 }
 
-.action svg {
+.action svg,
+.segmented [role="radio"] svg {
   width: calc(10px + 4px * var(--action-scale));
   height: calc(10px + 4px * var(--action-scale));
 }
