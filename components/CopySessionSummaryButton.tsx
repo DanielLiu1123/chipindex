@@ -1,5 +1,6 @@
 'use client'
 
+import headerStyles from './ResponsiveActions.module.css'
 import { Button } from '@/components/ui/button'
 import { Check, Copy } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -60,14 +61,17 @@ export default function CopySessionSummaryButton({ summary }: { summary: Session
   return <Button
     variant={state === 'error' ? 'destructive' : 'secondary'}
     className={cn(
+      headerStyles.action, headerStyles.copy,
       'h-9 w-37 gap-2 rounded-[8px] border-border px-3 text-xs',
       state === 'copied' && 'border-profit/20 bg-profit/10 text-profit hover:bg-profit/15',
       state === 'error' && 'border-destructive/20',
     )}
+    aria-label={label}
+    title={label}
     type="button"
     onClick={copySummary}
   >
     <Icon aria-hidden="true" className="size-3.5" strokeWidth={1.6} />
-    <span aria-live="polite">{label}</span>
+    <span className={headerStyles.label} aria-live="polite">{label}</span>
   </Button>
 }

@@ -1,3 +1,5 @@
+import actionStyles from '@/components/ResponsiveActions.module.css'
+import { Plus, Upload } from 'lucide-react'
 import { Suspense } from 'react'
 import Loading from './loading'
 import { ResponsiveTable, ResponsiveHead, ResponsiveCell } from '@/components/ResponsiveTable'
@@ -62,15 +64,17 @@ async function SessionsPage({ params, query }: {
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-        <span className="text-xs text-muted-foreground tracking-normal">{total} SESSIONS</span>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button asChild variant="outline" className="px-3 text-xs sm:px-4 sm:text-sm">
-            <Link href={`/groups/${groupId}/sessions/import`}>IMPORT SESSION</Link>
-          </Button>
-          <Button asChild className="px-3 text-xs sm:px-4 sm:text-sm">
-            <Link href={`/groups/${groupId}/sessions/new`}>+ NEW SESSION</Link>
-          </Button>
+      <div className={`${actionStyles.container} mb-6`}>
+        <div className={actionStyles.row}>
+          <span className="shrink-0 whitespace-nowrap text-xs text-muted-foreground tracking-normal">{total} SESSIONS</span>
+          <div className={actionStyles.actions}>
+            <Button asChild variant="outline" className={`${actionStyles.action} h-9 gap-2 px-3 text-xs`}>
+              <Link href={`/groups/${groupId}/sessions/import`} aria-label="Import session" title="Import session"><Upload aria-hidden="true" className="size-3.5" /><span className={actionStyles.label}>IMPORT SESSION</span></Link>
+            </Button>
+            <Button asChild className={`${actionStyles.action} h-9 gap-2 px-3 text-xs`}>
+              <Link href={`/groups/${groupId}/sessions/new`} aria-label="New session" title="New session"><Plus aria-hidden="true" className="size-3.5" /><span className={actionStyles.label}>NEW SESSION</span></Link>
+            </Button>
+          </div>
         </div>
       </div>
       <ResponsiveTable columns={columns} hideOrder={hideOrder} className="[&_th]:px-2 [&_td]:px-2">
