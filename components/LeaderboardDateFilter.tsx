@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import styles from './LeaderboardFilters.module.css'
 import { CalendarIcon, Check, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -63,10 +64,10 @@ export default function LeaderboardDateFilter({
       onOpenChange={(open) => setPanel(open ? 'options' : null)}
     >
       <PopoverTrigger asChild>
-        <Button variant="outline" aria-label={`Date range: ${label}`}>
-          <CalendarIcon />
+        <Button variant="outline" className={styles.dateTrigger} aria-label={`Date range: ${label}`}>
+          <CalendarIcon className="size-3.5" />
           {label}
-          <ChevronDown />
+          <ChevronDown className="size-3.5" />
         </Button>
       </PopoverTrigger>
       <PopoverContent
