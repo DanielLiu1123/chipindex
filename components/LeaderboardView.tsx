@@ -17,7 +17,7 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import ValueUnitControl from '@/components/ValueUnitControl'
-import { Table2, ChartNoAxesCombined } from 'lucide-react'
+import { Table2, ChartNoAxesCombined, Plus } from 'lucide-react'
 import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import ChipValue from '@/components/ChipValue'
@@ -151,7 +151,7 @@ function LeaderboardContent({ groupId, players, sessions, filters }: Props & { f
           ]}
         />
         <Button asChild className={actionStyles.action}>
-          <Link href={`/groups/${groupId}/sessions/new`}>+ NEW SESSION</Link>
+          <Link href={`/groups/${groupId}/sessions/new`}><Plus aria-hidden="true" className="size-3.5" /><span className={actionStyles.label}>NEW SESSION</span></Link>
         </Button>
       </ResponsiveActions>
 
