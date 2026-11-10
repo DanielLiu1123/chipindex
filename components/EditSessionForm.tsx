@@ -199,7 +199,6 @@ function EditSessionEditor({ groupId, sessionId, session, initialPlayers }: {
 
                   {expanded.has(row.playerId) && (
                     <div id={`buyins-${row.playerId}`} className="border-t border-border p-3 bg-muted/50">
-                      <div className={styles.detailsSummary}><span className="break-all">{row.name}</span><span className={styles.hiddenBuyin}>BUY-IN {total.toLocaleString()} ({row.buyins.length})</span><span>NET <ChipValue chips={net} /></span></div>
                       <div className="flex flex-col gap-1">
                         {row.buyins.map((b, i) => (
                           <div key={i} className={styles.buyinRow}>

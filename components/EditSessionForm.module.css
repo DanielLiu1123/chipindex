@@ -27,17 +27,13 @@
 .row { cursor: pointer; }
 .row:hover { background: var(--muted); }
 .buyinRow { display: grid; grid-template-columns: minmax(0, 2fr) minmax(64px, 1fr) 28px; gap: 8px; align-items: center; }
-.detailsSummary { display: none; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; font-size: 12px; }
-.hiddenBuyin { display: none; }
 @container (max-width: 700px) {
   .heading, .row { grid-template-columns: 28px minmax(0, 1.5fr) minmax(85px, 1fr) 90px 28px; gap: 8px; }
   .net { display: none; }
-  .detailsSummary { display: flex; }
 }
 @container (max-width: 500px) {
   .finalChips { width: 78px; }
   .heading, .row { grid-template-columns: 28px minmax(0, 1fr) 82px 28px; gap: 6px; padding: 10px 6px; }
   .buyin { display: none; }
-  .hiddenBuyin { display: inline; }
   .buyinRow input { font-size: 12px; }
 }
