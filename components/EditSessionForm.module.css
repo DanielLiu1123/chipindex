@@ -23,6 +23,7 @@
 }
 .heading { background: var(--muted); color: var(--muted-foreground); font-size: 11px; }
 .heading > span:nth-child(n+3), .buyin, .net { text-align: right; }
+.finalChips { width: 90px; max-width: 100%; min-width: 0; justify-self: end; text-align: right; }
 .row { cursor: pointer; }
 .row:hover { background: var(--muted); }
 .buyinRow { display: grid; grid-template-columns: minmax(0, 2fr) minmax(64px, 1fr) 28px; gap: 8px; align-items: center; }
@@ -34,6 +35,7 @@
   .detailsSummary { display: flex; }
 }
 @container (max-width: 500px) {
+  .finalChips { width: 78px; }
   .heading, .row { grid-template-columns: 28px minmax(0, 1fr) 82px 28px; gap: 6px; padding: 10px 6px; }
   .buyin { display: none; }
   .hiddenBuyin { display: inline; }

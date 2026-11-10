@@ -192,7 +192,7 @@ function EditSessionEditor({ groupId, sessionId, session, initialPlayers }: {
                     <span className="truncate text-sm" title={row.name}>{row.name}</span>
                     <span className={styles.buyin}>{total.toLocaleString()} ({row.buyins.length})</span>
                     <Input type="number" value={row.final} disabled={submitting} aria-label={`final chips for ${row.name}`} onChange={e => updateRow(row.playerId, { final: e.target.value })}
-                      placeholder="final" min="0" className="min-w-0 text-right" />
+                      placeholder="final" min="0" className={styles.finalChips} />
                     <span className={styles.net}><ChipValue chips={net} /></span>
                     <DeleteIconButton disabled={submitting} onClick={() => setConfirmRemove(row)} label={`remove ${row.name}`} />
                   </div>
