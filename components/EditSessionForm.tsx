@@ -199,7 +199,6 @@ function EditSessionEditor({ groupId, sessionId, session, initialPlayers }: {
                   {expanded.has(row.playerId) && (
                     <div id={`buyins-${row.playerId}`} className="border-t border-border p-3 bg-muted/50">
                       <div className={styles.detailsSummary}><span className="break-all">{row.name}</span><span className={styles.hiddenBuyin}>BUY-IN {total.toLocaleString()} ({row.buyins.length})</span><span>NET <ChipValue chips={net} /></span></div>
-                      <p className="text-xs text-muted-foreground tracking-normal mb-2">BUY-INS</p>
                       <div className="flex flex-col gap-1">
                         {row.buyins.map((b, i) => (
                           <div key={i} className={styles.buyinRow}>
@@ -214,8 +213,8 @@ function EditSessionEditor({ groupId, sessionId, session, initialPlayers }: {
                               label={`remove buy-in ${i + 1} for ${row.name}`} />
                           </div>
                         ))}
-                        <Button variant="ghost" disabled={submitting} type="button" onClick={() => updateRow(row.playerId, { buyins: [...row.buyins, { amount: String(unit), created_at: defaultEventTime }] })}
-                          className="w-fit text-xs"><Plus className="size-3.5" aria-hidden="true" /> ADD</Button>
+                        <Button variant="outline" disabled={submitting} type="button" onClick={() => updateRow(row.playerId, { buyins: [...row.buyins, { amount: String(unit), created_at: defaultEventTime }] })}
+                          className="mt-2 h-8 w-fit text-xs"><Plus className="size-3.5" aria-hidden="true" /> ADD</Button>
                       </div>
                     </div>
                   )}
