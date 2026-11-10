@@ -9,6 +9,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import { cn } from '@/lib/utils'
 import { localDate } from '@/lib/browser-time'
 
 export default function DatePicker({
@@ -17,11 +18,13 @@ export default function DatePicker({
   disabled,
   id,
   label = 'Date',
+  compact = false,
 }: {
   value: string
   onChange: (value: string) => void
   disabled?: boolean
   id?: string
+  compact?: boolean
   label?: string
 }) {
   const [open, setOpen] = useState(false)
@@ -35,11 +38,11 @@ export default function DatePicker({
           variant="outline"
           disabled={disabled}
           aria-label={label}
-          className="w-full justify-start border-input bg-card font-normal hover:border-ring hover:bg-card dark:bg-card dark:hover:bg-card"
+          className={cn("w-full justify-start border-input bg-card font-normal hover:border-ring hover:bg-card dark:bg-card dark:hover:bg-card", compact && "justify-center gap-1.5 px-2")}
         >
           <CalendarIcon />
-          <span className="min-w-0 flex-1 text-left tabular-nums">{value || 'yyyy-MM-dd'}</span>
-          <ChevronDown className="text-muted-foreground" aria-hidden="true" />
+          <span className={cn("min-w-0 tabular-nums", !compact && "flex-1 text-left")}>{value || 'yyyy-MM-dd'}</span>
+          {!compact && <ChevronDown className="text-muted-foreground" aria-hidden="true" />}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">

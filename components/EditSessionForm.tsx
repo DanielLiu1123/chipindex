@@ -166,7 +166,7 @@ function EditSessionEditor({ groupId, sessionId, session, initialPlayers }: {
       <h1 className="text-2xl font-medium tracking-tight mb-6">EDIT SESSION</h1>
 
       <div className={styles.editor}>
-        <SessionMetaFields disabled={submitting}
+        <SessionMetaFields compact disabled={submitting}
           date={date} setDate={setDate}
           exchangeRate={exchangeRate} setExchangeRate={setExchangeRate}
           description={description} setDescription={setDescription}
