@@ -9,13 +9,15 @@ import {
   TableCell,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
+import ResponsiveActions from '@/components/ResponsiveActions'
+import actionStyles from '@/components/ResponsiveActions.module.css'
 import { cn } from '@/lib/utils'
 
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import ValueUnitControl from '@/components/ValueUnitControl'
-import { Table2, ChartNoAxesCombined } from 'lucide-react'
+import { Table2, ChartNoAxesCombined, Plus } from 'lucide-react'
 import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import ChipValue from '@/components/ChipValue'
@@ -137,8 +139,9 @@ function LeaderboardContent({ groupId, players, sessions, filters }: Props & { f
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+      <ResponsiveActions className="mb-3">
         <SegmentedControl
+          className={actionStyles.segmented}
           value={view}
           onValueChange={setView}
           label="Leaderboard view"
@@ -147,10 +150,10 @@ function LeaderboardContent({ groupId, players, sessions, filters }: Props & { f
             { value: 'chart', label: 'Chart', icon: <ChartNoAxesCombined aria-hidden="true" /> },
           ]}
         />
-        <Button asChild>
-          <Link href={`/groups/${groupId}/sessions/new`}>+ NEW SESSION</Link>
+        <Button asChild className={actionStyles.action}>
+          <Link href={`/groups/${groupId}/sessions/new`}><Plus aria-hidden="true" className="size-3.5" /><span>NEW SESSION</span></Link>
         </Button>
-      </div>
+      </ResponsiveActions>
 
       <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <LeaderboardDateFilter filter={filter} onChange={filter => updateFilters({ filter })} />

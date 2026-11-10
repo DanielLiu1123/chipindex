@@ -1,3 +1,5 @@
+import ResponsiveActions from '@/components/ResponsiveActions'
+import headerStyles from '@/components/ResponsiveActions.module.css'
 import Link from 'next/link'
 import { Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -40,18 +42,18 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
     .sort((a, b) => b.chips - a.chips || a.player_id.localeCompare(b.player_id))
   const total = entries.reduce((sum, entry) => sum + entry.chips, 0)
   return <>
-    <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-      <h1 className="text-2xl font-medium tracking-tight text-foreground">{settled.date}</h1>
-      <div className="flex items-center gap-2">
-        <CopySessionSummaryButton summary={summary} />
-        <Button asChild variant="outline" className="h-9 gap-2 rounded-[8px] px-3 text-xs text-muted-foreground">
-          <Link href={`/groups/${groupId}/sessions/${id}/edit`}>
+    <ResponsiveActions className="mb-4">
+      <h1 className={`${headerStyles.date} font-medium tracking-tight text-foreground`}>{settled.date}</h1>
+      <div className={headerStyles.actions}>
+        <CopySessionSummaryButton summary={summary} className={headerStyles.action} />
+        <Button asChild variant="outline" className={`${headerStyles.action} rounded-[8px]`}>
+          <Link href={`/groups/${groupId}/sessions/${id}/edit`} aria-label="Edit session" title="Edit session">
             <Pencil aria-hidden="true" className="size-3.5" strokeWidth={1.6} />
-            EDIT
+            <span>EDIT</span>
           </Link>
         </Button>
       </div>
-    </div>
+    </ResponsiveActions>
     <div className="mb-2"><span className="text-xs text-muted-foreground">{settled.exchange_rate} chips = 1 CNY</span></div>
     <div className="mb-6">{settled.description && <p className="text-sm text-muted-foreground mt-1">{settled.description}</p>}</div>
     <SessionEntriesTable groupId={groupId} entries={entries} exchangeRate={settled.exchange_rate} total={total} />

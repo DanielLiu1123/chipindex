@@ -1,5 +1,6 @@
 'use client'
 
+import { cn } from '@/lib/utils'
 import type { ReactNode } from 'react'
 import { RadioGroup } from 'radix-ui'
 
@@ -15,12 +16,14 @@ export function SegmentedControl<T extends string>({
   options,
   label,
   compact = false,
+  className,
 }: {
   value: T
   onValueChange: (value: T) => void
   options: readonly Option<T>[]
   label: string
   compact?: boolean
+  className?: string
 }) {
   const index = options.findIndex(option => option.value === value)
 
@@ -34,7 +37,7 @@ export function SegmentedControl<T extends string>({
       aria-label={label}
       orientation="horizontal"
       loop
-      className="relative isolate inline-grid w-fit shrink-0 rounded-xl bg-muted p-1"
+      className={cn("relative isolate inline-grid w-fit shrink-0 rounded-xl bg-muted p-1", className)}
       style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
     >
       <span aria-hidden="true" className="pointer-events-none absolute inset-1 -z-10">

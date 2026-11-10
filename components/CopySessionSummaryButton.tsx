@@ -25,7 +25,7 @@ async function writeClipboard(text: string): Promise<void> {
   }
 }
 
-export default function CopySessionSummaryButton({ summary }: { summary: SessionSummaryData }) {
+export default function CopySessionSummaryButton({ summary, className }: { summary: SessionSummaryData; className?: string }) {
   const [state, setState] = useState<'idle' | 'copied' | 'error'>('idle')
   const resetTimer = useRef<number | null>(null)
 
@@ -55,15 +55,18 @@ export default function CopySessionSummaryButton({ summary }: { summary: Session
     }
   }
 
-  const label = state === 'copied' ? 'COPIED' : state === 'error' ? 'COPY FAILED' : 'COPY SUMMARY'
+  const label = state === 'copied' ? 'COPIED' : state === 'error' ? 'COPY FAILED' : 'SUMMARY'
   const Icon = state === 'copied' ? Check : Copy
   return <Button
-    variant={state === 'error' ? 'destructive' : 'secondary'}
+    variant={state === 'error' ? 'destructive' : 'outline'}
     className={cn(
-      'h-9 w-37 gap-2 rounded-[8px] border-border px-3 text-xs',
+      'h-9 gap-2 rounded-[8px] border-border px-3 text-xs',
       state === 'copied' && 'border-profit/20 bg-profit/10 text-profit hover:bg-profit/15',
       state === 'error' && 'border-destructive/20',
+      className,
     )}
+    aria-label={label}
+    title={label}
     type="button"
     onClick={copySummary}
   >

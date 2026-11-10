@@ -1,34 +1,14 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { measureTableColumns } from './measure-table-columns'
 import type { buildLeaderboard } from './leaderboard'
 import { allocateLeaderboardColumns, leaderboardColumns, type LeaderboardColumn } from './leaderboard-layout'
 
 type Layout = ReturnType<typeof allocateLeaderboardColumns>
 type Measurements = Partial<Record<LeaderboardColumn, number>>
 
-function measureColumns(table: HTMLTableElement, context: CanvasRenderingContext2D): Measurements {
-  const measured: Measurements = {}
-  for (const key of leaderboardColumns) {
-    let maximum = 0
-    for (const cell of table.querySelectorAll<HTMLElement>(`[data-column="${key}"]`)) {
-      const text = cell.querySelector('button, a') ?? cell
-      const textStyle = getComputedStyle(text)
-      // The font shorthand can be empty when tabular-nums is inherited.
-      context.font = `${textStyle.fontStyle} ${textStyle.fontWeight} ${textStyle.fontSize} ${textStyle.fontFamily}`
-      const content = text.textContent ?? ''
-      // Reserve the arrow's space even when this column is not sorted.
-      const value = cell.tagName === 'TH' && cell.querySelector('button')
-        ? content.replace(/[↑↓]/g, '').trim() + ' ↓'
-        : content
-      const style = getComputedStyle(cell)
-      const padding = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0)
-      maximum = Math.max(maximum, context.measureText(value).width + padding)
-    }
-    measured[key] = Math.ceil(maximum)
-  }
-  return measured
-}
+const measuredColumns = leaderboardColumns.map(key => ({ key }))
 
 export function useLeaderboardLayout(rows: ReturnType<typeof buildLeaderboard>['sortedStats'], enabled: boolean) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -51,7 +31,7 @@ export function useLeaderboardLayout(rows: ReturnType<typeof buildLeaderboard>['
       if (width <= 0) return
       context ??= document.createElement('canvas').getContext('2d')
       if (!context) return
-      measured ??= measureColumns(table, context)
+      measured ??= measureTableColumns(table, context, measuredColumns, true)
       const next = allocateLeaderboardColumns(width, measured)
       setLayout(previous => previous && leaderboardColumns.every(key => previous.widths[key] === next.widths[key]) ? previous : next)
     }

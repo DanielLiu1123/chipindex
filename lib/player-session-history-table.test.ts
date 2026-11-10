@@ -19,13 +19,10 @@ function renderTable(loading = false): string {
 }
 
 describe('PlayerSessionHistoryTable', () => {
-  it('renders concise mobile cumulative headers alongside the desktop labels', () => {
+  it('renders concise cumulative headers at every width', () => {
     const html = renderTable()
-
-    expect(html).toContain('<span class="sm:hidden">CUM. CNY</span>')
-    expect(html).toContain('<span class="hidden sm:inline">CUMULATIVE CNY</span>')
-    expect(html).toContain('<span class="sm:hidden">CUM. CHIPS</span>')
-    expect(html).toContain('<span class="hidden sm:inline">CUMULATIVE CHIPS</span>')
+    expect(html).toContain('CUM. CNY')
+    expect(html).toContain('CUM. CHIPS')
   })
 
   it('uses the same table geometry for loading without exposing stale data or links', () => {

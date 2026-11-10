@@ -117,7 +117,7 @@ export default function GroupSettings({ group, initialGroupPlayers, players }: {
             <h2 id="group-players-heading" className="text-sm font-semibold tracking-wide text-foreground">PLAYERS</h2>
             <span className="inline-flex min-w-6 items-center justify-center rounded-md bg-secondary px-1.5 py-0.5 text-xs font-medium tabular-nums text-muted-foreground">{groupPlayers.length}</span>
           </div>
-          <PlayerActionButton action="add-player" className="w-24 text-xs tracking-wide" disabled={pending} onClick={() => setAddPlayersOpen(true)} />
+          <PlayerActionButton action="add-player" variant="default" className="w-24 text-xs tracking-wide" disabled={pending} onClick={() => setAddPlayersOpen(true)} />
         </div>
 
         <ul className="divide-y divide-border">
