@@ -46,7 +46,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
       <h1 className={`${headerStyles.date} font-medium tracking-tight text-foreground`}>{settled.date}</h1>
       <div className={headerStyles.actions}>
         <CopySessionSummaryButton summary={summary} className={headerStyles.action} />
-        <Button asChild variant="outline" className={`${headerStyles.action} rounded-[8px] text-muted-foreground`}>
+        <Button asChild variant="outline" className={`${headerStyles.action} rounded-[8px]`}>
           <Link href={`/groups/${groupId}/sessions/${id}/edit`} aria-label="Edit session" title="Edit session">
             <Pencil aria-hidden="true" className="size-3.5" strokeWidth={1.6} />
             <span>EDIT</span>
