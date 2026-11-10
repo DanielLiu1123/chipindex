@@ -14,10 +14,6 @@
   --action-hover: #ead58a;
 }
 
-.settle {
-  @apply sm:ml-auto;
-}
-
 :global(.dark) .cashOut {
   --action-background: #40351b;
   --action-foreground: #ecd58e;

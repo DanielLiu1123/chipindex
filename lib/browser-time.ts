@@ -20,3 +20,12 @@ export function localDateTime(value: string): string {
   const date = new Date(value)
   return `${localDate(date)} ${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
+
+export function isValidLocalDateTime(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(value)) return false
+  try {
+    return toDateTimeLocal(toIsoTimestamp(value)) === (value.length === 16 ? `${value}:00` : value)
+  } catch {
+    return false
+  }
+}

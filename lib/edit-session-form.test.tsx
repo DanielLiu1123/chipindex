@@ -66,3 +66,14 @@ it('opens the date/time picker from the icon and keeps both parts when editing',
   fireEvent.click(screen.getByRole('button', { name: 'DONE' }))
   expect(screen.queryByRole('dialog')).toBeNull()
 })
+
+it('keeps the surviving buy-in input mounted when an earlier entry is removed', () => {
+  mount()
+  fireEvent.click(screen.getByText('Alice'))
+  fireEvent.click(screen.getByRole('button', { name: 'ADD' }))
+  const survivingInput = screen.getAllByLabelText('buy-in time for Alice')[1]
+  fireEvent.change(survivingInput, { target: { value: '2026-11-08 21:15:32' } })
+  fireEvent.click(screen.getByRole('button', { name: 'remove buy-in 1 for Alice' }))
+  expect(screen.getByLabelText('buy-in time for Alice')).toBe(survivingInput)
+  expect((survivingInput as HTMLInputElement).value).toBe('2026-11-08 21:15:32')
+})

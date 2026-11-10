@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 
 import { errorMessage } from '@/lib/error-message'
 import { DEFAULT_EXCHANGE_RATE, BUY_IN_UNIT } from '@/lib/session-rules'
-import { toDateTimeLocal, toIsoTimestamp } from '@/lib/browser-time'
+import { toDateTimeLocal, toIsoTimestamp, isValidLocalDateTime } from '@/lib/browser-time'
 import { useBrowserReady } from '@/lib/use-browser-ready'
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -26,7 +26,7 @@ import type { Player } from '@/lib/domain-types'
 import { ApiClientError, updateSession } from '@/lib/client'
 import { buyinSum, netChips } from '@/lib/settlement'
 
-interface BuyInRow { id?: string; original_created_at?: string; amount: string; created_at: string }
+interface BuyInRow { key: string; id?: string; original_created_at?: string; amount: string; created_at: string }
 interface ParticipantRow {
   playerId: string
   name: string
@@ -34,21 +34,12 @@ interface ParticipantRow {
   buyins: BuyInRow[]
 }
 
-function validBuyInTime(value: string) {
-  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(value)) return false
-  try {
-    return toDateTimeLocal(toIsoTimestamp(value)) === (value.length === 16 ? `${value}:00` : value)
-  } catch {
-    return false
-  }
-}
-
 function rowsFromSession(session: SessionForEdit): ParticipantRow[] {
   return session.participants.map(participant => ({
     playerId: participant.player_id,
     name: participant.name,
     final: participant.final_chips != null ? String(participant.final_chips) : '',
-    buyins: participant.buy_ins.map(buyIn => ({ id: buyIn.id, original_created_at: buyIn.created_at, amount: String(buyIn.amount), created_at: toDateTimeLocal(buyIn.created_at) })),
+    buyins: participant.buy_ins.map(buyIn => ({ key: buyIn.id, id: buyIn.id, original_created_at: buyIn.created_at, amount: String(buyIn.amount), created_at: toDateTimeLocal(buyIn.created_at) })),
   }))
 }
 
@@ -64,6 +55,11 @@ function EditSessionEditor({ groupId, sessionId, session, initialPlayers }: {
   const [description, setDescription] = useState(session.description ?? '')
   const [rows, setRows] = useState(() => rowsFromSession(session))
   const updateRow = (id: string, patch: Partial<ParticipantRow>) => setRows(current => current.map(row => row.playerId === id ? { ...row, ...patch } : row))
+  function updateBuyIn(playerId: string, key: string, patch: Partial<Pick<BuyInRow, 'amount' | 'created_at'>>) {
+    setRows(current => current.map(row => row.playerId === playerId
+      ? { ...row, buyins: row.buyins.map(buyIn => buyIn.key === key ? { ...buyIn, ...patch } : buyIn) }
+      : row))
+  }
   const [addPlayersOpen, setAddPlayersOpen] = useState(false)
   const directory = usePlayerDirectory({ groupId, players: initialPlayers,
     excludedIds: rows.map(row => row.playerId), excludedMessage: 'This player is already selected.' })
@@ -110,7 +106,7 @@ function EditSessionEditor({ groupId, sessionId, session, initialPlayers }: {
     if (rows.some(row => !row.final.trim() || !Number.isSafeInteger(Number(row.final)) || Number(row.final) < 0)) {
       setError('Enter final chips for every player.'); return
     }
-    if (rows.some(row => row.buyins.some(buyIn => !buyIn.amount.trim() || !Number.isSafeInteger(Number(buyIn.amount)) || Number(buyIn.amount) <= 0 || !validBuyInTime(buyIn.created_at)))) {
+    if (rows.some(row => row.buyins.some(buyIn => !buyIn.amount.trim() || !Number.isSafeInteger(Number(buyIn.amount)) || Number(buyIn.amount) <= 0 || !isValidLocalDateTime(buyIn.created_at)))) {
       setError('Every buy-in needs a positive integer amount and a valid time.'); return
     }
     saveBusy.current = true
@@ -201,18 +197,18 @@ function EditSessionEditor({ groupId, sessionId, session, initialPlayers }: {
                     <div id={`buyins-${row.playerId}`} className="border-t border-border p-3 bg-muted/50">
                       <div className="flex flex-col gap-1">
                         {row.buyins.map((b, i) => (
-                          <div key={i} className={styles.buyinRow}>
+                          <div key={b.key} className={styles.buyinRow}>
                             <DateTimePicker disabled={submitting} value={b.created_at}
                               label={`buy-in time for ${row.name}`}
-                              onChange={value => updateRow(row.playerId, { buyins: row.buyins.map((x, j) => j === i ? { ...x, created_at: value } : x) })} />
+                              onChange={value => updateBuyIn(row.playerId, b.key, { created_at: value })} />
                             <Input disabled={submitting} type="number" value={b.amount} min="1" aria-label={`buy-in chips for ${row.name}`}
-                              onChange={e => updateRow(row.playerId, { buyins: row.buyins.map((x, j) => j === i ? { ...x, amount: e.target.value } : x) })}
+                              onChange={e => updateBuyIn(row.playerId, b.key, { amount: e.target.value })}
                               className="min-w-0 text-right" />
-                            <DeleteIconButton disabled={submitting} onClick={() => updateRow(row.playerId, { buyins: row.buyins.filter((_, j) => j !== i) })}
+                            <DeleteIconButton disabled={submitting} onClick={() => updateRow(row.playerId, { buyins: row.buyins.filter(buyIn => buyIn.key !== b.key) })}
                               label={`remove buy-in ${i + 1} for ${row.name}`} />
                           </div>
                         ))}
-                        <Button variant="outline" disabled={submitting} type="button" onClick={() => updateRow(row.playerId, { buyins: [...row.buyins, { amount: String(unit), created_at: defaultEventTime }] })}
+                        <Button variant="outline" disabled={submitting} type="button" onClick={() => updateRow(row.playerId, { buyins: [...row.buyins, { key: crypto.randomUUID(), amount: String(unit), created_at: defaultEventTime }] })}
                           className="mt-2 h-8 w-fit text-xs"><Plus className="size-3.5" aria-hidden="true" /> ADD</Button>
                       </div>
                     </div>
