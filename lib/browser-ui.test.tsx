@@ -45,6 +45,11 @@ describe('real React session forms', () => {
   it('preserves existing event IDs/timestamps, validates all players, and inserts only selected newcomers', async () => {
     render(<EditSessionForm groupId="g1" sessionId="s1" session={session} initialPlayers={players} />)
     await addPlayers(['Bob', 'Carol'])
+    for (const name of ['Bob', 'Carol']) {
+      fireEvent.click(screen.getByRole('button', { name: `Buy-ins for ${name}` }))
+      fireEvent.click(screen.getByRole('button', { name: 'ADD' }))
+      fireEvent.click(screen.getByRole('button', { name: `Buy-ins for ${name}` }))
+    }
     fireEvent.change(screen.getByLabelText('final chips for Bob'), { target: { value: '2000' } })
     fireEvent.click(screen.getByRole('button', { name: 'SAVE CHANGES' }))
     expect(client.updateSession).not.toHaveBeenCalled()
@@ -59,7 +64,7 @@ describe('real React session forms', () => {
   })
   it('rejects a cleared existing buy-in instead of deleting it', async () => {
     render(<EditSessionForm groupId="g1" sessionId="s1" session={session} initialPlayers={players} />)
-    fireEvent.click(screen.getByRole('button', { name: /Alice.*buy-in/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Buy-ins for Alice' }))
     const numbers = screen.getAllByRole('spinbutton')
     const buyin = numbers.find(input => (input as HTMLInputElement).min === '1' && (input as HTMLInputElement).value === '2000')!
     fireEvent.change(buyin, { target: { value: '' } })

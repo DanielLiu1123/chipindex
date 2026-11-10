@@ -1,14 +1,17 @@
 'use client'
 
+import { ChevronRight, Plus } from 'lucide-react'
+import styles from './EditSessionForm.module.css'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
+import DateTimePicker from '@/components/DateTimePicker'
 import DeleteIconButton from '@/components/DeleteIconButton'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
 import { errorMessage } from '@/lib/error-message'
 import { DEFAULT_EXCHANGE_RATE, BUY_IN_UNIT } from '@/lib/session-rules'
-import { toDateTimeLocal, toIsoTimestamp } from '@/lib/browser-time'
+import { toDateTimeLocal, toIsoTimestamp, isValidLocalDateTime } from '@/lib/browser-time'
 import { useBrowserReady } from '@/lib/use-browser-ready'
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -23,7 +26,7 @@ import type { Player } from '@/lib/domain-types'
 import { ApiClientError, updateSession } from '@/lib/client'
 import { buyinSum, netChips } from '@/lib/settlement'
 
-interface BuyInRow { id?: string; original_created_at?: string; amount: string; created_at: string }
+interface BuyInRow { key: string; id?: string; original_created_at?: string; amount: string; created_at: string }
 interface ParticipantRow {
   playerId: string
   name: string
@@ -36,7 +39,7 @@ function rowsFromSession(session: SessionForEdit): ParticipantRow[] {
     playerId: participant.player_id,
     name: participant.name,
     final: participant.final_chips != null ? String(participant.final_chips) : '',
-    buyins: participant.buy_ins.map(buyIn => ({ id: buyIn.id, original_created_at: buyIn.created_at, amount: String(buyIn.amount), created_at: toDateTimeLocal(buyIn.created_at) })),
+    buyins: participant.buy_ins.map(buyIn => ({ key: buyIn.id, id: buyIn.id, original_created_at: buyIn.created_at, amount: String(buyIn.amount), created_at: toDateTimeLocal(buyIn.created_at) })),
   }))
 }
 
@@ -52,6 +55,11 @@ function EditSessionEditor({ groupId, sessionId, session, initialPlayers }: {
   const [description, setDescription] = useState(session.description ?? '')
   const [rows, setRows] = useState(() => rowsFromSession(session))
   const updateRow = (id: string, patch: Partial<ParticipantRow>) => setRows(current => current.map(row => row.playerId === id ? { ...row, ...patch } : row))
+  function updateBuyIn(playerId: string, key: string, patch: Partial<Pick<BuyInRow, 'amount' | 'created_at'>>) {
+    setRows(current => current.map(row => row.playerId === playerId
+      ? { ...row, buyins: row.buyins.map(buyIn => buyIn.key === key ? { ...buyIn, ...patch } : buyIn) }
+      : row))
+  }
   const [addPlayersOpen, setAddPlayersOpen] = useState(false)
   const directory = usePlayerDirectory({ groupId, players: initialPlayers,
     excludedIds: rows.map(row => row.playerId), excludedMessage: 'This player is already selected.' })
@@ -72,12 +80,12 @@ function EditSessionEditor({ groupId, sessionId, session, initialPlayers }: {
     })
   }
 
-  function addPlayers(ids: string[], amount: number) {
+  async function addPlayers(ids: string[]) {
     setRows(current => [...current, ...[...new Set(ids)]
       .filter(id => !current.some(row => row.playerId === id))
       .map(playerId => ({ playerId,
         name: directory.players.find(player => player.id === playerId)?.name ?? playerId, final: '',
-        buyins: [{ amount: String(amount), created_at: defaultEventTime }],
+        buyins: [],
       }))])
   }
 
@@ -98,7 +106,7 @@ function EditSessionEditor({ groupId, sessionId, session, initialPlayers }: {
     if (rows.some(row => !row.final.trim() || !Number.isSafeInteger(Number(row.final)) || Number(row.final) < 0)) {
       setError('Enter final chips for every player.'); return
     }
-    if (rows.some(row => row.buyins.some(buyIn => !buyIn.amount.trim() || !Number.isSafeInteger(Number(buyIn.amount)) || Number(buyIn.amount) <= 0 || !buyIn.created_at))) {
+    if (rows.some(row => row.buyins.some(buyIn => !buyIn.amount.trim() || !Number.isSafeInteger(Number(buyIn.amount)) || Number(buyIn.amount) <= 0 || !isValidLocalDateTime(buyIn.created_at)))) {
       setError('Every buy-in needs a positive integer amount and a valid time.'); return
     }
     saveBusy.current = true
@@ -141,7 +149,7 @@ function EditSessionEditor({ groupId, sessionId, session, initialPlayers }: {
     <>
       <PlayerSelectionModal open={addPlayersOpen} participants={directory.participants}
         onCreatePlayer={directory.create} onClose={() => setAddPlayersOpen(false)}
-        action={{ kind: 'draft', unit: BUY_IN_UNIT, submit: addPlayers }} />
+        action={{ kind: 'players', submit: addPlayers }} />
       <ConfirmModal
         open={confirmRemove !== null}
         title={confirmRemove ? `Remove ${confirmRemove.name || 'this player'}?` : ''}
@@ -153,8 +161,8 @@ function EditSessionEditor({ groupId, sessionId, session, initialPlayers }: {
 
       <h1 className="text-2xl font-medium tracking-tight mb-6">EDIT SESSION</h1>
 
-      <div className="surface flex flex-col gap-6 max-w-lg">
-        <SessionMetaFields disabled={submitting}
+      <div className={styles.editor}>
+        <SessionMetaFields compact disabled={submitting}
           date={date} setDate={setDate}
           exchangeRate={exchangeRate} setExchangeRate={setExchangeRate}
           description={description} setDescription={setDescription}
@@ -162,43 +170,46 @@ function EditSessionEditor({ groupId, sessionId, session, initialPlayers }: {
 
         <div>
           <SessionPlayersHeader disabled={submitting} onAdd={() => setAddPlayersOpen(true)} />
-          <div className="flex flex-col gap-2">
+          <div className={styles.table}>
+            <div className={styles.heading} aria-hidden="true"><span /><span>PLAYER</span><span className={styles.buyin}>BUY-IN</span><span>FINAL CHIPS</span><span className={styles.net}>NET</span><span /></div>
             {rows.map(row => {
               const total = buyinTotal(row)
               const net = netChips(Number(row.final) || 0, total)
               return (
-                <div key={row.playerId} className="overflow-hidden rounded-lg border border-border">
-                  <div className="flex items-center gap-2 px-3 py-2.5">
-                    <Button variant="ghost" type="button" onClick={() => toggle(row.playerId)} className="flex-1 text-left min-w-0">
-                      <span className="text-foreground truncate">{row.name}</span>
-                      <span className="text-xs text-muted-foreground">buy-in {total.toLocaleString()} · {row.buyins.length}×</span>
+                <div key={row.playerId} className={styles.participant}>
+                  <div className={styles.row} onClick={event => {
+                    if (!submitting && !(event.target as HTMLElement).closest('button, input, label')) toggle(row.playerId)
+                  }}>
+                    <Button variant="ghost" type="button" size="icon-sm" disabled={submitting}
+                      aria-label={`Buy-ins for ${row.name}`} aria-expanded={expanded.has(row.playerId)}
+                      aria-controls={`buyins-${row.playerId}`} onClick={() => toggle(row.playerId)}>
+                      <ChevronRight className={expanded.has(row.playerId) ? 'rotate-90' : ''} aria-hidden="true" />
                     </Button>
+                    <span className="truncate text-sm" title={row.name}>{row.name}</span>
+                    <span className={styles.buyin}>{total.toLocaleString()} ({row.buyins.length})</span>
                     <Input type="number" value={row.final} disabled={submitting} aria-label={`final chips for ${row.name}`} onChange={e => updateRow(row.playerId, { final: e.target.value })}
-                      placeholder="final" min="0"
-                      className="w-24 text-right" />
-                    <span className="w-20 text-right text-sm"><ChipValue chips={net} /></span>
+                      placeholder="final" min="0" className={styles.finalChips} />
+                    <span className={styles.net}><ChipValue chips={net} /></span>
                     <DeleteIconButton disabled={submitting} onClick={() => setConfirmRemove(row)} label={`remove ${row.name}`} />
                   </div>
 
                   {expanded.has(row.playerId) && (
-                    <div className="border-t border-border px-3 py-2 bg-muted/50">
-                      <p className="text-xs text-muted-foreground tracking-normal mb-2">BUY-INS</p>
+                    <div id={`buyins-${row.playerId}`} className="border-t border-border p-3 bg-muted/50">
                       <div className="flex flex-col gap-1">
                         {row.buyins.map((b, i) => (
-                          <div key={i} className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                            <Input disabled={submitting} type="datetime-local" step="1" value={b.created_at}
-                              aria-label={`buy-in time for ${row.name}`}
-                              onChange={e => updateRow(row.playerId, { buyins: row.buyins.map((x, j) => j === i ? { ...x, created_at: e.target.value } : x) })}
-                              className="w-full sm:w-52" />
-                            <Input disabled={submitting} type="number" value={b.amount} min="1"
-                              onChange={e => updateRow(row.playerId, { buyins: row.buyins.map((x, j) => j === i ? { ...x, amount: e.target.value } : x) })}
-                              className="flex-1 text-right" />
-                            <DeleteIconButton disabled={submitting} onClick={() => updateRow(row.playerId, { buyins: row.buyins.filter((_, j) => j !== i) })}
+                          <div key={b.key} className={styles.buyinRow}>
+                            <DateTimePicker disabled={submitting} value={b.created_at}
+                              label={`buy-in time for ${row.name}`}
+                              onChange={value => updateBuyIn(row.playerId, b.key, { created_at: value })} />
+                            <Input disabled={submitting} type="number" value={b.amount} min="1" aria-label={`buy-in chips for ${row.name}`}
+                              onChange={e => updateBuyIn(row.playerId, b.key, { amount: e.target.value })}
+                              className="min-w-0 text-right" />
+                            <DeleteIconButton disabled={submitting} onClick={() => updateRow(row.playerId, { buyins: row.buyins.filter(buyIn => buyIn.key !== b.key) })}
                               label={`remove buy-in ${i + 1} for ${row.name}`} />
                           </div>
                         ))}
-                        <Button variant="ghost" disabled={submitting} type="button" onClick={() => updateRow(row.playerId, { buyins: [...row.buyins, { amount: String(unit), created_at: defaultEventTime }] })}
-                          className="text-left">+ ADD BUY-IN</Button>
+                        <Button variant="outline" disabled={submitting} type="button" onClick={() => updateRow(row.playerId, { buyins: [...row.buyins, { key: crypto.randomUUID(), amount: String(unit), created_at: defaultEventTime }] })}
+                          className="mt-2 h-8 w-fit text-xs"><Plus className="size-3.5" aria-hidden="true" /> ADD</Button>
                       </div>
                     </div>
                   )}
@@ -208,8 +219,8 @@ function EditSessionEditor({ groupId, sessionId, session, initialPlayers }: {
           </div>
         </div>
 
-        <div className="flex items-center justify-between text-xs tracking-normal border-t border-border pt-3">
-          <span className="text-muted-foreground">Σ FINAL / Σ BUY-IN</span>
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs tracking-normal border-t border-border pt-3">
+          <span className="text-muted-foreground">Σ FINAL / POT</span>
           <span className={diff === 0 ? 'text-primary' : 'text-amber-700 dark:text-amber-400'}>
             {totalFinal.toLocaleString()} / {totalBuyin.toLocaleString()}
             {diff !== 0 && (

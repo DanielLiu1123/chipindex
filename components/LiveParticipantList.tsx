@@ -97,7 +97,7 @@ export default function LiveParticipantList({
           {interactive && (
             <>
               <Button
-                variant={cashedOut ? 'secondary' : 'default'}
+                variant={cashedOut ? 'outline' : 'default'}
                 type="button"
                 onClick={() => cashedOut
                   ? onUndoCashOut(participant.player_id)
