@@ -4,13 +4,12 @@ import { Button } from '@/components/ui/button'
 import { ChevronRight } from 'lucide-react'
 import {
   TableFooter,
-  Table,
   TableHeader,
   TableRow,
-  TableHead,
   TableBody,
-  TableCell,
 } from '@/components/ui/table'
+
+import { ResponsiveTable, ResponsiveHead, ResponsiveCell, HiddenColumnDetail } from '@/components/ResponsiveTable'
 
 import BrowserTime from '@/components/BrowserTime'
 import { Fragment, useState } from 'react'
@@ -27,6 +26,9 @@ interface Entry {
   buy_ins: { amount: number; created_at: string }[]
   players?: { name: string } | null
 }
+
+const columns = [{ key: 'player', minWidth: 120, wrap: true, extraWidth: 20 }, { key: 'cny', minWidth: 104 }, { key: 'chips', minWidth: 96 }]
+const hideOrder = ['chips']
 
 export default function SessionEntriesTable({
   groupId,
@@ -51,12 +53,12 @@ export default function SessionEntriesTable({
   }
 
   return (
-    <Table className="w-full text-sm">
+    <ResponsiveTable columns={columns} hideOrder={hideOrder} className="text-sm [&_th]:px-2 [&_td]:px-2">
       <TableHeader>
         <TableRow className="border-b border-border text-muted-foreground text-xs tracking-normal">
-          <TableHead className="px-3 text-left py-3 font-normal">PLAYER</TableHead>
-          <TableHead className="text-right py-3 font-normal">CNY</TableHead>
-          <TableHead className="text-right py-3 font-normal">CHIPS</TableHead>
+          <ResponsiveHead column="player" className="px-3 text-left py-3 font-normal">PLAYER</ResponsiveHead>
+          <ResponsiveHead column="cny" className="text-right py-3 font-normal">CNY</ResponsiveHead>
+          <ResponsiveHead column="chips" className="text-right py-3 font-normal">CHIPS</ResponsiveHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -68,12 +70,12 @@ export default function SessionEntriesTable({
                 onClick={() => toggle(e.id)}
                 className="border-b border-border hover:bg-muted transition-colors cursor-pointer"
               >
-                <TableCell className="px-3 py-4">
+                <ResponsiveCell column="player" className="py-4 whitespace-normal [overflow-wrap:anywhere]">
                   <span className="flex items-center gap-2">
                     <Button
                       variant="ghost"
                       size="icon-sm"
-                      className="w-3 border-0 p-0"
+                      className="w-3 shrink-0 border-0 p-0"
                       aria-label={`${e.players?.name ?? e.player_id} buy-in history`}
                       aria-expanded={open}
                       onClick={(event) => {
@@ -89,22 +91,23 @@ export default function SessionEntriesTable({
                     <Link
                       href={`/groups/${groupId}/players/${e.player_id}`}
                       onClick={(ev) => ev.stopPropagation()}
-                      className="hover:text-primary transition-colors"
+                      data-measure-text className="min-w-0 hover:text-primary transition-colors"
                     >
                       {e.players?.name ?? e.player_id}
                     </Link>
                   </span>
-                </TableCell>
-                <TableCell className="py-4 text-right text-muted-foreground">
+                </ResponsiveCell>
+                <ResponsiveCell column="cny" className="py-4 text-right text-muted-foreground">
                   <ChipValue chips={toCny(e.chips, exchangeRate)} prefix="¥" />
-                </TableCell>
-                <TableCell className="py-4 text-right">
+                </ResponsiveCell>
+                <ResponsiveCell column="chips" className="py-4 text-right">
                   <ChipValue chips={e.chips} />
-                </TableCell>
+                </ResponsiveCell>
               </TableRow>
               {open && (
                 <TableRow className="border-b border-border bg-muted/40">
-                  <TableCell colSpan={3} className="px-3 py-3">
+                  <ResponsiveCell span className="px-3 py-3">
+                    <HiddenColumnDetail column="chips"><p className="mb-2 text-xs">CHIPS <ChipValue chips={e.chips} /></p></HiddenColumnDetail>
                     <div className="text-xs text-muted-foreground">
                       <p className="tracking-normal mb-2">BUY-INS</p>
                       {e.buy_ins.length > 0 ? (
@@ -132,7 +135,7 @@ export default function SessionEntriesTable({
                           : '—'}
                       </span>
                     </div>
-                  </TableCell>
+                  </ResponsiveCell>
                 </TableRow>
               )}
             </Fragment>
@@ -142,14 +145,12 @@ export default function SessionEntriesTable({
       {total !== 0 && (
         <TableFooter>
           <TableRow className="text-muted-foreground text-xs">
-            <TableCell className="px-3 pt-4">SUM</TableCell>
-            <TableCell />
-            <TableCell className="pt-4 text-right">
-              <ChipValue chips={total} />
-            </TableCell>
+            <ResponsiveCell span className="pt-4 text-right whitespace-normal">
+              <span>SUM</span> · <ChipValue chips={total} /> CHIPS
+            </ResponsiveCell>
           </TableRow>
         </TableFooter>
       )}
-    </Table>
+    </ResponsiveTable>
   )
 }

@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
 import Loading from './loading'
-import styles from './sessions-table.module.css'
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table'
+import { ResponsiveTable, ResponsiveHead, ResponsiveCell } from '@/components/ResponsiveTable'
+import { TableHeader, TableRow, TableBody } from '@/components/ui/table'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import DeleteSessionButton from '@/components/DeleteSessionButton'
@@ -15,6 +15,16 @@ import {
   normalizeSessionPageParam,
   sessionPageHref,
 } from '@/lib/session-pagination'
+
+const columns = [
+  { key: 'date', minWidth: 120, extraWidth: 16 },
+  { key: 'description', minWidth: 140, wrap: true },
+  { key: 'players', minWidth: 72 },
+  { key: 'pog', minWidth: 90, wrap: true },
+  { key: 'rate', minWidth: 60 },
+  { key: 'actions', minWidth: 52, fixed: true },
+]
+const hideOrder = ['description', 'rate', 'pog']
 
 export const dynamic = 'force-dynamic'
 
@@ -55,50 +65,42 @@ async function SessionsPage({ params, query }: {
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <span className="text-xs text-muted-foreground tracking-normal">{total} SESSIONS</span>
         <div className="flex flex-wrap items-center gap-2">
-          <Button asChild className="px-3 text-xs sm:px-4 sm:text-sm">
-            <Link href={`/groups/${groupId}/sessions/new`}>+ NEW SESSION</Link>
-          </Button>
           <Button asChild variant="outline" className="px-3 text-xs sm:px-4 sm:text-sm">
             <Link href={`/groups/${groupId}/sessions/import`}>IMPORT SESSION</Link>
           </Button>
+          <Button asChild className="px-3 text-xs sm:px-4 sm:text-sm">
+            <Link href={`/groups/${groupId}/sessions/new`}>+ NEW SESSION</Link>
+          </Button>
         </div>
       </div>
-      <Table className={`table-fixed ${styles.table}`}>
-        <colgroup>
-          <col className="w-28" />
-          <col className="hidden sm:table-column" />
-          <col className="w-13 sm:w-20" />
-          <col className="sm:w-32" />
-          <col className="w-11 sm:w-20" />
-          <col className="w-9 sm:w-12" />
-        </colgroup>
+      <ResponsiveTable columns={columns} hideOrder={hideOrder} className="[&_th]:px-2 [&_td]:px-2">
         <TableHeader><TableRow className="h-16 border-b border-border text-muted-foreground text-xs tracking-normal">
-          <TableHead className="text-left py-3 font-normal">DATE</TableHead><TableHead className="hidden sm:table-cell text-left py-3 font-normal whitespace-normal [overflow-wrap:anywhere]">DESCRIPTION</TableHead><TableHead className="text-center py-3 font-normal">PLAYERS</TableHead>
-          <TableHead className="text-center py-3 font-normal">POG</TableHead><TableHead className="text-center py-3 font-normal">RATE</TableHead>
-          <TableHead className="text-center py-3 font-normal"></TableHead>
+          <ResponsiveHead column="date" className="text-left py-3 font-normal">DATE</ResponsiveHead><ResponsiveHead column="description" className="text-left py-3 font-normal whitespace-normal [overflow-wrap:anywhere]">DESCRIPTION</ResponsiveHead><ResponsiveHead column="players" className="text-right py-3 font-normal">PLAYERS</ResponsiveHead>
+          <ResponsiveHead column="pog" className="text-right py-3 font-normal">POG</ResponsiveHead><ResponsiveHead column="rate" className="text-right py-3 font-normal">RATE</ResponsiveHead>
+          <ResponsiveHead column="actions" className="text-right py-3 font-normal"></ResponsiveHead>
         </TableRow></TableHeader>
         <TableBody>
-          {sessions.length === 0 && <TableRow><TableCell colSpan={6} className="py-12 text-center text-xs text-muted-foreground tracking-normal">NO SESSIONS YET</TableCell></TableRow>}
+          {sessions.length === 0 && <TableRow><ResponsiveCell span className="py-12 text-center text-xs text-muted-foreground tracking-normal">NO SESSIONS YET</ResponsiveCell></TableRow>}
           {sessions.map(session => {
             const href = `/groups/${groupId}/sessions/${session.id}`
             const isOpen = session.status === 'OPEN'
             return <TableRow key={session.id} className={`border-b border-border transition-colors ${isOpen ? 'bg-live/5 hover:bg-live/10' : 'hover:bg-muted'}`}>
-              <TableCell className="py-4 text-left"><Link href={href} className="block">
+              <ResponsiveCell column="date" className="py-4 text-left"><Link href={href} className="block">
                 <div className={`flex items-center gap-0.5 sm:gap-2 ${isOpen ? 'text-live' : ''}`}>
-                  {isOpen && <><span aria-hidden="true" className="inline-block w-2 h-2 rounded-full bg-live motion-safe:animate-pulse shrink-0" /><span className="sr-only">Live session</span></>}{session.date}
+                  {isOpen && <><span aria-hidden="true" className="inline-block w-2 h-2 rounded-full bg-live motion-safe:animate-pulse shrink-0" /><span className="sr-only">Live session</span></>}<span data-measure-text>{session.date}</span>
                 </div>
-              </Link></TableCell>
-              <TableCell className="hidden sm:table-cell py-4 text-left whitespace-normal [overflow-wrap:anywhere] text-muted-foreground"><Link href={href} className="block">{session.description || '—'}</Link></TableCell>
-              <TableCell className="py-4 text-center text-muted-foreground"><Link href={href} className="block">{session.player_count}</Link></TableCell>
-              <TableCell className="py-4 text-center">{!isOpen && session.winners.length > 0
-                ? <div className="flex flex-wrap justify-center gap-x-2 gap-y-1 whitespace-normal [overflow-wrap:anywhere]">{session.winners.map(winner => <Link key={winner.player_id} href={`/groups/${groupId}/players/${winner.player_id}`} className="min-w-0 text-muted-foreground hover:text-primary transition-colors">{winner.name}</Link>)}</div>
-                : <span className="text-muted-foreground">—</span>}</TableCell>
-              <TableCell className="py-4 text-center text-muted-foreground"><Link href={href} className="block">{session.exchange_rate ? `${session.exchange_rate}:1` : '—'}</Link></TableCell>
-              <TableCell className="py-2 text-center"><DeleteSessionButton groupId={groupId} sessionId={session.id} /></TableCell>
+              </Link></ResponsiveCell>
+              <ResponsiveCell column="description" className="py-4 text-left whitespace-normal [overflow-wrap:anywhere] text-muted-foreground"><Link href={href} className="block">{session.description || '—'}</Link></ResponsiveCell>
+              <ResponsiveCell column="players" className="py-4 text-right text-muted-foreground"><Link href={href} className="block">{session.player_count}</Link></ResponsiveCell>
+              <ResponsiveCell column="pog" className="py-4 text-right">{!isOpen && session.winners.length > 0
+                ? <div className="flex flex-wrap justify-end gap-x-2 gap-y-1 whitespace-normal [overflow-wrap:anywhere]">{session.winners.map(winner => <Link key={winner.player_id} href={`/groups/${groupId}/players/${winner.player_id}`} className="min-w-0 text-muted-foreground hover:text-primary transition-colors">{winner.name}</Link>)}</div>
+                : <span className="text-muted-foreground">—</span>}</ResponsiveCell>
+              <ResponsiveCell column="rate" className="py-4 text-right text-muted-foreground"><Link href={href} className="block">{session.exchange_rate ? `${session.exchange_rate}:1` : '—'}</Link></ResponsiveCell>
+              <ResponsiveCell column="actions" className="py-2 text-right"><DeleteSessionButton groupId={groupId} sessionId={session.id} /></ResponsiveCell>
             </TableRow>
           })}
         </TableBody>
-      </Table>
+      </ResponsiveTable>
       <SessionPagination sessionsPath={sessionsPath} page={page} pageSize={pageSize} totalPages={totalPages} />
     </>
   )
