@@ -8,10 +8,11 @@ import { allocateTableColumns, type ResponsiveColumn } from '@/lib/responsive-ta
 
 const LayoutContext = createContext<readonly string[]>([])
 
-export function ResponsiveTable({ columns, hideOrder, children, className }: {
+export function ResponsiveTable({ columns, hideOrder, children, className, visibility = 'content' }: {
   columns: readonly ResponsiveColumn[]
   hideOrder: readonly string[]
   children: ReactNode
+  visibility?: 'content' | 'container'
   className?: string
 }) {
   const ref = useRef<HTMLDivElement>(null)
@@ -30,7 +31,7 @@ export function ResponsiveTable({ columns, hideOrder, children, className }: {
       context ??= document.createElement('canvas').getContext('2d')
       if (!context) return
       measured ??= measureTableColumns(table, context, columns)
-      const next = allocateTableColumns(width, columns, hideOrder, measured)
+      const next = allocateTableColumns(width, columns, hideOrder, measured, visibility)
       setLayout(previous => previous && columns.every(column => previous.widths[column.key] === next.widths[column.key]) ? previous : next)
     }
     function fontsChanged() {
@@ -47,7 +48,7 @@ export function ResponsiveTable({ columns, hideOrder, children, className }: {
       observer.disconnect()
       document.fonts?.removeEventListener('loadingdone', fontsChanged)
     }
-  }, [columns, hideOrder, children])
+  }, [columns, hideOrder, children, visibility])
   const visible = layout?.visible ?? columns.map(column => column.key)
   return (
     <LayoutContext.Provider value={visible}>

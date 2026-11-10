@@ -76,7 +76,7 @@ async function SessionsPage({ params, query }: {
           </Button>
         </div>
       </ResponsiveActions>
-      <ResponsiveTable columns={columns} hideOrder={hideOrder} className="[&_th]:px-2 [&_td]:px-2">
+      <ResponsiveTable visibility="container" columns={columns} hideOrder={hideOrder} className="[&_th]:px-2 [&_td]:px-2">
         <TableHeader><TableRow className="h-16 border-b border-border text-muted-foreground text-xs tracking-normal">
           <ResponsiveHead column="date" className="text-left py-3 font-normal">DATE</ResponsiveHead><ResponsiveHead column="description" className="text-left py-3 font-normal whitespace-normal [overflow-wrap:anywhere]">DESCRIPTION</ResponsiveHead><ResponsiveHead column="players" className="text-right py-3 font-normal">PLAYERS</ResponsiveHead>
           <ResponsiveHead column="pog" className="text-right py-3 font-normal">POG</ResponsiveHead><ResponsiveHead column="rate" className="text-right py-3 font-normal">RATE</ResponsiveHead>
