@@ -16,9 +16,6 @@
 
 .settle {
   @apply sm:ml-auto;
-  --action-background: #dedbd3;
-  --action-foreground: #343432;
-  --action-hover: #d2cec4;
 }
 
 :global(.dark) .cashOut {
@@ -27,19 +24,11 @@
   --action-hover: #514323;
 }
 
-:global(.dark) .settle {
-  --action-background: #3a3935;
-  --action-foreground: #efeee9;
-  --action-hover: #474640;
-}
-
-.cashOut,
-.settle {
+.cashOut {
   background-color: var(--action-background);
   color: var(--action-foreground);
 }
 
-.cashOut:hover,
-.settle:hover {
+.cashOut:hover {
   background-color: var(--action-hover);
 }
