@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 import { measureTableColumns } from '@/lib/measure-table-columns'
 import { allocateTableColumns, type ResponsiveColumn } from '@/lib/responsive-table'
 
-const LayoutContext = createContext<{ visible: string[] } | null>(null)
+const LayoutContext = createContext<readonly string[]>([])
 
 export function ResponsiveTable({ columns, hideOrder, children, className }: {
   columns: readonly ResponsiveColumn[]
@@ -50,7 +50,7 @@ export function ResponsiveTable({ columns, hideOrder, children, className }: {
   }, [columns, hideOrder, children])
   const visible = layout?.visible ?? columns.map(column => column.key)
   return (
-    <LayoutContext.Provider value={{ visible }}>
+    <LayoutContext.Provider value={visible}>
       <div ref={ref}>
         <Table className={cn('table-fixed tabular-nums', className)}>
           <colgroup>{visible.map(key => <col key={key} style={{ width: layout?.widths[key] }} />)}</colgroup>
@@ -61,17 +61,23 @@ export function ResponsiveTable({ columns, hideOrder, children, className }: {
   )
 }
 
-export function ResponsiveHead({ column, ...props }: ComponentProps<typeof TableHead> & { column: string }) {
-  const layout = useContext(LayoutContext)
-  return <TableHead {...props} data-column={column} hidden={layout ? !layout.visible.includes(column) : false} />
+type HeadProps = Omit<ComponentProps<typeof TableHead>, 'hidden' | 'colSpan'> & { column: string }
+type CellProps = Omit<ComponentProps<typeof TableCell>, 'hidden' | 'colSpan'> & (
+  | { column: string; span?: never }
+  | { span: true; column?: never }
+)
+
+export function ResponsiveHead({ column, ...props }: HeadProps) {
+  const visible = useContext(LayoutContext)
+  return <TableHead {...props} data-column={column} hidden={!visible.includes(column)} />
 }
 
-export function ResponsiveCell({ column, span, ...props }: ComponentProps<typeof TableCell> & { column?: string; span?: boolean }) {
-  const layout = useContext(LayoutContext)
-  return <TableCell {...props} data-column={column} hidden={column && layout ? !layout.visible.includes(column) : false} colSpan={span ? layout?.visible.length : props.colSpan} />
+export function ResponsiveCell({ column, span, ...props }: CellProps) {
+  const visible = useContext(LayoutContext)
+  return <TableCell {...props} data-column={column} hidden={!span && !visible.includes(column)} colSpan={span ? visible.length : undefined} />
 }
 
 export function HiddenColumnDetail({ column, children }: { column: string; children: ReactNode }) {
-  const layout = useContext(LayoutContext)
-  return layout && !layout.visible.includes(column) ? children : null
+  const visible = useContext(LayoutContext)
+  return visible.includes(column) ? null : children
 }

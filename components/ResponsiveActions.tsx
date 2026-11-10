@@ -7,11 +7,13 @@ import styles from './ResponsiveActions.module.css'
 /** Choose the largest fitting scale without hiding labels or shrinking below the CSS minimum. */
 function fitActions(row: HTMLDivElement) {
   if (!row.clientWidth) return
+  const children = Array.from(row.children)
+  const availableWidth = row.clientWidth
   function fits(scale: number) {
     row.style.setProperty('--action-scale', String(scale))
-    const contentWidth = Array.from(row.children).reduce((sum, child) => sum + child.getBoundingClientRect().width, 0)
+    const contentWidth = children.reduce((sum, child) => sum + child.getBoundingClientRect().width, 0)
     const gap = parseFloat(getComputedStyle(row).columnGap) || 0
-    return contentWidth + gap * Math.max(0, row.childElementCount - 1) <= row.clientWidth
+    return contentWidth + gap * Math.max(0, children.length - 1) <= availableWidth
   }
   if (fits(1)) return
   let low = 0
@@ -34,9 +36,11 @@ export default function ResponsiveActions({ children, className }: { children: R
     let frame = 0
     let observedWidth = row.clientWidth
     const scheduleFit = () => {
-      if (!active) return
-      cancelAnimationFrame(frame)
-      frame = requestAnimationFrame(() => fitActions(row))
+      if (!active || frame) return
+      frame = requestAnimationFrame(() => {
+        frame = 0
+        fitActions(row)
+      })
     }
     const resize = new ResizeObserver(() => {
       if (row.clientWidth === observedWidth) return
