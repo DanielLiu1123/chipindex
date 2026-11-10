@@ -109,10 +109,10 @@ async function SessionsPage({ params, query }: {
   )
 }
 
-// Reset the loading boundary for pagination as well as path changes.
+// Preserve the rendered page while client-side pagination loads new data.
 export default async function Page(props: PageProps) {
   const query = await props.searchParams
-  return <Suspense key={JSON.stringify([query.page, query.page_size])} fallback={<Loading />}>
+  return <Suspense fallback={<Loading />}>
     <SessionsPage params={props.params} query={query} />
   </Suspense>
 }
