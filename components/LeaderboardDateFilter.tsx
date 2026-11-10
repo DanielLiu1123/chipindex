@@ -87,18 +87,18 @@ export default function LeaderboardDateFilter({
             }}
           />
         ) : (
-          <div className="w-48 p-1">
+          <div className="w-40 p-1">
             {PERIODS.map((period) => (
               <Button
                 key={period}
                 type="button"
                 variant="ghost"
-                className="w-full justify-start"
+                className="h-8 w-full justify-start gap-1.5 px-2 text-xs"
                 aria-pressed={filter.period === period}
                 onClick={() => select(period)}
               >
                 <Check
-                  className={filter.period === period ? '' : 'invisible'}
+                  className={filter.period === period ? 'size-3.5' : 'size-3.5 invisible'}
                 />
                 {LABELS[period]}
               </Button>
