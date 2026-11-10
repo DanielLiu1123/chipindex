@@ -69,10 +69,10 @@ async function SessionsPage({ params, query }: {
           <span className={`${actionStyles.count} shrink-0 whitespace-nowrap text-muted-foreground tracking-normal`}>{total} SESSIONS</span>
           <div className={actionStyles.actions}>
             <Button asChild variant="outline" className={`${actionStyles.action} h-9 gap-2 px-3 text-xs`}>
-              <Link href={`/groups/${groupId}/sessions/import`} aria-label="Import session" title="Import session"><Upload aria-hidden="true" className="size-3.5" /><span className={actionStyles.label}>IMPORT SESSION</span></Link>
+              <Link href={`/groups/${groupId}/sessions/import`} aria-label="Import session" title="Import session"><Upload aria-hidden="true" className="size-3.5" /><span className={actionStyles.label}>IMPORT</span></Link>
             </Button>
             <Button asChild className={`${actionStyles.action} h-9 gap-2 px-3 text-xs`}>
-              <Link href={`/groups/${groupId}/sessions/new`} aria-label="New session" title="New session"><Plus aria-hidden="true" className="size-3.5" /><span className={actionStyles.label}>NEW SESSION</span></Link>
+              <Link href={`/groups/${groupId}/sessions/new`} aria-label="New session" title="New session"><Plus aria-hidden="true" className="size-3.5" /><span className={actionStyles.label}>NEW</span></Link>
             </Button>
           </div>
         </ResponsiveActions>
