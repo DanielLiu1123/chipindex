@@ -1,3 +1,4 @@
+import ResponsiveActions from '@/components/ResponsiveActions'
 import headerStyles from '@/components/ResponsiveActions.module.css'
 import Link from 'next/link'
 import { Pencil } from 'lucide-react'
@@ -41,8 +42,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
     .sort((a, b) => b.chips - a.chips || a.player_id.localeCompare(b.player_id))
   const total = entries.reduce((sum, entry) => sum + entry.chips, 0)
   return <>
-    <div className={`${headerStyles.container} mb-4`}>
-      <div className={headerStyles.row}>
+    <ResponsiveActions className="mb-4">
         <h1 className={`${headerStyles.date} font-medium tracking-tight text-foreground`}>{settled.date}</h1>
         <div className={headerStyles.actions}>
           <CopySessionSummaryButton summary={summary} />
@@ -53,8 +53,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
             </Link>
           </Button>
         </div>
-      </div>
-    </div>
+      </ResponsiveActions>
     <div className="mb-2"><span className="text-xs text-muted-foreground">{settled.exchange_rate} chips = 1 CNY</span></div>
     <div className="mb-6">{settled.description && <p className="text-sm text-muted-foreground mt-1">{settled.description}</p>}</div>
     <SessionEntriesTable groupId={groupId} entries={entries} exchangeRate={settled.exchange_rate} total={total} />

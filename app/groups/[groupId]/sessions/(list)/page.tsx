@@ -1,3 +1,4 @@
+import ResponsiveActions from '@/components/ResponsiveActions'
 import actionStyles from '@/components/ResponsiveActions.module.css'
 import { Plus, Upload } from 'lucide-react'
 import { Suspense } from 'react'
@@ -64,9 +65,8 @@ async function SessionsPage({ params, query }: {
 
   return (
     <>
-      <div className={`${actionStyles.container} mb-6`}>
-        <div className={actionStyles.row}>
-          <span className="shrink-0 whitespace-nowrap text-xs text-muted-foreground tracking-normal">{total} SESSIONS</span>
+      <ResponsiveActions className="mb-6">
+          <span className={`${actionStyles.count} shrink-0 whitespace-nowrap text-muted-foreground tracking-normal`}>{total} SESSIONS</span>
           <div className={actionStyles.actions}>
             <Button asChild variant="outline" className={`${actionStyles.action} h-9 gap-2 px-3 text-xs`}>
               <Link href={`/groups/${groupId}/sessions/import`} aria-label="Import session" title="Import session"><Upload aria-hidden="true" className="size-3.5" /><span className={actionStyles.label}>IMPORT SESSION</span></Link>
@@ -75,8 +75,7 @@ async function SessionsPage({ params, query }: {
               <Link href={`/groups/${groupId}/sessions/new`} aria-label="New session" title="New session"><Plus aria-hidden="true" className="size-3.5" /><span className={actionStyles.label}>NEW SESSION</span></Link>
             </Button>
           </div>
-        </div>
-      </div>
+        </ResponsiveActions>
       <ResponsiveTable columns={columns} hideOrder={hideOrder} className="[&_th]:px-2 [&_td]:px-2">
         <TableHeader><TableRow className="h-16 border-b border-border text-muted-foreground text-xs tracking-normal">
           <ResponsiveHead column="date" className="text-left py-3 font-normal">DATE</ResponsiveHead><ResponsiveHead column="description" className="text-left py-3 font-normal whitespace-normal [overflow-wrap:anywhere]">DESCRIPTION</ResponsiveHead><ResponsiveHead column="players" className="text-right py-3 font-normal">PLAYERS</ResponsiveHead>
