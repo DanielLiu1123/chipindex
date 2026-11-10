@@ -58,7 +58,7 @@ export default function CopySessionSummaryButton({ summary, className }: { summa
   const label = state === 'copied' ? 'COPIED' : state === 'error' ? 'COPY FAILED' : 'COPY SUMMARY'
   const Icon = state === 'copied' ? Check : Copy
   return <Button
-    variant={state === 'error' ? 'destructive' : 'secondary'}
+    variant={state === 'error' ? 'destructive' : 'outline'}
     className={cn(
       'h-9 gap-2 rounded-[8px] border-border px-3 text-xs',
       state === 'copied' && 'border-profit/20 bg-profit/10 text-profit hover:bg-profit/15',
