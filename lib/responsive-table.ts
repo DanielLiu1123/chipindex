@@ -1,3 +1,5 @@
+import { distributeColumnWidths } from './distribute-column-widths'
+
 export interface ResponsiveColumn {
   key: string
   minWidth: number
@@ -20,24 +22,12 @@ export function allocateTableColumns(width: number, columns: readonly Responsive
   const required = visible.filter(column => !column.wrap).reduce((sum, column) => sum + minimum[column.key], 0)
   for (const column of wrapping) minimum[column.key] = Math.min(minimum[column.key], Math.max(48, (width - required) / wrapping.length))
   const widths: Record<string, number> = {}
-  let pending = visible.filter(column => !column.fixed)
   let remaining = width
   for (const column of visible.filter(column => column.fixed)) {
     widths[column.key] = minimum[column.key]
     remaining -= widths[column.key]
   }
-  while (pending.length) {
-    const share = remaining / pending.length
-    const constrained = pending.filter(column => minimum[column.key] > share)
-    if (!constrained.length) {
-      for (const column of pending) widths[column.key] = share
-      break
-    }
-    for (const column of constrained) {
-      widths[column.key] = minimum[column.key]
-      remaining -= widths[column.key]
-    }
-    pending = pending.filter(column => !constrained.includes(column))
-  }
+  const flexible = visible.filter(column => !column.fixed)
+  Object.assign(widths, distributeColumnWidths(remaining, Object.fromEntries(flexible.map(column => [column.key, minimum[column.key]]))))
   return { visible: visible.map(column => column.key), widths }
 }

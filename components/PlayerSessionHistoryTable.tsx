@@ -37,11 +37,11 @@ export default function PlayerSessionHistoryTable({ groupId, rows, loading = fal
     <ResponsiveTable columns={layoutColumns} hideOrder={hideOrder} className="[&_th]:px-2 [&_td]:px-2">
       <TableHeader>
         <TableRow className="border-border text-muted-foreground text-xs leading-4 tracking-normal [&_th]:py-3 [&_th]:font-normal [&_th]:text-right [&_th:first-child]:text-left">
-          {columns.map(column => {
-            return <ResponsiveHead column={column.key} key={column.key}>
+          {columns.map(column => (
+            <ResponsiveHead column={column.key} key={column.key}>
               {loading ? <Skeleton className={column.key === 'date' ? 'h-4 w-16' : 'ml-auto h-4 w-16'} /> : column.label}
             </ResponsiveHead>
-          })}
+          ))}
         </TableRow>
       </TableHeader>
       <TableBody>

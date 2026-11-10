@@ -2,6 +2,8 @@
 
 import { createContext, useContext, useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import { Table, TableCell, TableHead } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
+import { measureTableColumns } from '@/lib/measure-table-columns'
 import { allocateTableColumns, type ResponsiveColumn } from '@/lib/responsive-table'
 
 const LayoutContext = createContext<{ visible: string[] } | null>(null)
@@ -27,38 +29,36 @@ export function ResponsiveTable({ columns, hideOrder, children, className }: {
       if (!width) return
       context ??= document.createElement('canvas').getContext('2d')
       if (!context) return
-      if (!measured) {
-        measured = {}
-        for (const column of columns) {
-          let maximum = column.minWidth
-          for (const cell of table.querySelectorAll<HTMLElement>(`[data-column="${column.key}"]`)) {
-            const text = cell.querySelector('[data-measure-text]') ?? cell
-            const style = getComputedStyle(text)
-            context.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`
-            const padding = getComputedStyle(cell)
-            maximum = Math.max(maximum, context.measureText(text.textContent ?? '').width + (parseFloat(padding.paddingLeft) || 0) + (parseFloat(padding.paddingRight) || 0) + (column.extraWidth ?? 0))
-          }
-          measured[column.key] = Math.ceil(maximum)
-        }
-      }
+      measured ??= measureTableColumns(table, context, columns)
       const next = allocateTableColumns(width, columns, hideOrder, measured)
       setLayout(previous => previous && columns.every(column => previous.widths[column.key] === next.widths[column.key]) ? previous : next)
     }
-    function fontsChanged() { measured = null; update() }
+    function fontsChanged() {
+      measured = null
+      update()
+    }
     const observer = new ResizeObserver(update)
     observer.observe(container)
     update()
     void document.fonts?.ready.then(fontsChanged)
     document.fonts?.addEventListener('loadingdone', fontsChanged)
-    return () => { active = false; observer.disconnect(); document.fonts?.removeEventListener('loadingdone', fontsChanged) }
+    return () => {
+      active = false
+      observer.disconnect()
+      document.fonts?.removeEventListener('loadingdone', fontsChanged)
+    }
   }, [columns, hideOrder, children])
   const visible = layout?.visible ?? columns.map(column => column.key)
-  return <LayoutContext.Provider value={{ visible }}><div ref={ref}>
-    <Table className={`table-fixed tabular-nums ${className ?? ''}`}>
-      <colgroup>{visible.map(key => <col key={key} style={{ width: layout?.widths[key] }} />)}</colgroup>
-      {children}
-    </Table>
-  </div></LayoutContext.Provider>
+  return (
+    <LayoutContext.Provider value={{ visible }}>
+      <div ref={ref}>
+        <Table className={cn('table-fixed tabular-nums', className)}>
+          <colgroup>{visible.map(key => <col key={key} style={{ width: layout?.widths[key] }} />)}</colgroup>
+          {children}
+        </Table>
+      </div>
+    </LayoutContext.Provider>
+  )
 }
 
 export function ResponsiveHead({ column, ...props }: ComponentProps<typeof TableHead> & { column: string }) {

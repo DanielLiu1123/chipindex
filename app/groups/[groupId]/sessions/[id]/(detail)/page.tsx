@@ -43,17 +43,17 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
   const total = entries.reduce((sum, entry) => sum + entry.chips, 0)
   return <>
     <ResponsiveActions className="mb-4">
-        <h1 className={`${headerStyles.date} font-medium tracking-tight text-foreground`}>{settled.date}</h1>
-        <div className={headerStyles.actions}>
-          <CopySessionSummaryButton summary={summary} />
-          <Button asChild variant="outline" className={`${headerStyles.action} h-9 gap-2 rounded-[8px] px-3 text-xs text-muted-foreground`}>
-            <Link href={`/groups/${groupId}/sessions/${id}/edit`} aria-label="Edit session" title="Edit session">
-              <Pencil aria-hidden="true" className="size-3.5" strokeWidth={1.6} />
-              <span className={headerStyles.label}>EDIT</span>
-            </Link>
-          </Button>
-        </div>
-      </ResponsiveActions>
+      <h1 className={`${headerStyles.date} font-medium tracking-tight text-foreground`}>{settled.date}</h1>
+      <div className={headerStyles.actions}>
+        <CopySessionSummaryButton summary={summary} className={headerStyles.action} />
+        <Button asChild variant="outline" className={`${headerStyles.action} rounded-[8px] text-muted-foreground`}>
+          <Link href={`/groups/${groupId}/sessions/${id}/edit`} aria-label="Edit session" title="Edit session">
+            <Pencil aria-hidden="true" className="size-3.5" strokeWidth={1.6} />
+            <span>EDIT</span>
+          </Link>
+        </Button>
+      </div>
+    </ResponsiveActions>
     <div className="mb-2"><span className="text-xs text-muted-foreground">{settled.exchange_rate} chips = 1 CNY</span></div>
     <div className="mb-6">{settled.description && <p className="text-sm text-muted-foreground mt-1">{settled.description}</p>}</div>
     <SessionEntriesTable groupId={groupId} entries={entries} exchangeRate={settled.exchange_rate} total={total} />

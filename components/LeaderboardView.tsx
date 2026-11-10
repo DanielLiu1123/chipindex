@@ -151,7 +151,7 @@ function LeaderboardContent({ groupId, players, sessions, filters }: Props & { f
           ]}
         />
         <Button asChild className={actionStyles.action}>
-          <Link href={`/groups/${groupId}/sessions/new`}><Plus aria-hidden="true" className="size-3.5" /><span className={actionStyles.label}>NEW SESSION</span></Link>
+          <Link href={`/groups/${groupId}/sessions/new`}><Plus aria-hidden="true" className="size-3.5" /><span>NEW SESSION</span></Link>
         </Button>
       </ResponsiveActions>
 

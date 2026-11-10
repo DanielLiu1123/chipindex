@@ -1,3 +1,5 @@
+import { distributeColumnWidths } from './distribute-column-widths'
+
 export const LEADERBOARD_RANK_WIDTH = 28
 
 export const leaderboardColumns = ['player', 'total_yuan', 'total_chips', 'sessions_played', 'win_rate', 'pog_count'] as const
@@ -19,21 +21,6 @@ export function allocateLeaderboardColumns(width: number, measured: Partial<Reco
   }
   // At the three-column floor, long names wrap instead of widening the table.
   minimum.player = Math.min(minimum.player, Math.max(0, width - rank - minimum.total_yuan))
-  const widths: Partial<Record<LeaderboardColumn, number>> = {}
-  let pending = [...visible]
-  let remaining = width - rank
-  while (pending.length) {
-    const share = remaining / pending.length
-    const constrained = pending.filter(col => minimum[col] > share)
-    if (!constrained.length) {
-      for (const col of pending) widths[col] = share
-      break
-    }
-    for (const col of constrained) {
-      widths[col] = minimum[col]
-      remaining -= minimum[col]
-    }
-    pending = pending.filter(col => !constrained.includes(col))
-  }
+  const widths = distributeColumnWidths(width - rank, Object.fromEntries(visible.map(key => [key, minimum[key]])))
   return { rank, visible, widths }
 }
