@@ -4,6 +4,7 @@ import { ChevronRight, Plus } from 'lucide-react'
 import styles from './EditSessionForm.module.css'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
+import DateTimePicker from '@/components/DateTimePicker'
 import DeleteIconButton from '@/components/DeleteIconButton'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -202,10 +203,9 @@ function EditSessionEditor({ groupId, sessionId, session, initialPlayers }: {
                       <div className="flex flex-col gap-1">
                         {row.buyins.map((b, i) => (
                           <div key={i} className={styles.buyinRow}>
-                            <Input disabled={submitting} type="text" placeholder="yyyy-MM-dd HH:mm:ss" value={b.created_at.replace('T', ' ')}
-                              aria-label={`buy-in time for ${row.name}`}
-                              onChange={e => updateRow(row.playerId, { buyins: row.buyins.map((x, j) => j === i ? { ...x, created_at: e.target.value.replace(' ', 'T') } : x) })}
-                              className="min-w-0" />
+                            <DateTimePicker disabled={submitting} value={b.created_at}
+                              label={`buy-in time for ${row.name}`}
+                              onChange={value => updateRow(row.playerId, { buyins: row.buyins.map((x, j) => j === i ? { ...x, created_at: value } : x) })} />
                             <Input disabled={submitting} type="number" value={b.amount} min="1" aria-label={`buy-in chips for ${row.name}`}
                               onChange={e => updateRow(row.playerId, { buyins: row.buyins.map((x, j) => j === i ? { ...x, amount: e.target.value } : x) })}
                               className="min-w-0 text-right" />

@@ -52,3 +52,17 @@ it('rejects invalid calendar dates before saving', () => {
   expect(updateSession).not.toHaveBeenCalled()
   expect(screen.getByRole('alert').textContent).toContain('valid time')
 })
+
+it('opens the date/time picker from the icon and keeps both parts when editing', () => {
+  mount()
+  fireEvent.click(screen.getByText('Alice'))
+  const input = screen.getByLabelText('buy-in time for Alice') as HTMLInputElement
+  const originalTime = input.value.slice(11)
+  fireEvent.click(screen.getByRole('button', { name: 'Choose buy-in time for Alice' }))
+  fireEvent.click(screen.getByRole('button', { name: '2026-11-08' }))
+  expect(input.value).toBe(`2026-11-08 ${originalTime}`)
+  fireEvent.change(screen.getByLabelText('Time for buy-in time for Alice'), { target: { value: '21:15:32' } })
+  expect(input.value).toBe('2026-11-08 21:15:32')
+  fireEvent.click(screen.getByRole('button', { name: 'DONE' }))
+  expect(screen.queryByRole('dialog')).toBeNull()
+})

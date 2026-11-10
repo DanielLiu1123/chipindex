@@ -37,5 +37,5 @@
   .heading, .row { grid-template-columns: 28px minmax(0, 1fr) 82px 28px; gap: 6px; padding: 10px 6px; }
   .buyin { display: none; }
   .hiddenBuyin { display: inline; }
-  .buyinRow input { font-size: 12px; padding-inline: 6px; }
+  .buyinRow input { font-size: 12px; }
 }
