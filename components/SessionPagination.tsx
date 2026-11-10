@@ -1,7 +1,6 @@
 'use client'
 
-import { useTransition, type FormEvent, type MouseEvent } from 'react'
-import { useRouter } from 'next/navigation'
+import type { FormEvent, MouseEvent } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -33,26 +32,20 @@ export default function SessionPagination({
   page: number
   pageSize: number
   totalPages: number
-  onPageChange?: (href: string) => void
+  onPageChange: (href: string) => void
 }) {
-  const router = useRouter()
-  const [pending, startTransition] = useTransition()
-  function changePage(href: string) {
-    if (onPageChange) onPageChange(href)
-    else startTransition(() => router.push(href, { scroll: false }))
-  }
   if (totalPages <= 1) return null
   const href = (next: number) => sessionPageHref(sessionsPath, next, pageSize)
   function navigate(event: MouseEvent<HTMLAnchorElement>) {
     const destination = event.currentTarget.getAttribute('href')
     if (!destination || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
     event.preventDefault()
-    changePage(destination)
+    onPageChange(destination)
   }
   function jumpToPage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const next = Number(new FormData(event.currentTarget).get('page'))
-    if (Number.isSafeInteger(next) && next >= 1 && next <= totalPages) changePage(href(next))
+    if (Number.isSafeInteger(next) && next >= 1 && next <= totalPages) onPageChange(href(next))
   }
   function renderPages(items: SessionPaginationItem[], className: string) {
     return items.map((item, index) => (
@@ -74,7 +67,7 @@ export default function SessionPagination({
     ))
   }
   return (
-    <div className="mt-6 @container/pagination" aria-busy={pending}>
+    <div className="mt-6 @container/pagination">
       <div className="flex items-center justify-end gap-2 @min-[640px]/pagination:gap-3">
         <Pagination aria-label="Sessions pagination" className="mx-0 w-auto">
           <PaginationContent>

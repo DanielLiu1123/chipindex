@@ -2,12 +2,13 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import SessionPagination from '../components/SessionPagination'
+import PaginatedSessions from '../components/PaginatedSessions'
 const push = vi.hoisted(() => vi.fn())
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }))
 afterEach(() => { cleanup(); push.mockClear() })
 const props = { sessionsPath: '/groups/g/sessions', page: 1, pageSize: 10, totalPages: 9 }
 it('uses client navigation for page clicks and GO without scrolling the page', () => {
-  render(<SessionPagination {...props} />)
+  render(<PaginatedSessions {...props}><div>Sessions table</div></PaginatedSessions>)
   fireEvent.click(screen.getByRole('link', { name: 'Next page' }))
   expect(push).toHaveBeenLastCalledWith('/groups/g/sessions?page=2&page_size=10', { scroll: false })
   const input = screen.getByRole('spinbutton', { name: 'Go to page' })
