@@ -14,7 +14,6 @@ import actionStyles from '@/components/ResponsiveActions.module.css'
 import { cn } from '@/lib/utils'
 
 import { Switch } from '@/components/ui/switch'
-import filterStyles from './LeaderboardFilters.module.css'
 import { Label } from '@/components/ui/label'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import ValueUnitControl from '@/components/ValueUnitControl'
@@ -158,11 +157,11 @@ function LeaderboardContent({ groupId, players, sessions, filters }: Props & { f
 
       <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <LeaderboardDateFilter filter={filter} onChange={filter => updateFilters({ filter })} />
-        <Label className={filterStyles.activeLabel}>
+        <Label className="ml-auto min-h-9 gap-1.5 text-xs">
           <Switch
             checked={hideLowActivity}
             onCheckedChange={hideLowActivity => updateFilters({ hideLowActivity })}
-            className={filterStyles.activeSwitch}
+            size="compact"
             aria-label="Active only"
           />
           Active only
