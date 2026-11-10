@@ -181,7 +181,7 @@ export default function LiveSession({
               }
             />
             <Button
-              variant="secondary"
+              variant="outline"
               type="button"
               onClick={flow.openSettlement}
               disabled={pending || session.participants.length === 0}
