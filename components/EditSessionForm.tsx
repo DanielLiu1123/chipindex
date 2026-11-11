@@ -225,7 +225,6 @@ function EditSessionEditor({ groupId, sessionId, session, initialPlayers }: {
             {totalFinal.toLocaleString()} / {totalBuyin.toLocaleString()}
             {diff !== 0 && (
               <span className="ml-2">diff {diff > 0 ? '+' : ''}{diff.toLocaleString()}
-                {diff % unit === 0 && ` (= ${diff / unit}×${unit})`}
               </span>
             )}
           </span>
