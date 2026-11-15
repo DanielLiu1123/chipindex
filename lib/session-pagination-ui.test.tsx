@@ -26,3 +26,11 @@ it('preserves custom navigation and modified link clicks', () => {
   expect(onPageChange).toHaveBeenCalledWith('/groups/g/sessions?page=2&page_size=10')
   expect(push).not.toHaveBeenCalled()
 })
+
+it('renders one shared range with page four directly reachable from page three', () => {
+  const onPageChange = vi.fn()
+  render(<SessionPagination {...props} page={3} totalPages={20} onPageChange={onPageChange} />)
+  expect(screen.getAllByRole('link', { name: /^Go to page / })).toHaveLength(7)
+  fireEvent.click(screen.getByRole('link', { name: 'Go to page 4' }))
+  expect(onPageChange).toHaveBeenCalledWith('/groups/g/sessions?page=4&page_size=10')
+})
