@@ -2,33 +2,19 @@ export const DEFAULT_SESSION_PAGE_SIZE = 10
 export const MAX_SESSION_PAGE_SIZE = 100
 export type SessionPaginationItem = number | 'ellipsis'
 
-export function getCompactSessionPaginationItems(currentPage: number, totalPages: number): SessionPaginationItem[] {
-  if (totalPages <= 5) return Array.from({ length: totalPages }, (_, index) => index + 1)
-  if (currentPage <= 3) return [1, 2, 3, 'ellipsis', totalPages]
-  if (currentPage >= totalPages - 2) return [1, 'ellipsis', totalPages - 2, totalPages - 1, totalPages]
-  return [1, 'ellipsis', currentPage, 'ellipsis', totalPages]
-}
+export function getSessionPaginationItems(currentPage: number, totalPages: number, interiorPageCount: 3 | 5 = 5): SessionPaginationItem[] {
+  if (totalPages <= interiorPageCount + 2) return Array.from({ length: totalPages }, (_, index) => index + 1)
 
-export function getSessionPaginationItems(currentPage: number, totalPages: number): SessionPaginationItem[] {
-  if (totalPages <= 7) return Array.from({ length: totalPages }, (_, index) => index + 1)
-
-  const visible = new Set<number>([1, totalPages])
-  if (currentPage <= 4) {
-    for (let page = 1; page <= 5; page += 1) visible.add(page)
-  } else if (currentPage >= totalPages - 3) {
-    for (let page = totalPages - 4; page <= totalPages; page += 1) visible.add(page)
-  } else {
-    for (let page = currentPage - 2; page <= currentPage + 2; page += 1) visible.add(page)
-  }
-
-  const pages = [...visible].sort((a, b) => a - b)
-  const items: SessionPaginationItem[] = []
-  for (const page of pages) {
-    const previous = items.at(-1)
-    if (typeof previous === 'number' && page - previous > 1) items.push('ellipsis')
-    items.push(page)
-  }
-  return items
+  // Keep interior pages centered on the current page, clamping at either end.
+  const start = Math.max(2, Math.min(currentPage - Math.floor(interiorPageCount / 2), totalPages - interiorPageCount))
+  const end = start + interiorPageCount - 1
+  return [
+    1,
+    ...(start > 2 ? ['ellipsis' as const] : []),
+    ...Array.from({ length: interiorPageCount }, (_, index) => start + index),
+    ...(end < totalPages - 1 ? ['ellipsis' as const] : []),
+    totalPages,
+  ]
 }
 
 export function normalizeSessionPageParam(

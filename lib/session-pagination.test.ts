@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 
 import {
   getSessionPaginationItems,
-  getCompactSessionPaginationItems,
   hasCanonicalSessionPageParams,
   normalizeSessionPageParam,
   sessionPageHref,
@@ -10,26 +9,38 @@ import {
 
 describe('session pagination parameters', () => {
   it.each([
-    [1, 4, [1, 2, 3, 4]],
-    [1, 8, [1, 2, 3, 'ellipsis', 8]],
-    [4, 8, [1, 'ellipsis', 4, 'ellipsis', 8]],
-    [8, 8, [1, 'ellipsis', 6, 7, 8]],
-  ])('provides compact page choices for page %s of %s', (page, total, items) => {
-    expect(getCompactSessionPaginationItems(page, total)).toEqual(items)
+    [1, 20, [1, 2, 3, 4, 5, 6, 'ellipsis', 20]],
+    [3, 20, [1, 2, 3, 4, 5, 6, 'ellipsis', 20]],
+    [5, 20, [1, 'ellipsis', 3, 4, 5, 6, 7, 'ellipsis', 20]],
+    [19, 20, [1, 'ellipsis', 15, 16, 17, 18, 19, 20]],
+    [20, 20, [1, 'ellipsis', 15, 16, 17, 18, 19, 20]],
+  ])('keeps five interior pages for page %s of %s', (page, total, items) => {
+    expect(getSessionPaginationItems(page, total)).toEqual(items)
   })
 
-  it('keeps compact ranges ordered, bounded, and includes the current page and endpoints', () => {
-    for (const total of [6, 8, 20, 100]) {
+  it('includes endpoints and a consecutive five-page window at every position', () => {
+    for (const total of [8, 20, 100]) {
       for (let page = 1; page <= total; page++) {
-        const items = getCompactSessionPaginationItems(page, total)
+        const items = getSessionPaginationItems(page, total)
         const numbers = items.filter((item): item is number => typeof item === 'number')
-        expect(items.length).toBeLessThanOrEqual(5)
+        expect(numbers).toHaveLength(7)
         expect(numbers).toContain(page)
         expect(numbers[0]).toBe(1)
         expect(numbers.at(-1)).toBe(total)
         expect(numbers).toEqual([...new Set(numbers)].sort((a, b) => a - b))
+        const middle = numbers.slice(1, -1)
+        expect(middle[4] - middle[0]).toBe(4)
+        if (page >= 4 && page <= total - 3) expect(middle[2]).toBe(page)
       }
     }
+  })
+
+  it.each([
+    [1, [1, 2, 3, 4, 'ellipsis', 1000]],
+    [500, [1, 'ellipsis', 499, 500, 501, 'ellipsis', 1000]],
+    [1000, [1, 'ellipsis', 997, 998, 999, 1000]],
+  ])('clamps a three-page window at page %s', (page, expected) => {
+    expect(getSessionPaginationItems(page, 1000, 3)).toEqual(expected)
   })
 
   it('centers a long pagination range around the current page', () => {
