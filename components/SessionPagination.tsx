@@ -1,6 +1,6 @@
 'use client'
 
-import type { FormEvent, MouseEvent } from 'react'
+import { useLayoutEffect, useRef, useState, type FormEvent, type MouseEvent } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -32,6 +32,24 @@ export default function SessionPagination({
   totalPages: number
   onPageChange: (href: string) => void
 }) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const measurementRef = useRef<HTMLDivElement>(null)
+  const [interiorPageCount, setInteriorPageCount] = useState<3 | 5>(5)
+
+  useLayoutEffect(() => {
+    const container = containerRef.current
+    const measurement = measurementRef.current
+    if (!container || !measurement) return
+    const update = () => setInteriorPageCount(
+      measurement.getBoundingClientRect().width > container.getBoundingClientRect().width ? 3 : 5,
+    )
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(container)
+    observer.observe(measurement)
+    return () => observer.disconnect()
+  }, [page, totalPages])
+
   if (totalPages <= 1) return null
   const href = (next: number) => sessionPageHref(sessionsPath, next, pageSize)
   function navigate(event: MouseEvent<HTMLAnchorElement>) {
@@ -45,10 +63,10 @@ export default function SessionPagination({
     const next = Number(new FormData(event.currentTarget).get('page'))
     if (Number.isSafeInteger(next) && next >= 1 && next <= totalPages) onPageChange(href(next))
   }
-  return (
-    <div className="mt-6 @container/pagination">
-      <div className="flex items-center justify-end gap-2 @min-[640px]/pagination:gap-3">
-        <Pagination aria-label="Sessions pagination" className="mx-0 w-auto">
+  function renderRow(count: 3 | 5, measuring = false) {
+    return (
+      <div ref={measuring ? measurementRef : undefined} className={`flex items-center justify-end gap-2 @min-[640px]/pagination:gap-3${measuring ? ' w-max' : ''}`}>
+        <Pagination aria-label="Sessions pagination" className="mx-0 w-auto shrink-0">
           <PaginationContent className="gap-0 @min-[400px]/pagination:gap-0.5">
             <PaginationItem>
               <PaginationPrevious
@@ -60,7 +78,7 @@ export default function SessionPagination({
                 className={`${pageLinkClassName} aria-disabled:pointer-events-none aria-disabled:opacity-40`}
               />
             </PaginationItem>
-            {getSessionPaginationItems(page, totalPages).map((item, index) => (
+            {getSessionPaginationItems(page, totalPages, count).map((item, index) => (
               <PaginationItem key={item === 'ellipsis' ? `ellipsis-${index}` : item}>
                 {item === 'ellipsis' ? (
                   <PaginationEllipsis className="w-3 @min-[640px]/pagination:w-8" />
@@ -105,6 +123,15 @@ export default function SessionPagination({
             <input type="hidden" name="page_size" value={pageSize} />
           </form>
         )}
+      </div>
+    )
+  }
+  return (
+    <div ref={containerRef} className="relative mt-6 @container/pagination">
+      {renderRow(interiorPageCount)}
+      {/* Always measure the preferred range so the compact layout can grow back. */}
+      <div aria-hidden="true" inert className="invisible pointer-events-none absolute inset-x-0 top-0 h-0 overflow-hidden">
+        {renderRow(5, true)}
       </div>
     </div>
   )

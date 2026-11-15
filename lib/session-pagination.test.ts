@@ -35,6 +35,14 @@ describe('session pagination parameters', () => {
     }
   })
 
+  it.each([
+    [1, [1, 2, 3, 4, 'ellipsis', 1000]],
+    [500, [1, 'ellipsis', 499, 500, 501, 'ellipsis', 1000]],
+    [1000, [1, 'ellipsis', 997, 998, 999, 1000]],
+  ])('clamps a three-page window at page %s', (page, expected) => {
+    expect(getSessionPaginationItems(page, 1000, 3)).toEqual(expected)
+  })
+
   it('centers a long pagination range around the current page', () => {
     expect(getSessionPaginationItems(6, 20)).toEqual([
       1,
