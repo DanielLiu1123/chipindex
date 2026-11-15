@@ -2,16 +2,18 @@ export const DEFAULT_SESSION_PAGE_SIZE = 10
 export const MAX_SESSION_PAGE_SIZE = 100
 export type SessionPaginationItem = number | 'ellipsis'
 
+const INTERIOR_PAGE_COUNT = 5
+
 export function getSessionPaginationItems(currentPage: number, totalPages: number): SessionPaginationItem[] {
-  if (totalPages <= 7) return Array.from({ length: totalPages }, (_, index) => index + 1)
+  if (totalPages <= INTERIOR_PAGE_COUNT + 2) return Array.from({ length: totalPages }, (_, index) => index + 1)
 
   // Keep five interior pages centered on the current page, clamping at either end.
-  const start = Math.max(2, Math.min(currentPage - 2, totalPages - 5))
-  const end = start + 4
+  const start = Math.max(2, Math.min(currentPage - Math.floor(INTERIOR_PAGE_COUNT / 2), totalPages - INTERIOR_PAGE_COUNT))
+  const end = start + INTERIOR_PAGE_COUNT - 1
   return [
     1,
     ...(start > 2 ? ['ellipsis' as const] : []),
-    ...Array.from({ length: 5 }, (_, index) => start + index),
+    ...Array.from({ length: INTERIOR_PAGE_COUNT }, (_, index) => start + index),
     ...(end < totalPages - 1 ? ['ellipsis' as const] : []),
     totalPages,
   ]

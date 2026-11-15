@@ -17,7 +17,7 @@ import {
   sessionPageHref,
 } from '@/lib/session-pagination'
 
-const pageLinkClassName = '@max-[640px]/pagination:min-w-6 @max-[640px]/pagination:w-auto @max-[640px]/pagination:px-0.5 @max-[400px]/pagination:min-w-5 @max-[400px]/pagination:text-xs'
+const pageLinkClassName = 'w-auto min-w-5 px-0.5 text-xs @min-[400px]/pagination:min-w-6 @min-[400px]/pagination:text-sm @min-[640px]/pagination:w-10 @min-[640px]/pagination:px-0'
 
 export default function SessionPagination({
   sessionsPath,
@@ -45,30 +45,11 @@ export default function SessionPagination({
     const next = Number(new FormData(event.currentTarget).get('page'))
     if (Number.isSafeInteger(next) && next >= 1 && next <= totalPages) onPageChange(href(next))
   }
-  function renderPages() {
-    return getSessionPaginationItems(page, totalPages).map((item, index) => (
-      <PaginationItem key={item === 'ellipsis' ? `ellipsis-${index}` : item}>
-        {item === 'ellipsis' ? (
-          <PaginationEllipsis className="w-3 @min-[640px]/pagination:w-8" />
-        ) : (
-          <PaginationLink
-            className={pageLinkClassName}
-            href={href(item)}
-            onClick={navigate}
-            isActive={item === page}
-            aria-label={`Go to page ${item}`}
-          >
-            {item}
-          </PaginationLink>
-        )}
-      </PaginationItem>
-    ))
-  }
   return (
     <div className="mt-6 @container/pagination">
       <div className="flex items-center justify-end gap-2 @min-[640px]/pagination:gap-3">
         <Pagination aria-label="Sessions pagination" className="mx-0 w-auto">
-          <PaginationContent className="@max-[400px]/pagination:gap-0">
+          <PaginationContent className="gap-0 @min-[400px]/pagination:gap-0.5">
             <PaginationItem>
               <PaginationPrevious
                 href={page > 1 ? href(page - 1) : undefined}
@@ -79,7 +60,23 @@ export default function SessionPagination({
                 className={`${pageLinkClassName} aria-disabled:pointer-events-none aria-disabled:opacity-40`}
               />
             </PaginationItem>
-            {renderPages()}
+            {getSessionPaginationItems(page, totalPages).map((item, index) => (
+              <PaginationItem key={item === 'ellipsis' ? `ellipsis-${index}` : item}>
+                {item === 'ellipsis' ? (
+                  <PaginationEllipsis className="w-3 @min-[640px]/pagination:w-8" />
+                ) : (
+                  <PaginationLink
+                    className={pageLinkClassName}
+                    href={href(item)}
+                    onClick={navigate}
+                    isActive={item === page}
+                    aria-label={`Go to page ${item}`}
+                  >
+                    {item}
+                  </PaginationLink>
+                )}
+              </PaginationItem>
+            ))}
             <PaginationItem>
               <PaginationNext
                 href={page < totalPages ? href(page + 1) : undefined}
@@ -94,7 +91,7 @@ export default function SessionPagination({
         </Pagination>
         {totalPages > 7 && (
           <form className="shrink-0" key={`${page}:${pageSize}`} action={sessionsPath} method="get" onSubmit={jumpToPage}>
-            <Label className="flex items-center gap-1 @max-[400px]/pagination:text-xs @min-[640px]/pagination:gap-2">
+            <Label className="flex items-center gap-1 text-xs @min-[400px]/pagination:text-sm @min-[640px]/pagination:gap-2">
               GO
               <Input
                 type="number"
@@ -102,7 +99,7 @@ export default function SessionPagination({
                 min="1"
                 max={totalPages}
                 aria-label="Go to page"
-                className="w-12 px-1 @max-[400px]/pagination:w-8 @max-[400px]/pagination:px-0.5 @min-[640px]/pagination:w-16 @min-[640px]/pagination:px-3"
+                className="w-8 px-0.5 @min-[400px]/pagination:w-12 @min-[400px]/pagination:px-1 @min-[640px]/pagination:w-16 @min-[640px]/pagination:px-3"
               />
             </Label>
             <input type="hidden" name="page_size" value={pageSize} />
