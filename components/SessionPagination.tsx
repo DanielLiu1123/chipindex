@@ -63,9 +63,9 @@ export default function SessionPagination({
     const next = Number(new FormData(event.currentTarget).get('page'))
     if (Number.isSafeInteger(next) && next >= 1 && next <= totalPages) onPageChange(href(next))
   }
-  function renderRow(count: 3 | 5, measuring = false) {
+  function renderRow(count: 3 | 5) {
     return (
-      <div ref={measuring ? measurementRef : undefined} className={`flex items-center justify-end gap-2 @min-[640px]/pagination:gap-3${measuring ? ' w-max' : ''}`}>
+      <div className="ml-auto flex w-max items-center gap-2 @min-[640px]/pagination:gap-3">
         <Pagination aria-label="Sessions pagination" className="mx-0 w-auto shrink-0">
           <PaginationContent className="gap-0 @min-[400px]/pagination:gap-0.5">
             <PaginationItem>
@@ -131,7 +131,7 @@ export default function SessionPagination({
       {renderRow(interiorPageCount)}
       {/* Always measure the preferred range so the compact layout can grow back. */}
       <div aria-hidden="true" inert className="invisible pointer-events-none absolute inset-x-0 top-0 h-0 overflow-hidden">
-        {renderRow(5, true)}
+        <div ref={measurementRef} className="w-max">{renderRow(5)}</div>
       </div>
     </div>
   )
