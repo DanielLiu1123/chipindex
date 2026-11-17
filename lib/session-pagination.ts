@@ -39,8 +39,8 @@ export function hasCanonicalSessionPageParams(
   return rawPage === String(page) && rawPageSize === String(pageSize)
 }
 
-export function sessionPageHref(basePath: string, page: number, pageSize: number): string {
-  const params = new URLSearchParams()
+export function sessionPageHref(basePath: string, page: number, pageSize: number, query: [string, string][] = []): string {
+  const params = new URLSearchParams(query)
   params.set('page', String(page))
   params.set('page_size', String(pageSize))
   return `${basePath}?${params.toString()}`

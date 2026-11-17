@@ -4,6 +4,7 @@ import Page from '../app/groups/[groupId]/players/[id]/page'
 const captured = vi.hoisted(() => ({ detail: undefined as PlayerDetail | undefined, chart: undefined as unknown }))
 vi.mock('./queries', () => ({
   getPlayerDetail: async () => captured.detail,
+  getPlayerTablemates: async () => [{ id: 'p2', name: 'Ada' }, { id: 'p3', name: 'Max' }, { id: 'p4', name: 'Kim' }],
 }))
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),
@@ -22,8 +23,7 @@ vi.mock('../components/PlayerStatsChart', () => ({
 }))
 import type { PlayerDetail } from './domain-types'
 import type { HistoryPoint } from './stats'
-
-type Query = { page?: string | string[]; page_size?: string | string[] }
+import type { PlayerHistoryQuery } from './player-history-filters'
 
 function fixture(count: number): PlayerDetail {
   return {
@@ -56,7 +56,7 @@ function fixture(count: number): PlayerDetail {
   }
 }
 
-async function renderPage(query: Query, detail = fixture(23)) {
+async function renderPage(query: PlayerHistoryQuery, detail = fixture(23)) {
   captured.detail = detail
   captured.chart = undefined
   let renderError: unknown
@@ -160,4 +160,25 @@ describe('player session history pagination', () => {
     expect(html).not.toContain('Sessions pagination')
     expect(chart?.sessions).toBe(0)
   })
+})
+
+it('applies all attendance and date rules before calculating totals and preserves them across pages', async () => {
+  const detail = fixture(5)
+  const peers = [['p2', 'p3'], ['p2'], ['p2', 'p3', 'p4'], ['p2', 'p3'], ['p2', 'p3']]
+  detail.entries.forEach((entry, index) => {
+    for (const id of peers[index]) {
+      entry.sessions.session_entries.push({ ...entry.sessions.session_entries[0], player_id: id })
+    }
+  })
+  const filters = {
+    period: 'custom', from: '2026-08-02', to: '2026-08-05',
+    include: ['p2', 'p3'], exclude: 'p4', page_size: '1',
+  }
+  const { html, chart } = await renderPage(filters, detail)
+  expect(chart?.data.map(point => [point.session_id, point.cumulative])).toEqual([['s4', 100], ['s5', 200]])
+  expect(chart?.totalChips).toBe(200)
+  const next = '/groups/g1/players/p1?period=custom&from=2026-08-02&to=2026-08-05&include=p2&include=p3&exclude=p4&page=2&page_size=1'
+  expect(html).toContain(next.replaceAll('&', '&amp;'))
+  expect((await renderPage({ ...filters, page: '2' }, detail)).html).toContain('/sessions/s4')
+  await expect(renderPage({ ...filters, page: '9' }, detail)).rejects.toThrow(`redirect:${next}`)
 })
