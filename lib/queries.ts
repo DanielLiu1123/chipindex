@@ -461,6 +461,13 @@ export async function getSessionPageData(groupId: string, id: string): Promise<S
 
 // ── player detail ──────────────────────────────────────────────
 
+export async function getPlayerTablemates(detail: PlayerDetail): Promise<{ id: string; name: string }[]> {
+  const ids = detail.entries.flatMap(entry => entry.sessions.session_entries.map(result => result.player_id))
+  const names = await playerNameMap(ids.filter(id => id !== detail.id))
+  return [...names].map(([id, name]) => ({ id, name }))
+    .sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id))
+}
+
 export async function getPlayerDetail(groupId: string, id: string): Promise<PlayerDetail | null> {
   // sessions this player took part in that are settled and not deleted
   const [playerResult, groupPlayerResult, groupSessionsResult] = await Promise.all([

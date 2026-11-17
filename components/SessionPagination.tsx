@@ -24,12 +24,14 @@ export default function SessionPagination({
   page,
   pageSize,
   totalPages,
+  query,
   onPageChange,
 }: {
   sessionsPath: string
   page: number
   pageSize: number
   totalPages: number
+  query?: [string, string][]
   onPageChange: (href: string) => void
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -51,7 +53,7 @@ export default function SessionPagination({
   }, [page, totalPages])
 
   if (totalPages <= 1) return null
-  const href = (next: number) => sessionPageHref(sessionsPath, next, pageSize)
+  const href = (next: number) => sessionPageHref(sessionsPath, next, pageSize, query)
   function navigate(event: MouseEvent<HTMLAnchorElement>) {
     const destination = event.currentTarget.getAttribute('href')
     if (!destination || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
@@ -121,6 +123,7 @@ export default function SessionPagination({
               />
             </Label>
             <input type="hidden" name="page_size" value={pageSize} />
+            {query?.map(([name, value]) => <input key={`${name}:${value}`} type="hidden" name={name} value={value} />)}
           </form>
         )}
       </div>

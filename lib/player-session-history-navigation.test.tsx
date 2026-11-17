@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, fireEvent, render, screen, cleanup } from '@testing-library/react'
+import { act, fireEvent, render, screen, cleanup, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Suspense, use, useState } from 'react'
 import PlayerSessionHistory from '../components/PlayerSessionHistory'
@@ -69,7 +69,8 @@ describe('player history client navigation', () => {
 
   it.each([[1, 'Previous page'], [9, 'Next page']] as const)('does not navigate past page %s', (page, label) => {
     setup(page)
-    const link = screen.getByLabelText(label)
+    const navigation = screen.getByRole('navigation', { name: 'Sessions pagination' })
+    const link = within(navigation).getByLabelText(label)
     expect(link.getAttribute('aria-disabled')).toBe('true')
     fireEvent.click(link)
     expect(push).not.toHaveBeenCalled()

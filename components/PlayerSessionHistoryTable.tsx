@@ -28,10 +28,11 @@ const columns: {
 const layoutColumns = columns.map(column => ({ key: column.key, minWidth: column.key === 'date' ? 104 : 108 }))
 const hideOrder = ['cumulative', 'chips', 'cumulative_cny']
 
-export default function PlayerSessionHistoryTable({ groupId, rows, loading = false }: {
+export default function PlayerSessionHistoryTable({ groupId, rows, loading = false, emptyLabel = 'NO SESSIONS YET' }: {
   groupId: string
   rows: HistoryRow[]
   loading?: boolean
+  emptyLabel?: string
 }) {
   return (
     <ResponsiveTable columns={layoutColumns} hideOrder={hideOrder} className="[&_th]:px-2 [&_td]:px-2">
@@ -45,7 +46,7 @@ export default function PlayerSessionHistoryTable({ groupId, rows, loading = fal
         </TableRow>
       </TableHeader>
       <TableBody>
-        {rows.length === 0 && <TableRow><ResponsiveCell span className="py-12 text-center text-xs text-muted-foreground tracking-normal">NO SESSIONS YET</ResponsiveCell></TableRow>}
+        {rows.length === 0 && <TableRow><ResponsiveCell span className="py-12 text-center text-xs text-muted-foreground tracking-normal">{emptyLabel}</ResponsiveCell></TableRow>}
         {rows.map(row => (
           <TableRow key={row.session_id} className="border-border hover:bg-muted [&_td]:py-4 [&_td]:text-right [&_td:first-child]:text-left">
             {columns.map(column => <ResponsiveCell column={column.key} key={column.key}>

@@ -1,7 +1,7 @@
 'use client'
 
 import ValueUnitControl from '@/components/ValueUnitControl'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import ChipValue from '@/components/ChipValue'
 import PlayerChart from '@/components/PlayerChart'
 import PlayerNameEditor from '@/components/PlayerNameEditor'
@@ -17,6 +17,8 @@ export default function PlayerStatsChart({
   sessions,
   wins,
   pogCount,
+  filters,
+  analysis,
 }: {
   groupId: string
   id: string
@@ -27,27 +29,34 @@ export default function PlayerStatsChart({
   sessions: number
   wins: number
   pogCount: number
+  filters?: ReactNode
+  analysis?: { losses: number; ties: number }
 }) {
   const [mode, setMode] = useState<'chips' | 'cny'>('cny')
+  const total = mode === 'cny' ? totalCny : totalChips
+  const prefix = mode === 'cny' ? '¥' : undefined
 
   return (
     <>
-      <div className="flex flex-wrap items-baseline justify-between gap-4 mb-8">
+      <div className="flex flex-wrap items-baseline justify-between gap-4 mb-4">
         <PlayerNameEditor groupId={groupId} id={id} initialName={initialName} />
-        <div className="flex flex-wrap gap-4 text-xs text-muted-foreground items-baseline">
-          <span>{sessions} sessions</span>
+        <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground items-baseline" aria-live="polite">
+          <span>{sessions} {analysis ? 'matching sessions' : 'sessions'}</span>
           <span>{wins} wins</span>
-          <span>{pogCount} pog</span>
-          {mode === 'cny' ? (
-            <ChipValue chips={totalCny} prefix="¥" className="text-sm" />
-          ) : (
-            <ChipValue chips={totalChips} className="text-sm" />
+          {analysis ? (
+            <><span>{analysis.losses} losses</span><span>{analysis.ties} ties</span></>
+          ) : <span>{pogCount} pog</span>}
+          {analysis && sessions === 0 ? <span>—</span> : <ChipValue chips={total} prefix={prefix} className="text-sm" />}
+          {analysis && sessions > 0 && (
+            <span><ChipValue chips={total / sessions} prefix={prefix} /> / session</span>
           )}
         </div>
       </div>
 
+      {filters}
+
       {data.length > 0 && (
-        <div className="surface mb-10">
+        <div className="surface mb-10 mt-4">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4 mx-2">
             <p className="text-xs text-muted-foreground tracking-normal">
               {mode === 'cny' ? 'CUMULATIVE CNY' : 'CUMULATIVE CHIPS'}
