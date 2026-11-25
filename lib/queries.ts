@@ -1,3 +1,4 @@
+import { sessionEventLog } from './session-event-log'
 import { DEFAULT_EXCHANGE_RATE, BUY_IN_UNIT, pogPlayerIds } from './session-rules'
 import { cache } from 'react'
 import { db } from './db'
@@ -454,9 +455,10 @@ function liveSessionFromAggregate(source: SessionAggregateSource): LiveSessionDa
 export async function getSessionPageData(groupId: string, id: string): Promise<SessionPageData | null> {
   const source = await loadSessionAggregate(groupId, id)
   if (!source) return null
+  const events = sessionEventLog(source, process.env.SESSION_EVENT_LOG_FROM)
   return source.session.status === 'OPEN'
-    ? { status: 'OPEN', session: liveSessionFromAggregate(source) }
-    : { status: 'SETTLED', session: sessionDetailFromAggregate(source) }
+    ? { status: 'OPEN', events, session: liveSessionFromAggregate(source) }
+    : { status: 'SETTLED', events, session: sessionDetailFromAggregate(source) }
 }
 
 // ── player detail ──────────────────────────────────────────────

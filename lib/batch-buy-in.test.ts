@@ -123,12 +123,14 @@ describe('batch buy-in persistence', () => {
   it('adds group members and records all initial buy-ins with the requested amount', async () => {
     setup({ participants: [] })
     await expect(addBatchParticipants('g1', 's1', { ...command, amount: 3500 })).resolves.toEqual({ count: 2 })
+    const joinedAt = mocks.insert.mock.calls[0][0][0].created_at
+    expect(joinedAt).toEqual(expect.any(String))
     expect(mocks.upsert).toHaveBeenCalledExactlyOnceWith([
-      { session_id: 's1', player_id: 'p1' },
-      { session_id: 's1', player_id: 'p2' },
+      { created_at: joinedAt, session_id: 's1', player_id: 'p1' },
+      { created_at: joinedAt, session_id: 's1', player_id: 'p2' },
     ], { onConflict: 'session_id,player_id', ignoreDuplicates: true })
     expect(mocks.not).toHaveBeenCalledExactlyOnceWith('deleted_at', 'is', null)
-    expect(mocks.insert).toHaveBeenCalledWith(command.entries.map(entry => ({ ...entry, session_id: 's1', amount: 3500 })))
+    expect(mocks.insert).toHaveBeenCalledWith(command.entries.map(entry => ({ ...entry, session_id: 's1', amount: 3500, created_at: joinedAt })))
   })
   it('rejects group outsiders before adding any participants', async () => {
     setup({ participants: [], members: ['p1'] })

@@ -51,6 +51,7 @@ export async function startSession(groupId: string, meta: SessionMeta, players: 
   }
   await Promise.all([requireGroup(groupId), requireActiveMembers(groupId, players.map(player => player.player_id))])
 
+  const startedAt = now()
   const { data: session, error } = await db.from('session').insert({
     group_id: groupId,
     date: meta.date,
@@ -58,7 +59,7 @@ export async function startSession(groupId: string, meta: SessionMeta, players: 
     description: meta.description || null,
     status: 'OPEN',
     buy_in_unit: BUY_IN_UNIT,
-    started_at: now(),
+    started_at: startedAt,
   }).select().single()
   ensureData(session, error)
 
@@ -66,9 +67,10 @@ export async function startSession(groupId: string, meta: SessionMeta, players: 
     session_id: session.id,
     player_id: player.player_id,
     amount: player.initial_buyin,
+    created_at: startedAt,
   }))
   const [participantResult, buyInResult] = await Promise.all([
-    db.from('session_participant').insert(players.map(player => ({ session_id: session.id, player_id: player.player_id }))),
+    db.from('session_participant').insert(players.map(player => ({ session_id: session.id, player_id: player.player_id, created_at: startedAt }))),
     db.from('buy_in').insert(buyIns),
   ])
   ensure(participantResult.error)

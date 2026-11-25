@@ -1,3 +1,4 @@
+import type { SessionEvent } from './session-event-log'
 // Domain-owned models. Persistence and HTTP adapters depend on these types.
 export interface Player {
   recent_activity?: { latest_started_at: string | null; latest_import_date: string | null; joined_at: string }
@@ -156,5 +157,5 @@ export interface ResultEntry {
 }
 
 export type SessionPageData =
-  | { status: 'OPEN'; session: LiveSessionData }
-  | { status: 'SETTLED'; session: SessionDetail }
+  | { status: 'OPEN'; events: SessionEvent[]; session: LiveSessionData }
+  | { status: 'SETTLED'; events: SessionEvent[]; session: SessionDetail }

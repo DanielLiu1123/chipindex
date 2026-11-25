@@ -82,6 +82,7 @@ async function prepareParticipants(
   sessionId: string,
   playerIds: string[],
   mode: ParticipantOperation,
+  joinedAt?: string,
 ) {
   const participants = await readParticipants(sessionId, playerIds)
   validateParticipants(playerIds, participants, mode !== 'buy-in')
@@ -96,7 +97,7 @@ async function prepareParticipants(
 
   // A concurrent join must not overwrite a participant who has since cashed out.
   const { error: insertError } = await db.from('session_participant').upsert(
-    missing.map((player_id) => ({ session_id: sessionId, player_id })),
+    missing.map((player_id) => ({ session_id: sessionId, player_id, ...(joinedAt && { created_at: joinedAt }) })),
     { onConflict: 'session_id,player_id', ignoreDuplicates: true },
   )
   ensure(insertError)
@@ -130,11 +131,13 @@ async function recordBatch(
     return { count: command.entries.length }
   if (session.status !== 'OPEN')
     throw new DomainError('conflict', 'Session is not open')
+  const joinedAt = mode === 'join' ? now() : undefined
   await prepareParticipants(
     groupId,
     sessionId,
     command.entries.map((entry) => entry.player_id),
     mode,
+    joinedAt,
   )
 
   // The buy-in rows are one atomic INSERT. Participant preparation is separate;
@@ -143,6 +146,7 @@ async function recordBatch(
     ...entry,
     session_id: sessionId,
     amount: command.amount,
+    ...(joinedAt && { created_at: joinedAt }),
   }))
   const { error } = await db.from('buy_in').insert(rows)
   if (error?.code === '23505' && (await alreadyRecorded(sessionId, command)))

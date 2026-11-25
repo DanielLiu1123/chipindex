@@ -2,6 +2,8 @@
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
+import SessionEventLog from './SessionEventLog'
+import type { SessionEvent } from '@/lib/session-event-log'
 import { Button } from '@/components/ui/button'
 import styles from './live-session-actions.module.css'
 
@@ -24,9 +26,11 @@ export default function LiveSession({
   groupId,
   session,
   allPlayers,
+  events = [],
 }: {
   groupId: string
   session: LiveSessionData
+  events?: SessionEvent[]
   allPlayers: Player[]
 }) {
   const flow = useLiveSession(groupId, session)
@@ -123,6 +127,7 @@ export default function LiveSession({
             · {session.description}
           </span>
         )}
+        <SessionEventLog events={events} />
       </div>
       <div className="mb-6 flex items-baseline justify-between gap-2">
         <button
