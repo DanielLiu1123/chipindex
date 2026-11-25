@@ -1,3 +1,4 @@
+import { groupByPlayer } from './session-results'
 import type { LiveBuyIn, SessionDetail, SessionEvent } from './domain-types'
 
 interface Source {
@@ -53,7 +54,7 @@ export function sessionEventLog({ session, participants, buy_ins, names }: Sourc
   const openingLag = firstJoin ? Date.parse(firstJoin) - startMs : Infinity
   const openingBatch = openingLag >= 0 && openingLag < legacyWriteWindowMs ? firstJoin : start
   const legacy = firstJoin !== start
-  const buysByPlayer = Map.groupBy(buy_ins, buy => buy.player_id)
+  const buysByPlayer = groupByPlayer(buy_ins)
   const initialBuyIds = new Set<string>()
   const opening = new Map<number | undefined, string[]>()
   for (const { player_id, created_at, settled_at, final_chips } of participants) {

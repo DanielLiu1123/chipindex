@@ -102,13 +102,15 @@ async function prepareParticipants(
   )
   ensure(insertError)
   // Only revive deleted rows. Active rows (including concurrent cash-outs) stay untouched.
+  const rejoinedAt = timestamp.created_at ?? now()
   const { error: restoreError } = await db
     .from('session_participant')
     .update({
       deleted_at: null,
       final_chips: null,
       settled_at: null,
-      updated_at: now(),
+      created_at: rejoinedAt,
+      updated_at: rejoinedAt,
     })
     .eq('session_id', sessionId)
     .in('player_id', missing)

@@ -136,6 +136,9 @@ describe('batch buy-in persistence', () => {
     await expect(addBatchParticipants('g1', 's1', { ...command, amount: 3500 })).resolves.toEqual({ count: 2 })
     const joinedAt = mocks.insert.mock.calls[0][0][0].created_at
     expect(joinedAt).toEqual(expect.any(String))
+    expect(mocks.update).toHaveBeenCalledWith({
+      created_at: joinedAt, updated_at: joinedAt, deleted_at: null, final_chips: null, settled_at: null,
+    })
     expect(mocks.upsert).toHaveBeenCalledExactlyOnceWith([
       { created_at: joinedAt, session_id: 's1', player_id: 'p1' },
       { created_at: joinedAt, session_id: 's1', player_id: 'p2' },

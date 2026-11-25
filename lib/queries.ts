@@ -6,6 +6,7 @@ import { buyinSum, netChips } from './settlement'
 import { MAX_SESSION_PAGE_SIZE } from './session-pagination'
 import {
   buildResultsBySession,
+  groupByPlayer,
   type BuyInResultRow,
   type ParticipantResultRow,
 } from './session-results'
@@ -18,17 +19,6 @@ import type {
 // ── Central place for all table reads. Net result chips come from
 //    lib/settlement.ts, computed over non-deleted rows (see resultsBySession).
 //    Session-level deleted_at/status is filtered on the session table first.
-
-// Group a session's buy-in rows by player, preserving query order.
-function groupByPlayer<T extends { player_id: string }>(rows: T[]): Map<string, T[]> {
-  const map = new Map<string, T[]>()
-  for (const row of rows) {
-    const arr = map.get(row.player_id) ?? []
-    arr.push(row)
-    map.set(row.player_id, arr)
-  }
-  return map
-}
 
 // Net chips per (session, player), over non-deleted rows.
 const RESULT_PAGE_SIZE = 1000
@@ -357,22 +347,20 @@ async function loadSessionAggregate(groupId: string, id: string): Promise<Sessio
   throwIfQueryError(sessionResult.error)
   if (!sessionResult.data) return null
 
-  const [partsResult, buyinsResult] = await Promise.all([
-    db.from('session_participant')
+  const [participants, buy_ins] = await Promise.all([
+    fetchAllResultRows<SessionAggregateSource['participants'][number]>((from, to) => db.from('session_participant')
       .select('id, player_id, final_chips, settled_at, created_at')
       .is('deleted_at', null)
       .eq('session_id', id)
-      .order('created_at', { ascending: true }),
-    db.from('buy_in')
+      .order('created_at', { ascending: true }).order('id', { ascending: true })
+      .range(from, to)),
+    fetchAllResultRows<LiveBuyIn>((from, to) => db.from('buy_in')
       .select('id, player_id, amount, created_at')
       .is('deleted_at', null)
       .eq('session_id', id)
-      .order('created_at', { ascending: true }),
+      .order('created_at', { ascending: true }).order('id', { ascending: true })
+      .range(from, to)),
   ])
-  throwIfQueryError(partsResult.error)
-  throwIfQueryError(buyinsResult.error)
-  const participants = partsResult.data ?? []
-  const buy_ins = buyinsResult.data ?? []
   const names = await playerNameMap(participants.map(participant => participant.player_id))
   return {
     session: {

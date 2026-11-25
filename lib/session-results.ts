@@ -57,3 +57,14 @@ export function buildResultsBySession(
 
   return resultsBySession
 }
+
+// Group a session's buy-in rows by player, preserving query order.
+export function groupByPlayer<T extends { player_id: string }>(rows: T[]): Map<string, T[]> {
+  const map = new Map<string, T[]>()
+  for (const row of rows) {
+    const arr = map.get(row.player_id) ?? []
+    arr.push(row)
+    map.set(row.player_id, arr)
+  }
+  return map
+}
