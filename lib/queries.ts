@@ -338,6 +338,7 @@ function sessionStatus(value: string): SessionStatus {
 
 interface SessionAggregateSource {
   session: {
+    created_at: string
     id: string
     date: string
     description: string | null
@@ -355,7 +356,7 @@ interface SessionAggregateSource {
 async function loadSessionAggregate(groupId: string, id: string): Promise<SessionAggregateSource | null> {
   const sessionResult = await db
     .from('session')
-    .select('id, date, description, exchange_rate, buy_in_unit, started_at, ended_at, status')
+    .select('id, created_at, date, description, exchange_rate, buy_in_unit, started_at, ended_at, status')
     .eq('group_id', groupId)
     .eq('id', id)
     .is('deleted_at', null)
@@ -455,7 +456,7 @@ function liveSessionFromAggregate(source: SessionAggregateSource): LiveSessionDa
 export async function getSessionPageData(groupId: string, id: string): Promise<SessionPageData | null> {
   const source = await loadSessionAggregate(groupId, id)
   if (!source) return null
-  const events = sessionEventLog(source, process.env.SESSION_EVENT_LOG_FROM)
+  const events = sessionEventLog(source)
   return source.session.status === 'OPEN'
     ? { status: 'OPEN', events, session: liveSessionFromAggregate(source) }
     : { status: 'SETTLED', events, session: sessionDetailFromAggregate(source) }

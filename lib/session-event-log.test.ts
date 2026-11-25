@@ -8,7 +8,7 @@ const end = '2026-11-26T21:00:00Z'
 const players = ['Maggie', 'iKun', 'Li Sen', 'Yao', 'Peter', 'Ding', 'Freeman']
 const participants = players.map((player_id, i) => ({ player_id, created_at: i < 6 ? start : join }))
 const source = {
-  session: { started_at: start, ended_at: end, status: 'SETTLED' },
+  session: { created_at: start, started_at: start, ended_at: end, status: 'SETTLED' },
   participants,
   names: new Map(players.map(name => [name, name])),
   buy_ins: [
@@ -27,12 +27,18 @@ describe('session event log', () => {
       'Session started. Li Sen, Maggie, Peter, Yao, and iKun bought in for 2,000 chips each. Ding bought in for 4,000 chips.',
     ])
   })
-  it('includes only operations since rollout for an existing session', () => {
-    expect(sessionEventLog(source, extra).map(event => event.id)).toEqual(['settled', 'extra'])
-    expect(sessionEventLog(source, '2026-11-27T00:00:00Z')).toEqual([])
+  it('shows historical live events when old inserts used separate timestamps', () => {
+    const oldStart = '2026-11-26T19:59:59Z'
+    const events = sessionEventLog({ ...source, session: { ...source.session, started_at: oldStart } })
+    expect(events.at(-1)).toEqual({ id: 'start', time: oldStart, text: 'Session started.' })
+    expect(events).toContainEqual({ id: 'join-Maggie', time: start, text: 'Maggie joined with 2,000 chips.' })
+    expect(events[0].id).toBe('settled')
   })
-  it('omits imported sessions and post-settlement additions', () => {
-    expect(sessionEventLog({ ...source, session: { ...source.session, started_at: null } }, start)).toEqual([])
+  it('shows the import time without interpreting synthetic buy-ins as live events', () => {
+    expect(sessionEventLog({ ...source, session: { ...source.session, started_at: null, ended_at: null } }))
+      .toEqual([{ id: 'import', time: start, text: 'Session imported.' }])
+  })
+  it('omits post-settlement additions', () => {
     const after = { ...source.buy_ins[0], id: 'edit', created_at: '2026-11-27T00:00:00Z' }
     expect(sessionEventLog({ ...source, buy_ins: [...source.buy_ins, after] })).toEqual(sessionEventLog(source))
   })

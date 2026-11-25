@@ -7,7 +7,7 @@ export interface SessionEvent {
 }
 
 interface Source {
-  session: { started_at: string | null; ended_at: string | null; status: string }
+  session: { created_at: string; started_at: string | null; ended_at: string | null; status: string }
   participants: { player_id: string; created_at: string }[]
   buy_ins: LiveBuyIn[]
   names: Map<string, string>
@@ -16,18 +16,17 @@ interface Source {
 const namesList = new Intl.ListFormat('en', { type: 'conjunction' })
 const chips = (amount: number) => amount.toLocaleString('en-US') + ' chips'
 
-export function sessionEventLog({ session, participants, buy_ins, names }: Source, enabledAt?: string): SessionEvent[] {
-  if (!session.started_at) return [] // Imported sessions have no live timeline.
-  const start = session.started_at
+export function sessionEventLog({ session, participants, buy_ins, names }: Source): SessionEvent[] {
+  if (!session.started_at && session.status === 'SETTLED') {
+    // Import synthesizes buy-ins from net results; only the import time is known.
+    return [{ id: 'import', time: session.created_at, text: 'Session imported.' }]
+  }
+  const start = session.started_at ?? session.created_at
   const end = session.ended_at
-  // New sessions stamp the opening roster with the session start instant.
-  // Older live sessions need the fixed rollout boundary to avoid backfilling.
-  const cutoff = enabledAt ? Date.parse(enabledAt) :
-    participants.some(p => p.created_at === start) ? Date.parse(start) : Infinity
   const events: SessionEvent[] = []
   function add(id: string, time: string, text: string) {
     const instant = Date.parse(time)
-    if (instant >= cutoff && instant >= Date.parse(start) && (!end || instant <= Date.parse(end))) {
+    if (instant >= Date.parse(start) && (!end || instant <= Date.parse(end))) {
       events.push({ id, time, text })
     }
   }
