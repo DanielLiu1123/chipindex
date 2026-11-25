@@ -109,16 +109,27 @@ describe('batch buy-in persistence', () => {
     expect(mocks.upsert).not.toHaveBeenCalled()
   })
   it('retries the original IDs after initial buy-in insert fails, without resetting participants', async () => {
-    setup({ participants: [], buyins: [{ data: [], error: null }, { data: null, error: { message: 'write failed' } }] })
-    await expect(addBatchParticipants('g1', 's1', command)).rejects.toMatchObject({ message: 'Database operation failed' })
-    const originalRows = mocks.insert.mock.calls[0][0]
-    mocks.upsert.mockClear()
-    mocks.update.mockClear()
-    setup()
-    await expect(addBatchParticipants('g1', 's1', command)).resolves.toEqual({ count: 2 })
-    expect(mocks.insert).toHaveBeenLastCalledWith(originalRows)
-    expect(mocks.upsert).not.toHaveBeenCalled()
-    expect(mocks.update).not.toHaveBeenCalled()
+    const firstAttempt = '2026-11-26T20:05:00.000Z'
+    const retry = '2026-11-26T20:06:00.000Z'
+    const clock = vi.spyOn(Date.prototype, 'toISOString')
+    try {
+      clock.mockReturnValue(firstAttempt)
+      setup({ participants: [], buyins: [{ data: [], error: null }, { data: null, error: { message: 'write failed' } }] })
+      await expect(addBatchParticipants('g1', 's1', command)).rejects.toMatchObject({ message: 'Database operation failed' })
+      const rows = command.entries.map(entry => ({ ...entry, session_id: 's1', amount: command.amount }))
+      expect(mocks.insert).toHaveBeenLastCalledWith(rows.map(row => ({ ...row, created_at: firstAttempt })))
+
+      clock.mockReturnValue(retry)
+      mocks.upsert.mockClear()
+      mocks.update.mockClear()
+      setup()
+      await expect(addBatchParticipants('g1', 's1', command)).resolves.toEqual({ count: 2 })
+      expect(mocks.insert).toHaveBeenLastCalledWith(rows.map(row => ({ ...row, created_at: retry })))
+      expect(mocks.upsert).not.toHaveBeenCalled()
+      expect(mocks.update).not.toHaveBeenCalled()
+    } finally {
+      clock.mockRestore()
+    }
   })
   it('adds group members and records all initial buy-ins with the requested amount', async () => {
     setup({ participants: [] })

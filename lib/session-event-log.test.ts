@@ -8,7 +8,7 @@ const end = '2026-11-26T21:00:00Z'
 const players = ['Maggie', 'iKun', 'Li Sen', 'Yao', 'Peter', 'Ding', 'Freeman']
 const participants = players.map((player_id, i) => ({ player_id, created_at: i < 6 ? start : join }))
 const source = {
-  session: { created_at: start, started_at: start, ended_at: end, status: 'SETTLED' },
+  session: { created_at: start, started_at: start, ended_at: end, status: 'SETTLED' as const },
   participants,
   names: new Map(players.map(name => [name, name])),
   buy_ins: [

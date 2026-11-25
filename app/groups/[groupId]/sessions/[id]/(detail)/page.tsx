@@ -55,7 +55,10 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
         </Button>
       </div>
     </ResponsiveActions>
-    <div className="mb-2 flex items-center justify-between gap-2"><span className="text-xs text-muted-foreground">{settled.exchange_rate} chips = 1 CNY</span><SessionEventLog events={data.events} /></div>
+    <div className="mb-2 flex items-center justify-between gap-2">
+      <span className="text-xs text-muted-foreground">{settled.exchange_rate} chips = 1 CNY</span>
+      <SessionEventLog events={data.events} />
+    </div>
     <div className="mb-6">{settled.description && <p className="text-sm text-muted-foreground mt-1">{settled.description}</p>}</div>
     <SessionEntriesTable groupId={groupId} entries={entries} exchangeRate={settled.exchange_rate} total={total} />
   </>

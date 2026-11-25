@@ -337,16 +337,9 @@ function sessionStatus(value: string): SessionStatus {
 }
 
 interface SessionAggregateSource {
-  session: {
+  session: Omit<SessionDetail, 'session_entries'> & {
     created_at: string
-    id: string
-    date: string
-    description: string | null
-    exchange_rate: number
     buy_in_unit: number | null
-    started_at: string | null
-    ended_at: string | null
-    status: SessionStatus
   }
   participants: Array<{ id: string; player_id: string; final_chips: number | null; settled_at: string | null; created_at: string }>
   buy_ins: LiveBuyIn[]

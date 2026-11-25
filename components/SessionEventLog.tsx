@@ -4,7 +4,7 @@ import { History } from 'lucide-react'
 import BrowserTime from './BrowserTime'
 import { Button } from './ui/button'
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from './ui/dialog'
-import type { SessionEvent } from '@/lib/session-event-log'
+import type { SessionEvent } from '@/lib/domain-types'
 
 export default function SessionEventLog({ events }: { events: SessionEvent[] }) {
   if (!events.length) return null

@@ -3,7 +3,6 @@
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 import SessionEventLog from './SessionEventLog'
-import type { SessionEvent } from '@/lib/session-event-log'
 import { Button } from '@/components/ui/button'
 import styles from './live-session-actions.module.css'
 
@@ -16,8 +15,7 @@ import BuyInNotice from '@/components/BuyInNotice'
 import PlayerActionButton from '@/components/PlayerActionButton'
 import LiveParticipantList from '@/components/LiveParticipantList'
 import LiveSettlementPanel from '@/components/LiveSettlementPanel'
-import type { Player } from '@/lib/domain-types'
-import type { LiveSessionData } from '@/lib/domain-types'
+import type { LiveSessionData, Player, SessionEvent } from '@/lib/domain-types'
 import { summarizeLiveSession } from '@/lib/live-session'
 import { usePlayerDirectory } from '@/lib/use-player-directory'
 import { useLiveSession } from '@/lib/use-live-session'
