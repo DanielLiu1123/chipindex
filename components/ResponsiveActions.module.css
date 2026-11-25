@@ -6,12 +6,6 @@
   gap: calc(2px + 6px * var(--action-scale));
 }
 
-.date {
-  flex-shrink: 0;
-  white-space: nowrap;
-  font-size: calc(16px + 8px * var(--action-scale));
-}
-
 .count {
   font-size: calc(11px + var(--action-scale) * 1px);
 }

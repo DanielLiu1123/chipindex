@@ -20,6 +20,17 @@ function openingSummary(opening: Map<number | undefined, string[]>) {
   return ['Session started.', ...sentences].join(' ')
 }
 
+const legacyWriteWindowMs = 1000
+
+// Older sessions wrote joins and initial buy-ins separately. Only the first
+// buy-in can use the timing fallback. At opening, either insert could finish first.
+function matchesJoin(buyTime: string, joinTime: string, firstLegacyBuy: boolean, opening: boolean) {
+  if (buyTime === joinTime) return true
+  if (!firstLegacyBuy) return false
+  const lag = Date.parse(buyTime) - Date.parse(joinTime)
+  return Math.abs(lag) < legacyWriteWindowMs && (opening || lag >= 0)
+}
+
 export function sessionEventLog({ session, participants, buy_ins, names }: Source): SessionEvent[] {
   if (!session.started_at && session.status === 'SETTLED') {
     // Import synthesizes buy-ins from net results; only the import time is known.
@@ -37,38 +48,30 @@ export function sessionEventLog({ session, participants, buy_ins, names }: Sourc
     }
   }
 
-  // Older clients wrote the opening roster and its buy-ins in separate requests.
-  // Only the earliest roster batch and each player's first buy-in can be folded.
-  const firstJoin = participants.reduce<string | undefined>((first, p) =>
-    !first || Date.parse(p.created_at) < Date.parse(first) ? p.created_at : first, undefined)
+  // The aggregate query returns both participants and buy-ins in creation order.
+  const firstJoin = participants[0]?.created_at
+  const openingLag = firstJoin ? Date.parse(firstJoin) - startMs : Infinity
+  const openingBatch = openingLag >= 0 && openingLag < legacyWriteWindowMs ? firstJoin : start
   const legacy = firstJoin !== start
-  const openingBatch = firstJoin && Date.parse(firstJoin) >= startMs && Date.parse(firstJoin) - startMs < 1000
-    ? firstJoin : start
-  const joins = new Map(participants.map(p => [p.player_id, p.created_at]))
-  const initialAmounts = new Map<string, number>()
-  const seenBuyers = new Set<string>()
-  for (const buy of buy_ins) {
-    const joined = joins.get(buy.player_id)
-    const lag = Date.parse(buy.created_at) - Date.parse(joined ?? '')
-    const nearJoin = legacy && !seenBuyers.has(buy.player_id) && Math.abs(lag) < 1000 &&
-      (lag >= 0 || joined === openingBatch) // Opening inserts ran concurrently.
-    seenBuyers.add(buy.player_id)
-    if (joined === buy.created_at || nearJoin) {
-      initialAmounts.set(buy.player_id, (initialAmounts.get(buy.player_id) ?? 0) + buy.amount)
-    } else {
-      const player = names.get(buy.player_id) ?? buy.player_id
-      add(buy.id, buy.created_at, `${player} bought in for ${chips(buy.amount)}.`)
-    }
-  }
+  const buysByPlayer = Map.groupBy(buy_ins, buy => buy.player_id)
+  const initialBuyIds = new Set<string>()
   const opening = new Map<number | undefined, string[]>()
   for (const { player_id, created_at, settled_at, final_chips } of participants) {
     const name = names.get(player_id) ?? player_id
+    const isOpening = created_at === openingBatch
+    let amount: number | undefined
+    const buys = buysByPlayer.get(player_id) ?? []
+    for (const [index, buy] of buys.entries()) {
+      if (matchesJoin(buy.created_at, created_at, legacy && index === 0, isOpening)) {
+        initialBuyIds.add(buy.id)
+        amount = (amount ?? 0) + buy.amount
+      }
+    }
     // Table settlement stamps the remaining players with the session end time.
     if (settled_at && final_chips !== null && Date.parse(settled_at) < endMs) {
       add(`cash-out-${player_id}`, settled_at, `${name} cashed out with ${chips(final_chips)}.`)
     }
-    const amount = initialAmounts.get(player_id)
-    if (created_at === openingBatch) {
+    if (isOpening) {
       const group = opening.get(amount) ?? []
       group.push(name)
       opening.set(amount, group)
@@ -76,6 +79,11 @@ export function sessionEventLog({ session, participants, buy_ins, names }: Sourc
       const text = amount === undefined ? `${name} joined.` : `${name} joined with ${chips(amount)}.`
       add(`join-${player_id}`, created_at, text)
     }
+  }
+  for (const buy of buy_ins) {
+    if (initialBuyIds.has(buy.id)) continue
+    const player = names.get(buy.player_id) ?? buy.player_id
+    add(buy.id, buy.created_at, `${player} bought in for ${chips(buy.amount)}.`)
   }
   add('start', start, openingSummary(opening))
   if (session.status === 'SETTLED' && end) add('settled', end, 'Session settled.')
