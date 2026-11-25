@@ -37,10 +37,23 @@ export function sessionEventLog({ session, participants, buy_ins, names }: Sourc
     }
   }
 
+  // Older clients wrote the opening roster and its buy-ins in separate requests.
+  // Only the earliest roster batch and each player's first buy-in can be folded.
+  const firstJoin = participants.reduce<string | undefined>((first, p) =>
+    !first || Date.parse(p.created_at) < Date.parse(first) ? p.created_at : first, undefined)
+  const legacy = firstJoin !== start
+  const openingBatch = firstJoin && Date.parse(firstJoin) >= startMs && Date.parse(firstJoin) - startMs < 1000
+    ? firstJoin : start
   const joins = new Map(participants.map(p => [p.player_id, p.created_at]))
   const initialAmounts = new Map<string, number>()
+  const seenBuyers = new Set<string>()
   for (const buy of buy_ins) {
-    if (joins.get(buy.player_id) === buy.created_at) {
+    const joined = joins.get(buy.player_id)
+    const lag = Date.parse(buy.created_at) - Date.parse(joined ?? '')
+    const nearJoin = legacy && !seenBuyers.has(buy.player_id) && Math.abs(lag) < 1000 &&
+      (lag >= 0 || joined === openingBatch) // Opening inserts ran concurrently.
+    seenBuyers.add(buy.player_id)
+    if (joined === buy.created_at || nearJoin) {
       initialAmounts.set(buy.player_id, (initialAmounts.get(buy.player_id) ?? 0) + buy.amount)
     } else {
       const player = names.get(buy.player_id) ?? buy.player_id
@@ -51,7 +64,7 @@ export function sessionEventLog({ session, participants, buy_ins, names }: Sourc
   for (const { player_id, created_at } of participants) {
     const name = names.get(player_id) ?? player_id
     const amount = initialAmounts.get(player_id)
-    if (created_at === start) {
+    if (created_at === openingBatch) {
       const group = opening.get(amount) ?? []
       group.push(name)
       opening.set(amount, group)

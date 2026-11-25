@@ -34,6 +34,26 @@ describe('session event log', () => {
     expect(events).toContainEqual({ id: 'join-Maggie', time: start, text: 'Maggie joined with 2,000 chips.' })
     expect(events[0].id).toBe('settled')
   })
+  it('folds legacy opening and later join writes, keeping subsequent buys separate', () => {
+    const roster = '2026-11-25T11:22:51.089606Z'
+    const later = '2026-11-25T11:24:51.185253Z'
+    const names = ['Ding', 'Frank', 'Yuan Liang', 'Freeman', 'Wang Yue', 'Sanjor Yang', 'Yao']
+    const opening = names.map(player_id => ({ player_id, created_at: roster }))
+    const events = sessionEventLog({
+      ...source,
+      session: { ...source.session, started_at: '2026-11-25T11:22:50.916Z' },
+      participants: [...opening, { player_id: 'iKun', created_at: later }],
+      buy_ins: [
+        ...opening.map(p => ({ ...p, id: p.player_id, amount: 2000, created_at: '2026-11-25T11:22:51.100573Z' })),
+        { player_id: 'iKun', id: 'first', amount: 2000, created_at: '2026-11-25T11:24:51.621693Z' },
+        { player_id: 'iKun', id: 'again', amount: 2000, created_at: '2026-11-25T11:24:51.800Z' },
+      ],
+    })
+    expect(events.map(e => e.text)).toEqual([
+      'Session settled.', 'iKun bought in for 2,000 chips.', 'iKun joined with 2,000 chips.',
+      'Session started. Ding, Frank, Freeman, Sanjor Yang, Wang Yue, Yao, and Yuan Liang bought in for 2,000 chips each.',
+    ])
+  })
   it('shows the import time without interpreting synthetic buy-ins as live events', () => {
     expect(sessionEventLog({ ...source, session: { ...source.session, started_at: null, ended_at: null } }))
       .toEqual([{ id: 'import', time: start, text: 'Session imported.' }])
