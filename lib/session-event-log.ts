@@ -2,7 +2,7 @@ import type { LiveBuyIn, SessionDetail, SessionEvent } from './domain-types'
 
 interface Source {
   session: Pick<SessionDetail, 'started_at' | 'ended_at' | 'status'> & { created_at: string }
-  participants: { player_id: string; created_at: string }[]
+  participants: { player_id: string; created_at: string; settled_at: string | null; final_chips: number | null }[]
   buy_ins: LiveBuyIn[]
   names: Map<string, string>
 }
@@ -61,8 +61,12 @@ export function sessionEventLog({ session, participants, buy_ins, names }: Sourc
     }
   }
   const opening = new Map<number | undefined, string[]>()
-  for (const { player_id, created_at } of participants) {
+  for (const { player_id, created_at, settled_at, final_chips } of participants) {
     const name = names.get(player_id) ?? player_id
+    // Table settlement stamps the remaining players with the session end time.
+    if (settled_at && final_chips !== null && Date.parse(settled_at) < endMs) {
+      add(`cash-out-${player_id}`, settled_at, `${name} cashed out with ${chips(final_chips)}.`)
+    }
     const amount = initialAmounts.get(player_id)
     if (created_at === openingBatch) {
       const group = opening.get(amount) ?? []

@@ -6,7 +6,8 @@ const join = '2026-11-26T20:05:00Z'
 const extra = '2026-11-26T20:30:00Z'
 const end = '2026-11-26T21:00:00Z'
 const players = ['Maggie', 'iKun', 'Li Sen', 'Yao', 'Peter', 'Ding', 'Freeman']
-const participants = players.map((player_id, i) => ({ player_id, created_at: i < 6 ? start : join }))
+const active = { settled_at: null, final_chips: null }
+const participants = players.map((player_id, i) => ({ ...active, player_id, created_at: i < 6 ? start : join }))
 const source = {
   session: { created_at: start, started_at: start, ended_at: end, status: 'SETTLED' as const },
   participants,
@@ -27,6 +28,27 @@ describe('session event log', () => {
       'Session started. Li Sen, Maggie, Peter, Yao, and iKun bought in for 2,000 chips each. Ding bought in for 4,000 chips.',
     ])
   })
+  it('shows an individual cash-out until undone, including zero chips', () => {
+    const live = { ...source, session: { ...source.session, status: 'OPEN' as const, ended_at: null } }
+    const before = sessionEventLog(live)
+    const cashedOut = { ...participants[0], settled_at: extra, final_chips: 0 }
+    const after = sessionEventLog({ ...live, participants: [cashedOut, ...participants.slice(1)] })
+    expect(after).toContainEqual({ id: 'cash-out-Maggie', time: extra, text: 'Maggie cashed out with 0 chips.' })
+    expect(after).toHaveLength(before.length + 1)
+    expect(sessionEventLog({ ...live, participants: [{ ...cashedOut, ...active }, ...participants.slice(1)] })).toEqual(before)
+  })
+
+  it('retains earlier cash-outs and emits one settlement for the remaining players', () => {
+    const settled = participants.map(p => ({
+      ...p, final_chips: 3600, settled_at: p.player_id === 'Maggie' ? extra : end,
+    }))
+    const events = sessionEventLog({ ...source, participants: settled })
+    expect(events.filter(e => e.id.startsWith('cash-out-'))).toEqual([
+      { id: 'cash-out-Maggie', time: extra, text: 'Maggie cashed out with 3,600 chips.' },
+    ])
+    expect(events.filter(e => e.time === end)).toEqual([{ id: 'settled', time: end, text: 'Session settled.' }])
+  })
+
   it('shows historical live events when old inserts used separate timestamps', () => {
     const oldStart = '2026-11-26T19:59:59Z'
     const events = sessionEventLog({ ...source, session: { ...source.session, started_at: oldStart } })
@@ -38,11 +60,11 @@ describe('session event log', () => {
     const roster = '2026-11-25T11:22:51.089606Z'
     const later = '2026-11-25T11:24:51.185253Z'
     const names = ['Ding', 'Frank', 'Yuan Liang', 'Freeman', 'Wang Yue', 'Sanjor Yang', 'Yao']
-    const opening = names.map(player_id => ({ player_id, created_at: roster }))
+    const opening = names.map(player_id => ({ ...active, player_id, created_at: roster }))
     const events = sessionEventLog({
       ...source,
       session: { ...source.session, started_at: '2026-11-25T11:22:50.916Z' },
-      participants: [...opening, { player_id: 'iKun', created_at: later }],
+      participants: [...opening, { ...active, player_id: 'iKun', created_at: later }],
       buy_ins: [
         ...opening.map(p => ({ ...p, id: p.player_id, amount: 2000, created_at: '2026-11-25T11:22:51.100573Z' })),
         { player_id: 'iKun', id: 'first', amount: 2000, created_at: '2026-11-25T11:24:51.621693Z' },
