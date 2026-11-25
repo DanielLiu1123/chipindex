@@ -1,3 +1,4 @@
+import SessionEventLog from '@/components/SessionEventLog'
 import ResponsiveActions from '@/components/ResponsiveActions'
 import headerStyles from '@/components/ResponsiveActions.module.css'
 import Link from 'next/link'
@@ -18,7 +19,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
   if (!data) notFound()
   if (data.status === 'OPEN') {
     const players = await getPlayersWithActivity(groupId)
-    return <LiveSession groupId={groupId} session={data.session} allPlayers={players} />
+    return <LiveSession groupId={groupId} session={data.session} allPlayers={players} events={data.events} />
   }
 
   const settled = data.session
@@ -42,8 +43,12 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
     .sort((a, b) => b.chips - a.chips || a.player_id.localeCompare(b.player_id))
   const total = entries.reduce((sum, entry) => sum + entry.chips, 0)
   return <>
-    <ResponsiveActions className="mb-4">
-      <h1 className={`${headerStyles.date} font-medium tracking-tight text-foreground`}>{settled.date}</h1>
+    <div className="mb-4 flex items-center justify-between gap-2">
+      <h1 className="text-2xl font-medium tracking-tight text-foreground">{settled.date}</h1>
+      <SessionEventLog events={data.events} />
+    </div>
+    <ResponsiveActions className="mb-2">
+      <span className="shrink-0 text-xs text-muted-foreground">{settled.exchange_rate} chips = 1 CNY</span>
       <div className={headerStyles.actions}>
         <CopySessionSummaryButton summary={summary} className={headerStyles.action} />
         <Button asChild variant="outline" className={`${headerStyles.action} rounded-[8px]`}>
@@ -54,7 +59,6 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
         </Button>
       </div>
     </ResponsiveActions>
-    <div className="mb-2"><span className="text-xs text-muted-foreground">{settled.exchange_rate} chips = 1 CNY</span></div>
     <div className="mb-6">{settled.description && <p className="text-sm text-muted-foreground mt-1">{settled.description}</p>}</div>
     <SessionEntriesTable groupId={groupId} entries={entries} exchangeRate={settled.exchange_rate} total={total} />
   </>

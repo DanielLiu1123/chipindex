@@ -302,6 +302,23 @@ describe('getLeaderboardData', () => {
 })
 
 describe('getSessionPageData', () => {
+  it('includes buy-ins beyond the first database page in the event log', async () => {
+    const start = '2026-11-25T12:00:00Z'
+    const buys = Array.from({ length: 1001 }, (_, i) => ({
+      id: String(i), player_id: 'alice', amount: 2000, created_at: '2026-11-25T13:00:00Z',
+    }))
+    mockQueryResponses({
+      session: [{ data: { id: 's1', started_at: start, ended_at: null, status: 'OPEN' } }],
+      session_participant: [{ data: [{ player_id: 'alice', created_at: start, settled_at: null, final_chips: null }] }],
+      buy_in: [{ data: buys.slice(0, 1000) }, { data: buys.slice(1000) }],
+      player: [{ data: [{ id: 'alice', name: 'Alice' }] }],
+    })
+    const page = await getSessionPageData('g1', 's1')
+    expect(page?.events).toHaveLength(1002)
+    expect(page?.events).toContainEqual({ id: '1000', time: buys[1000].created_at, text: 'Alice bought in for 2,000 chips.' })
+    expect(dbMocks.chains.filter(q => q.table === 'buy_in').map(q => q.range.mock.calls[0])).toEqual([[0, 999], [1000, 1999]])
+  })
+
   it('exposes frozen final chips and participant settlement time for an open session', async () => {
     mockQueryResponses({
       session: [{ data: { id: 's1', date: '2026-08-19', description: null, exchange_rate: 40, buy_in_unit: 2000, started_at: null, status: 'OPEN' } }],

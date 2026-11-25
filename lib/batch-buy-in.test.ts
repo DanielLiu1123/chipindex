@@ -109,26 +109,42 @@ describe('batch buy-in persistence', () => {
     expect(mocks.upsert).not.toHaveBeenCalled()
   })
   it('retries the original IDs after initial buy-in insert fails, without resetting participants', async () => {
-    setup({ participants: [], buyins: [{ data: [], error: null }, { data: null, error: { message: 'write failed' } }] })
-    await expect(addBatchParticipants('g1', 's1', command)).rejects.toMatchObject({ message: 'Database operation failed' })
-    const originalRows = mocks.insert.mock.calls[0][0]
-    mocks.upsert.mockClear()
-    mocks.update.mockClear()
-    setup()
-    await expect(addBatchParticipants('g1', 's1', command)).resolves.toEqual({ count: 2 })
-    expect(mocks.insert).toHaveBeenLastCalledWith(originalRows)
-    expect(mocks.upsert).not.toHaveBeenCalled()
-    expect(mocks.update).not.toHaveBeenCalled()
+    const firstAttempt = '2026-11-26T20:05:00.000Z'
+    const retry = '2026-11-26T20:06:00.000Z'
+    const clock = vi.spyOn(Date.prototype, 'toISOString')
+    try {
+      clock.mockReturnValue(firstAttempt)
+      setup({ participants: [], buyins: [{ data: [], error: null }, { data: null, error: { message: 'write failed' } }] })
+      await expect(addBatchParticipants('g1', 's1', command)).rejects.toMatchObject({ message: 'Database operation failed' })
+      const rows = command.entries.map(entry => ({ ...entry, session_id: 's1', amount: command.amount }))
+      expect(mocks.insert).toHaveBeenLastCalledWith(rows.map(row => ({ ...row, created_at: firstAttempt })))
+
+      clock.mockReturnValue(retry)
+      mocks.upsert.mockClear()
+      mocks.update.mockClear()
+      setup()
+      await expect(addBatchParticipants('g1', 's1', command)).resolves.toEqual({ count: 2 })
+      expect(mocks.insert).toHaveBeenLastCalledWith(rows.map(row => ({ ...row, created_at: retry })))
+      expect(mocks.upsert).not.toHaveBeenCalled()
+      expect(mocks.update).not.toHaveBeenCalled()
+    } finally {
+      clock.mockRestore()
+    }
   })
   it('adds group members and records all initial buy-ins with the requested amount', async () => {
     setup({ participants: [] })
     await expect(addBatchParticipants('g1', 's1', { ...command, amount: 3500 })).resolves.toEqual({ count: 2 })
+    const joinedAt = mocks.insert.mock.calls[0][0][0].created_at
+    expect(joinedAt).toEqual(expect.any(String))
+    expect(mocks.update).toHaveBeenCalledWith({
+      created_at: joinedAt, updated_at: joinedAt, deleted_at: null, final_chips: null, settled_at: null,
+    })
     expect(mocks.upsert).toHaveBeenCalledExactlyOnceWith([
-      { session_id: 's1', player_id: 'p1' },
-      { session_id: 's1', player_id: 'p2' },
+      { created_at: joinedAt, session_id: 's1', player_id: 'p1' },
+      { created_at: joinedAt, session_id: 's1', player_id: 'p2' },
     ], { onConflict: 'session_id,player_id', ignoreDuplicates: true })
     expect(mocks.not).toHaveBeenCalledExactlyOnceWith('deleted_at', 'is', null)
-    expect(mocks.insert).toHaveBeenCalledWith(command.entries.map(entry => ({ ...entry, session_id: 's1', amount: 3500 })))
+    expect(mocks.insert).toHaveBeenCalledWith(command.entries.map(entry => ({ ...entry, session_id: 's1', amount: 3500, created_at: joinedAt })))
   })
   it('rejects group outsiders before adding any participants', async () => {
     setup({ participants: [], members: ['p1'] })

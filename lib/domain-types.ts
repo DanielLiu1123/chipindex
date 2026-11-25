@@ -155,6 +155,12 @@ export interface ResultEntry {
   buy_in_count: number
 }
 
+export interface SessionEvent {
+  id: string
+  time: string
+  text: string
+}
+
 export type SessionPageData =
-  | { status: 'OPEN'; session: LiveSessionData }
-  | { status: 'SETTLED'; session: SessionDetail }
+  | { status: 'OPEN'; events: SessionEvent[]; session: LiveSessionData }
+  | { status: 'SETTLED'; events: SessionEvent[]; session: SessionDetail }

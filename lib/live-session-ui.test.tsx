@@ -251,3 +251,16 @@ it('hides the cashed-out summary while retaining participant results and expande
   expect(screen.getByText(/FINAL/)).toBeTruthy()
   expect(screen.queryByRole('button', { name: 'Revoke Alice buy-in' })).toBeNull()
 })
+
+it('opens the event log from the live session and dismisses it', () => {
+  const { rerender } = render(<LiveSession groupId="g1" session={session} allPlayers={[]} />)
+  expect(screen.queryByRole('button', { name: 'EVENT LOG' })).toBeNull()
+  rerender(<LiveSession groupId="g1" session={session} allPlayers={[]} events={[
+    { id: 'start', time: session.started_at!, text: 'Session started.' },
+  ]} />)
+  fireEvent.click(screen.getByRole('button', { name: 'EVENT LOG' }))
+  const dialog = screen.getByRole('dialog', { name: 'Event log' })
+  expect(within(dialog).getByText('Session started.')).toBeTruthy()
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }))
+  expect(screen.queryByRole('dialog')).toBeNull()
+})
