@@ -52,7 +52,7 @@ it('uses the same visible players for rankings and curves, independently of tabl
   const { stats } = leaderboardStatsForRange(players, sessions, null)
   const visible = filterLowActivityPlayers(stats).visibleStats
   expect(visible.map(stat => stat.player.id)).toEqual(['a'])
-  expect(sortLeaderboard(stats, 'total_yuan', 'asc').map(s => s.player.id)).toEqual(['b', 'c', 'a'])
+  expect(sortLeaderboard(stats, { key: 'total_yuan', direction: 'asc' }).map(s => s.player.id)).toEqual(['b', 'c', 'a'])
   expect(stats.map(s => s.player.id)).toEqual(['a', 'b', 'c'])
   expect(buildChartData(sessions, stats, 'cny').at(-1)).toMatchObject({ b: 0, c: 0 })
 })

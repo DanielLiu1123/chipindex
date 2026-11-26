@@ -1,7 +1,6 @@
 import type { LeaderboardChartPoint } from './chart'
 import {
   computeLeaderboardStats,
-  filterLowActivityPlayers,
   type PlayerStats,
 } from './stats'
 import {
@@ -13,6 +12,13 @@ import { compareSettledSessionsOldestFirst } from './session-order'
 
 export type LeaderboardSortKey =
   'total_yuan' | 'total_chips' | 'sessions_played' | 'win_rate' | 'pog_count'
+
+export interface LeaderboardSort {
+  key: LeaderboardSortKey
+  direction: 'asc' | 'desc'
+}
+
+export const defaultLeaderboardSort: LeaderboardSort = { key: 'total_yuan', direction: 'desc' }
 
 export function buildChartData(
   sessions: LeaderboardSessionRow[],
@@ -46,7 +52,7 @@ export function buildChartData(
   })
 }
 
-export function sortLeaderboard(stats: PlayerStats[], key: LeaderboardSortKey, direction: 'asc' | 'desc') {
+export function sortLeaderboard(stats: PlayerStats[], { key, direction }: LeaderboardSort) {
   const dir = direction === 'desc' ? -1 : 1
   return [...stats].sort((a, b) =>
     dir * (a[key] - b[key]) || a.player.id.localeCompare(b.player.id),

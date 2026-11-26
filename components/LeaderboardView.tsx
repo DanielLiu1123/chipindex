@@ -15,7 +15,8 @@ import { filterLowActivityPlayers } from '@/lib/stats'
 import dynamic from 'next/dynamic'
 import {
   leaderboardStatsForRange,
-  type LeaderboardSortKey as SortKey,
+  buildChartData,
+  defaultLeaderboardSort,
 } from '@/lib/leaderboard'
 import LeaderboardDateFilter from '@/components/LeaderboardDateFilter'
 import { useSearchParams } from 'next/navigation'
@@ -24,7 +25,7 @@ import type { LeaderboardSessionRow, Player } from '@/lib/domain-types'
 import { useBrowserReady } from '@/lib/use-browser-ready'
 import { LeaderboardSkeleton } from '@/components/PageSkeleton'
 
-const ChartSeries = dynamic(() => import('@/components/LeaderboardChartSeries'), {
+const LeaderboardChart = dynamic(() => import('@/components/LeaderboardChart'), {
   loading: () => <div className="h-[360px]" role="status" aria-label="Loading chart" />,
 })
 
@@ -52,8 +53,7 @@ export default function LeaderboardView(props: Props) {
 function LeaderboardContent({ groupId, players, sessions, filters }: Props & { filters: LeaderboardFilters }) {
   const [view, setView] = useState<'table' | 'chart'>('table')
   const [chartMode, setChartMode] = useState<'chips' | 'cny'>('cny')
-  const [sortKey, setSortKey] = useState<SortKey>('total_yuan')
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+  const [sort, setSort] = useState(defaultLeaderboardSort)
   const { filter, hideLowActivity } = filters
 
   function updateFilters(patch: Partial<LeaderboardFilters>) {
@@ -74,14 +74,10 @@ function LeaderboardContent({ groupId, players, sessions, filters }: Props & { f
   )
   const emptyRange = range !== null && ranged.sessions.length === 0
 
-  function toggleSort(key: SortKey) {
-    if (key === sortKey) {
-      setSortDir((d) => (d === 'desc' ? 'asc' : 'desc'))
-    } else {
-      setSortKey(key)
-      setSortDir('desc')
-    }
-  }
+  const chartData = useMemo(
+    () => view === 'chart' && ranged.sessions.length >= 2 ? buildChartData(ranged.sessions, stats, chartMode) : null,
+    [view, ranged.sessions, stats, chartMode],
+  )
 
   return (
     <>
@@ -120,22 +116,22 @@ function LeaderboardContent({ groupId, players, sessions, filters }: Props & { f
         </p>
       )}
       {!emptyRange && view === 'table' && (
-        <LeaderboardTable groupId={groupId} stats={stats} sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+        <LeaderboardTable groupId={groupId} stats={stats} sort={sort} onSort={setSort} />
       )}
       {!emptyRange && view === 'chart' && (
         <div className="surface">
           <div className="flex justify-end px-2 mb-4">
             <ValueUnitControl value={chartMode} onValueChange={setChartMode} />
           </div>
-          {ranged.sessions.length < 2 ? (
+          {chartData === null ? (
             <p className="text-muted-foreground text-xs tracking-normal px-2">
               NEED AT LEAST 2 SESSIONS TO SHOW CHART.
             </p>
           ) : (
-            <ChartSeries
+            <LeaderboardChart
               key={`${start ?? ''}:${end ?? ''}:${hideLowActivity}`}
-              sessions={ranged.sessions}
-              stats={stats}
+              data={chartData}
+              players={stats.map(stat => stat.player)}
               mode={chartMode}
             />
           )}

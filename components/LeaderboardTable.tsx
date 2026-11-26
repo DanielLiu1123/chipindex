@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import ChipValue from '@/components/ChipValue'
 import { cn } from '@/lib/utils'
-import { sortLeaderboard, type LeaderboardSortKey as SortKey } from '@/lib/leaderboard'
+import { defaultLeaderboardSort, sortLeaderboard, type LeaderboardSort, type LeaderboardSortKey } from '@/lib/leaderboard'
 import type { PlayerStats } from '@/lib/stats'
 import {
   TableHead,
@@ -16,47 +16,28 @@ import {
 import { LEADERBOARD_RANK_WIDTH, leaderboardColumns, type LeaderboardColumn } from '@/lib/leaderboard-layout'
 import { useLeaderboardLayout } from '@/lib/use-leaderboard-layout'
 
-function SortHeader({
-  label,
-  sortKey: key,
-  currentKey,
-  sortDir,
-  onSort,
-  className = '',
-}: {
-  label: string
-  className?: string
-  sortKey: SortKey
-  currentKey: SortKey
-  sortDir: 'asc' | 'desc'
-  onSort: (key: SortKey) => void
-}) {
-  const active = currentKey === key
-  return (
-    <TableHead data-column={key} aria-sort={active ? (sortDir === 'desc' ? 'descending' : 'ascending') : undefined} className={cn("px-2 py-3 font-normal text-right", className)}>
-      <Button variant="ghost" className="px-0 text-xs" type="button" onClick={() => onSort(key)}>
-        {label}
-        {active ? (sortDir === 'desc' ? ' ↓' : ' ↑') : ''}
-      </Button>
-    </TableHead>
-  )
+const labels: Record<LeaderboardSortKey, string> = {
+  total_yuan: 'CNY',
+  total_chips: 'CHIPS',
+  sessions_played: 'SESSIONS',
+  win_rate: 'WIN%',
+  pog_count: 'POG',
 }
 
-export default function LeaderboardTable({ groupId, stats, sortKey, sortDir, onSort }: {
+export default function LeaderboardTable({ groupId, stats, sort, onSort }: {
   groupId: string
   stats: PlayerStats[]
-  sortKey: SortKey
-  sortDir: 'asc' | 'desc'
-  onSort: (key: SortKey) => void
+  sort: LeaderboardSort
+  onSort: (sort: LeaderboardSort) => void
 }) {
-  const sortedStats = useMemo(() => sortLeaderboard(stats, sortKey, sortDir), [stats, sortKey, sortDir])
+  const sortedStats = useMemo(() => sortLeaderboard(stats, sort), [stats, sort])
   const { containerRef, layout } = useLeaderboardLayout(sortedStats)
 
   useEffect(() => {
-    if (layout && !layout.visible.includes(sortKey)) {
-      onSort('total_yuan')
+    if (layout && !layout.visible.includes(sort.key)) {
+      onSort(defaultLeaderboardSort)
     }
-  }, [layout, sortKey, onSort])
+  }, [layout, sort.key, onSort])
 
   function columnClass(key: LeaderboardColumn) {
     return layout && !layout.visible.includes(key) ? 'hidden' : ''
@@ -79,45 +60,19 @@ export default function LeaderboardTable({ groupId, stats, sortKey, sortDir, onS
             <TableHead data-column="player" className="text-left px-2 py-3 font-normal">
               PLAYER
             </TableHead>
-            <SortHeader
-              currentKey={sortKey}
-              sortDir={sortDir}
-              onSort={onSort}
-              label="CNY"
-              sortKey="total_yuan"
-            />
-            <SortHeader
-              currentKey={sortKey}
-              sortDir={sortDir}
-              onSort={onSort}
-              label="CHIPS"
-              className={columnClass('total_chips')}
-              sortKey="total_chips"
-            />
-            <SortHeader
-              currentKey={sortKey}
-              sortDir={sortDir}
-              onSort={onSort}
-              label="SESSIONS"
-              className={columnClass('sessions_played')}
-              sortKey="sessions_played"
-            />
-            <SortHeader
-              currentKey={sortKey}
-              sortDir={sortDir}
-              onSort={onSort}
-              label="WIN%"
-              className={columnClass('win_rate')}
-              sortKey="win_rate"
-            />
-            <SortHeader
-              currentKey={sortKey}
-              sortDir={sortDir}
-              onSort={onSort}
-              label="POG"
-              className={cn(columnClass('pog_count'), 'pr-5')}
-              sortKey="pog_count"
-            />
+            {leaderboardColumns.filter(key => key !== 'player').map(key => {
+              const active = sort.key === key
+              const descending = sort.direction === 'desc'
+              return (
+                <TableHead key={key} data-column={key} aria-sort={active ? (descending ? 'descending' : 'ascending') : undefined}
+                  className={cn('px-2 py-3 font-normal text-right', columnClass(key), key === 'pog_count' && 'pr-5')}>
+                  <Button variant="ghost" className="px-0 text-xs" type="button"
+                    onClick={() => onSort({ key, direction: active && descending ? 'asc' : 'desc' })}>
+                    {labels[key]}{active && (descending ? ' ↓' : ' ↑')}
+                  </Button>
+                </TableHead>
+              )
+            })}
           </TableRow>
         </TableHeader>
         <TableBody>
