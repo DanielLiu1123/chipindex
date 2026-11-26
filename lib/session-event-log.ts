@@ -1,5 +1,5 @@
 import { groupByPlayer } from './session-results'
-import type { LiveBuyIn, SessionDetail, SessionEvent } from './domain-types'
+import type { LiveBuyIn, OpeningPlayer, SessionDetail, SessionEvent } from './domain-types'
 
 interface Source {
   session: Pick<SessionDetail, 'started_at' | 'ended_at' | 'status'> & { created_at: string }
@@ -11,14 +11,30 @@ interface Source {
 const namesList = new Intl.ListFormat('en', { type: 'conjunction' })
 const chips = (amount: number) => amount.toLocaleString('en-US') + ' chips'
 
-function openingSummary(opening: Map<number | undefined, string[]>) {
-  const groups = [...opening].sort((a, b) => b[1].length - a[1].length)
+function openingSummary(players: OpeningPlayer[]) {
+  const byAmount = new Map<number | undefined, string[]>()
+  for (const { amount, name } of players) {
+    const group = byAmount.get(amount) ?? []
+    group.push(name)
+    byAmount.set(amount, group)
+  }
+  const groups = [...byAmount].sort((a, b) => b[1].length - a[1].length)
   const sentences = groups.map(([amount, players]) => {
     const names = namesList.format(players.sort())
     if (amount === undefined) return `${names} joined.`
     return `${names} bought in for ${chips(amount)}${players.length > 1 ? ' each' : ''}.`
   })
   return ['Session started.', ...sentences].join(' ')
+}
+
+export function filteredEventText(event: SessionEvent, selected: ReadonlySet<string>) {
+  if ('opening' in event) {
+    if (!selected.size) return openingSummary(event.opening)
+    const matching = event.opening.filter(player => selected.has(player.id))
+    return matching.length ? openingSummary(matching) : null
+  }
+  if (selected.size && !(event.player && selected.has(event.player.id))) return null
+  return event.text
 }
 
 const legacyWriteWindowMs = 1000
@@ -42,10 +58,10 @@ export function sessionEventLog({ session, participants, buy_ins, names }: Sourc
   const startMs = Date.parse(start)
   const endMs = end ? Date.parse(end) : Infinity
   const events: SessionEvent[] = []
-  function add(id: string, time: string, text: string) {
-    const instant = Date.parse(time)
+  function add(event: SessionEvent) {
+    const instant = Date.parse(event.time)
     if (instant >= startMs && instant <= endMs) {
-      events.push({ id, time, text })
+      events.push(event)
     }
   }
 
@@ -56,9 +72,9 @@ export function sessionEventLog({ session, participants, buy_ins, names }: Sourc
   const legacy = firstJoin !== start
   const buysByPlayer = groupByPlayer(buy_ins)
   const initialBuyIds = new Set<string>()
-  const opening = new Map<number | undefined, string[]>()
+  const opening: OpeningPlayer[] = []
   for (const { player_id, created_at, settled_at, final_chips } of participants) {
-    const name = names.get(player_id) ?? player_id
+    const player = { id: player_id, name: names.get(player_id) ?? player_id }
     const isOpening = created_at === openingBatch
     let amount: number | undefined
     const buys = buysByPlayer.get(player_id) ?? []
@@ -70,23 +86,21 @@ export function sessionEventLog({ session, participants, buy_ins, names }: Sourc
     }
     // Table settlement stamps the remaining players with the session end time.
     if (settled_at && final_chips !== null && Date.parse(settled_at) < endMs) {
-      add(`cash-out-${player_id}`, settled_at, `${name} cashed out with ${chips(final_chips)}.`)
+      add({ id: `cash-out-${player_id}`, time: settled_at, player, text: `${player.name} cashed out with ${chips(final_chips)}.` })
     }
     if (isOpening) {
-      const group = opening.get(amount) ?? []
-      group.push(name)
-      opening.set(amount, group)
+      opening.push({ ...player, amount })
     } else {
-      const text = amount === undefined ? `${name} joined.` : `${name} joined with ${chips(amount)}.`
-      add(`join-${player_id}`, created_at, text)
+      const text = amount === undefined ? `${player.name} joined.` : `${player.name} joined with ${chips(amount)}.`
+      add({ id: `join-${player_id}`, time: created_at, player, text })
     }
   }
   for (const buy of buy_ins) {
     if (initialBuyIds.has(buy.id)) continue
-    const player = names.get(buy.player_id) ?? buy.player_id
-    add(buy.id, buy.created_at, `${player} bought in for ${chips(buy.amount)}.`)
+    const player = { id: buy.player_id, name: names.get(buy.player_id) ?? buy.player_id }
+    add({ id: buy.id, time: buy.created_at, player, text: `${player.name} bought in for ${chips(buy.amount)}.` })
   }
-  add('start', start, openingSummary(opening))
-  if (session.status === 'SETTLED' && end) add('settled', end, 'Session settled.')
+  add({ id: 'start', time: start, opening })
+  if (session.status === 'SETTLED' && end) add({ id: 'settled', time: end, text: 'Session settled.' })
   return events.sort((a, b) => Date.parse(b.time) - Date.parse(a.time) || b.id.localeCompare(a.id))
 }
