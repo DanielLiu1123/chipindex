@@ -9,6 +9,7 @@ import {
   within,
 } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
+import userEvent from '@testing-library/user-event'
 import LiveSession from '../components/LiveSession'
 import {
   ApiClientError,
@@ -263,4 +264,25 @@ it('opens the event log from the live session and dismisses it', () => {
   expect(within(dialog).getByText('Session started.')).toBeTruthy()
   fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }))
   expect(screen.queryByRole('dialog')).toBeNull()
+})
+
+it('updates the log after each checkbox and clears the player filter', async () => {
+  const user = userEvent.setup()
+  const time = session.started_at!
+  render(<LiveSession groupId="g1" session={session} allPlayers={[]} events={[
+    { id: 'settled', time, text: 'Session settled.' },
+    { id: 'a', time, player: { id: 'a', name: 'Alice' }, text: 'Alice joined.' },
+    { id: 'b', time, player: { id: 'b', name: 'Bob' }, text: 'Bob joined.' },
+  ]} />)
+  await user.click(screen.getByRole('button', { name: 'EVENT LOG' }))
+  await user.click(screen.getByRole('button', { name: 'ALL PLAYERS' }))
+  await user.click(screen.getByRole('menuitemcheckbox', { name: 'Alice' }))
+  expect(screen.queryByText('Bob joined.')).toBeNull()
+  await user.click(screen.getByRole('menuitemcheckbox', { name: 'Bob' }))
+  expect(screen.getByText('Bob joined.')).toBeTruthy()
+  expect(screen.getByText('Alice joined.')).toBeTruthy()
+  expect(screen.queryByText('Session settled.')).toBeNull()
+  await user.keyboard('{Escape}')
+  await user.click(screen.getByRole('button', { name: 'Clear' }))
+  expect(screen.getByText('Session settled.')).toBeTruthy()
 })

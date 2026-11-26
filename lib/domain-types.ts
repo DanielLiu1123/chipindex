@@ -155,10 +155,15 @@ export interface ResultEntry {
   buy_in_count: number
 }
 
+export type EventPlayer = Pick<Player, 'id' | 'name'>
+export type OpeningPlayer = EventPlayer & { amount?: number }
+
 export interface SessionEvent {
   id: string
   time: string
   text: string
+  player?: EventPlayer
+  opening?: OpeningPlayer[]
 }
 
 export type SessionPageData =

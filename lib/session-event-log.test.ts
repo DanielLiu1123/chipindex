@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { sessionEventLog } from './session-event-log'
+import { filteredEventText, sessionEventLog } from './session-event-log'
 
 const start = '2026-11-26T20:00:00Z'
 const join = '2026-11-26T20:05:00Z'
@@ -33,7 +33,7 @@ describe('session event log', () => {
     const before = sessionEventLog(live)
     const cashedOut = { ...participants[0], settled_at: extra, final_chips: 0 }
     const after = sessionEventLog({ ...live, participants: [cashedOut, ...participants.slice(1)] })
-    expect(after).toContainEqual({ id: 'cash-out-Maggie', time: extra, text: 'Maggie cashed out with 0 chips.' })
+    expect(after).toContainEqual({ id: 'cash-out-Maggie', player: { id: 'Maggie', name: 'Maggie' }, time: extra, text: 'Maggie cashed out with 0 chips.' })
     expect(after).toHaveLength(before.length + 1)
     expect(sessionEventLog({ ...live, participants: [{ ...cashedOut, ...active }, ...participants.slice(1)] })).toEqual(before)
   })
@@ -44,7 +44,7 @@ describe('session event log', () => {
     }))
     const events = sessionEventLog({ ...source, participants: settled })
     expect(events.filter(e => e.id.startsWith('cash-out-'))).toEqual([
-      { id: 'cash-out-Maggie', time: extra, text: 'Maggie cashed out with 3,600 chips.' },
+      { id: 'cash-out-Maggie', player: { id: 'Maggie', name: 'Maggie' }, time: extra, text: 'Maggie cashed out with 3,600 chips.' },
     ])
     expect(events.filter(e => e.time === end)).toEqual([{ id: 'settled', time: end, text: 'Session settled.' }])
   })
@@ -52,8 +52,8 @@ describe('session event log', () => {
   it('shows historical live events when old inserts used separate timestamps', () => {
     const oldStart = '2026-11-26T19:59:59Z'
     const events = sessionEventLog({ ...source, session: { ...source.session, started_at: oldStart } })
-    expect(events.at(-1)).toEqual({ id: 'start', time: oldStart, text: 'Session started.' })
-    expect(events).toContainEqual({ id: 'join-Maggie', time: start, text: 'Maggie joined with 2,000 chips.' })
+    expect(events.at(-1)).toEqual({ id: 'start', opening: [], time: oldStart, text: 'Session started.' })
+    expect(events).toContainEqual({ id: 'join-Maggie', player: { id: 'Maggie', name: 'Maggie' }, time: start, text: 'Maggie joined with 2,000 chips.' })
     expect(events[0].id).toBe('settled')
   })
   it('folds legacy opening and later join writes, keeping subsequent buys separate', () => {
@@ -84,4 +84,15 @@ describe('session event log', () => {
     const after = { ...source.buy_ins[0], id: 'edit', created_at: '2026-11-27T00:00:00Z' }
     expect(sessionEventLog({ ...source, buy_ins: [...source.buy_ins, after] })).toEqual(sessionEventLog(source))
   })
+})
+
+it('matches any selected ID and rebuilds the opening sentence for just those players', () => {
+  const events = sessionEventLog({ ...source, names: new Map([['Ding', 'Maggie']]) })
+  const texts = (ids: string[]) => events.map(event => filteredEventText(event, new Set(ids))).filter(Boolean)
+  expect(texts(['Ding', 'Freeman'])).toEqual([
+    'Freeman joined with 2,000 chips.',
+    'Session started. Maggie bought in for 4,000 chips.',
+  ])
+  expect(texts(['Freeman'])).toEqual(['Freeman joined with 2,000 chips.'])
+  expect(texts([])).toEqual(events.map(event => event.text))
 })

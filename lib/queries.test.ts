@@ -315,7 +315,7 @@ describe('getSessionPageData', () => {
     })
     const page = await getSessionPageData('g1', 's1')
     expect(page?.events).toHaveLength(1002)
-    expect(page?.events).toContainEqual({ id: '1000', time: buys[1000].created_at, text: 'Alice bought in for 2,000 chips.' })
+    expect(page?.events).toContainEqual({ id: '1000', player: { id: 'alice', name: 'Alice' }, time: buys[1000].created_at, text: 'Alice bought in for 2,000 chips.' })
     expect(dbMocks.chains.filter(q => q.table === 'buy_in').map(q => q.range.mock.calls[0])).toEqual([[0, 999], [1000, 1999]])
   })
 
