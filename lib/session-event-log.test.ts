@@ -21,7 +21,7 @@ const source = {
 describe('session event log', () => {
   it('groups six opening players by amount and shows a later join only once', () => {
     const entries = sessionEventLog(source)
-    expect(entries.map(event => event.text)).toEqual([
+    expect(entries.map(event => filteredEventText(event, new Set()))).toEqual([
       'Session settled.',
       'Maggie bought in for 2,000 chips.',
       'Freeman joined with 2,000 chips.',
@@ -52,7 +52,7 @@ describe('session event log', () => {
   it('shows historical live events when old inserts used separate timestamps', () => {
     const oldStart = '2026-11-26T19:59:59Z'
     const events = sessionEventLog({ ...source, session: { ...source.session, started_at: oldStart } })
-    expect(events.at(-1)).toEqual({ id: 'start', opening: [], time: oldStart, text: 'Session started.' })
+    expect(events.at(-1)).toEqual({ id: 'start', opening: [], time: oldStart })
     expect(events).toContainEqual({ id: 'join-Maggie', player: { id: 'Maggie', name: 'Maggie' }, time: start, text: 'Maggie joined with 2,000 chips.' })
     expect(events[0].id).toBe('settled')
   })
@@ -71,7 +71,7 @@ describe('session event log', () => {
         { player_id: 'iKun', id: 'again', amount: 2000, created_at: '2026-11-25T11:24:51.800Z' },
       ],
     })
-    expect(events.map(e => e.text)).toEqual([
+    expect(events.map(event => filteredEventText(event, new Set()))).toEqual([
       'Session settled.', 'iKun bought in for 2,000 chips.', 'iKun joined with 2,000 chips.',
       'Session started. Ding, Frank, Freeman, Sanjor Yang, Wang Yue, Yao, and Yuan Liang bought in for 2,000 chips each.',
     ])
@@ -94,5 +94,5 @@ it('matches any selected ID and rebuilds the opening sentence for just those pla
     'Session started. Maggie bought in for 4,000 chips.',
   ])
   expect(texts(['Freeman'])).toEqual(['Freeman joined with 2,000 chips.'])
-  expect(texts([])).toEqual(events.map(event => event.text))
+  expect(texts([])).toHaveLength(events.length)
 })

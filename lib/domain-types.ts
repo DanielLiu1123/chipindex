@@ -158,13 +158,10 @@ export interface ResultEntry {
 export type EventPlayer = Pick<Player, 'id' | 'name'>
 export type OpeningPlayer = EventPlayer & { amount?: number }
 
-export interface SessionEvent {
-  id: string
-  time: string
-  text: string
-  player?: EventPlayer
-  opening?: OpeningPlayer[]
-}
+export type SessionEvent = { id: string; time: string } & (
+  | { opening: OpeningPlayer[] }
+  | { text: string; player?: EventPlayer }
+)
 
 export type SessionPageData =
   | { status: 'OPEN'; events: SessionEvent[]; session: LiveSessionData }
