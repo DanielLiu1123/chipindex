@@ -60,10 +60,10 @@ it('does not navigate when logout fails', async () => {
   expect(client.push).not.toHaveBeenCalled()
 })
 
-async function renderGroupNav() {
+async function renderGroupNav(pathname = '/groups/g1') {
   const user = userEvent.setup()
   client.listGroups.mockResolvedValue([{ id: 'g1', name: 'Group one' }, { id: 'g2', name: 'Group two' }])
-  state.pathname = '/groups/g1'
+  state.pathname = pathname
   render(<Nav />)
   await screen.findByText('Group one')
   return { user, trigger: screen.getByRole('combobox', { name: 'Current group' }) }
@@ -108,4 +108,15 @@ it('does not carry pointer dismissal into the next keyboard interaction', async 
   await screen.findByRole('option', { name: 'Group two' })
   await user.keyboard('{Escape}')
   await waitFor(() => expect(document.activeElement).toBe(trigger))
+})
+
+it.each([
+  ['/groups/g1/sessions', '/groups/g2/sessions?page=1&page_size=10'],
+  ['/groups/g1/sessions/session-one', '/groups/g2/sessions?page=1&page_size=10'],
+  ['/groups/g1/settings', '/groups/g2/settings'],
+])('switches groups from %s to %s', async (pathname, destination) => {
+  const { user, trigger } = await renderGroupNav(pathname)
+  await user.click(trigger)
+  await user.click(await screen.findByRole('option', { name: 'Group two' }))
+  expect(client.push).toHaveBeenCalledWith(destination)
 })
