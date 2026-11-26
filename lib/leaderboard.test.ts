@@ -1,5 +1,6 @@
 import { expect, it } from 'vitest'
-import { buildLeaderboard } from './leaderboard'
+import { leaderboardStatsForRange, buildChartData, sortLeaderboard } from './leaderboard'
+import { filterLowActivityPlayers } from './stats'
 import type { LeaderboardSessionRow, Player } from './domain-types'
 const players: Player[] = ['a', 'b', 'c'].map((id) => ({
   id,
@@ -28,13 +29,6 @@ const session = (
     },
   ],
 })
-const options = {
-  range: null,
-  hideLowActivity: true,
-  chartMode: 'cny',
-  sortKey: 'total_yuan',
-  sortDir: 'desc',
-} as const
 it('selects an inclusive cross-year range and rebases curves with the same currency totals', () => {
   const sessions = [
     session('after', '2027-01-02', 900),
@@ -42,58 +36,29 @@ it('selects an inclusive cross-year range and rebases curves with the same curre
     session('start', '2026-12-31', 1),
     session('before', '2026-12-30', 900),
   ]
-  const result = buildLeaderboard(players, sessions, {
-    ...options,
-    range: { start: '2026-12-31', end: '2027-01-01' },
-  })
-  expect(result.sortedStats.map((s) => s.player.id)).toEqual(['a'])
-  expect(result.sortedStats[0].total_yuan).toBe(0.67)
-  expect(result.chartData).toEqual([
+  const result = leaderboardStatsForRange(players, sessions, { start: '2026-12-31', end: '2027-01-01' })
+  expect(result.stats.map(s => s.player.id)).toEqual(['a'])
+  expect(result.stats[0].total_yuan).toBe(0.67)
+  expect(buildChartData(result.sessions, result.stats, 'cny')).toEqual([
     { session_id: 'start', date: '2026-12-31', a: 0.33 },
     { session_id: 'end', date: '2027-01-01', a: 0.67 },
   ])
-  expect(
-    buildLeaderboard(players, sessions, {
-      ...options,
-      range: { start: '2026-12-31', end: '2027-01-01' },
-      chartMode: 'chips',
-    }).chartData.at(-1)?.a,
-  ).toBe(2)
+  expect(buildChartData(result.sessions, result.stats, 'chips').at(-1)?.a).toBe(2)
 })
 it('uses the same visible players for rankings and curves, independently of table sorting', () => {
   const sessions = Array.from({ length: 20 }, (_, index) =>
     session(String(index), `2026-01-${String(index + 1).padStart(2, '0')}`, 1),
   )
-  const hidden = buildLeaderboard(players, sessions, options)
-  expect(hidden.activityFilter.hiddenCount).toBe(2)
-  expect(hidden.chartPlayers.map((p) => p.id)).toEqual(['a'])
-  const all = buildLeaderboard(players, sessions, {
-    ...options,
-    hideLowActivity: false,
-  })
-  const reversed = buildLeaderboard(players, sessions, {
-    ...options,
-    hideLowActivity: false,
-    sortDir: 'asc',
-  })
-  expect(all.sortedStats.map((s) => s.player.id)).toEqual(['a', 'b', 'c'])
-  expect(reversed.sortedStats.map((s) => s.player.id)).toEqual(['b', 'c', 'a'])
-  expect(reversed.chartPlayers).toEqual(all.chartPlayers)
-  expect(reversed.chartData).toEqual(all.chartData)
-  expect(all.chartData.at(-1)).toMatchObject({ b: 0, c: 0 })
+  const { stats } = leaderboardStatsForRange(players, sessions, null)
+  const visible = filterLowActivityPlayers(stats).visibleStats
+  expect(visible.map(stat => stat.player.id)).toEqual(['a'])
+  expect(sortLeaderboard(stats, { key: 'total_yuan', direction: 'asc' }).map(s => s.player.id)).toEqual(['b', 'c', 'a'])
+  expect(stats.map(s => s.player.id)).toEqual(['a', 'b', 'c'])
+  expect(buildChartData(sessions, stats, 'cny').at(-1)).toMatchObject({ b: 0, c: 0 })
 })
-it('distinguishes an empty selected range from all-time players without sessions', () => {
-  const all = buildLeaderboard(players, [], options)
-  expect(all.emptyRange).toBe(false)
-  expect(all.playerCount).toBe(3)
-  const filtered = buildLeaderboard(players, [], {
-    ...options,
-    range: { start: '2026-01-01', end: '2026-01-31' },
-  })
-  expect(filtered.emptyRange).toBe(true)
-  expect(filtered.playerCount).toBe(0)
-  expect(filtered.activityFilter.hiddenCount).toBe(0)
-  expect(filtered.chartData).toEqual([])
+it('keeps players without sessions only in the all-time range', () => {
+  expect(leaderboardStatsForRange(players, [], null).stats).toHaveLength(3)
+  expect(leaderboardStatsForRange(players, [], { start: '2026-01-01', end: '2026-01-31' }).stats).toEqual([])
 })
 
 it('orders same-day cumulative points by end time with missing times first and stable ID ties', () => {
@@ -103,9 +68,10 @@ it('orders same-day cumulative points by end time with missing times first and s
     { ...session('late-a', '2026-01-01', 2, 1), ended_at: '2026-01-01T20:00:00Z' },
     session('import', '2026-01-01', 1, 1),
   ]
-  const result = buildLeaderboard(players, sessions, options)
-  expect(result.chartData.map(point => point.a)).toEqual([1, -3, -1, 7])
-  expect(result.chartData.map(point => point.session_id)).toEqual(['import', 'early', 'late-a', 'late-b'])
-  expect(result.sortedStats.find(stat => stat.player.id === 'a')?.total_yuan).toBe(7)
+  const { stats } = leaderboardStatsForRange(players, sessions, null)
+  const points = buildChartData(sessions, stats, 'cny')
+  expect(points.map(point => point.a)).toEqual([1, -3, -1, 7])
+  expect(points.map(point => point.session_id)).toEqual(['import', 'early', 'late-a', 'late-b'])
+  expect(stats.find(stat => stat.player.id === 'a')?.total_yuan).toBe(7)
   expect(sessions.map(row => row.id)).toEqual(['late-b', 'early', 'late-a', 'import'])
 })

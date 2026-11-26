@@ -1,7 +1,6 @@
 import type { LeaderboardChartPoint } from './chart'
 import {
   computeLeaderboardStats,
-  filterLowActivityPlayers,
   type PlayerStats,
 } from './stats'
 import {
@@ -14,7 +13,14 @@ import { compareSettledSessionsOldestFirst } from './session-order'
 export type LeaderboardSortKey =
   'total_yuan' | 'total_chips' | 'sessions_played' | 'win_rate' | 'pog_count'
 
-function buildChartData(
+export interface LeaderboardSort {
+  key: LeaderboardSortKey
+  direction: 'asc' | 'desc'
+}
+
+export const defaultLeaderboardSort: LeaderboardSort = { key: 'total_yuan', direction: 'desc' }
+
+export function buildChartData(
   sessions: LeaderboardSessionRow[],
   stats: PlayerStats[],
   mode: 'chips' | 'cny',
@@ -46,43 +52,18 @@ function buildChartData(
   })
 }
 
-// Owns the ordering of range selection, activity filtering and cumulative data.
-// Display sorting never changes the series order or its colors.
-export function buildLeaderboard(
-  players: Player[],
-  sessions: LeaderboardSessionRow[],
-  options: {
-    range: LeaderboardRange | null
-    hideLowActivity: boolean
-    chartMode: 'chips' | 'cny'
-    sortKey: LeaderboardSortKey
-    sortDir: 'asc' | 'desc'
-  },
-) {
-  const filtered = filterLeaderboardSessions(sessions, options.range)
-  const computed = computeLeaderboardStats(players, filtered)
-  const stats = options.range
-    ? computed.filter((stat) => stat.sessions_played > 0)
-    : computed
-  const activityFilter = filterLowActivityPlayers(stats)
-  const displayed = options.hideLowActivity
-    ? activityFilter.visibleStats
-    : stats
-  const dir = options.sortDir === 'desc' ? -1 : 1
+export function sortLeaderboard(stats: PlayerStats[], { key, direction }: LeaderboardSort) {
+  const dir = direction === 'desc' ? -1 : 1
+  return [...stats].sort((a, b) =>
+    dir * (a[key] - b[key]) || a.player.id.localeCompare(b.player.id),
+  )
+}
+
+export function leaderboardStatsForRange(players: Player[], sessions: LeaderboardSessionRow[], range: LeaderboardRange | null) {
+  const filtered = filterLeaderboardSessions(sessions, range)
+  const stats = computeLeaderboardStats(players, filtered)
   return {
-    sessionCount: filtered.length,
-    playerCount: stats.length,
-    activityFilter,
-    emptyRange: options.range !== null && filtered.length === 0,
-    sortedStats: [...displayed].sort(
-      (a, b) =>
-        dir * (a[options.sortKey] - b[options.sortKey]) ||
-        a.player.id.localeCompare(b.player.id),
-    ),
-    chartPlayers: displayed.map((stat) => ({
-      id: stat.player.id,
-      name: stat.player.name,
-    })),
-    chartData: buildChartData(filtered, displayed, options.chartMode),
+    sessions: filtered,
+    stats: range ? stats.filter(stat => stat.sessions_played > 0) : stats,
   }
 }

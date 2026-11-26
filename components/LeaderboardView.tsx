@@ -1,65 +1,33 @@
 'use client'
 
-import {
-  TableHead,
-  Table,
-  TableHeader,
-  TableRow,
-  TableBody,
-  TableCell,
-} from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import ResponsiveActions from '@/components/ResponsiveActions'
 import actionStyles from '@/components/ResponsiveActions.module.css'
-import { cn } from '@/lib/utils'
-
+import LeaderboardTable from '@/components/LeaderboardTable'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import ValueUnitControl from '@/components/ValueUnitControl'
 import { Table2, ChartNoAxesCombined, Plus } from 'lucide-react'
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import ChipValue from '@/components/ChipValue'
-import LeaderboardChart from '@/components/LeaderboardChart'
+import { filterLowActivityPlayers } from '@/lib/stats'
+import dynamic from 'next/dynamic'
 import {
-  buildLeaderboard,
-  type LeaderboardSortKey as SortKey,
+  leaderboardStatsForRange,
+  buildChartData,
+  defaultLeaderboardSort,
 } from '@/lib/leaderboard'
 import LeaderboardDateFilter from '@/components/LeaderboardDateFilter'
 import { useSearchParams } from 'next/navigation'
 import { readLeaderboardFilters, updateLeaderboardFilterQuery, type LeaderboardFilters } from '@/lib/leaderboard-filter-query'
 import type { LeaderboardSessionRow, Player } from '@/lib/domain-types'
 import { useBrowserReady } from '@/lib/use-browser-ready'
-import { LEADERBOARD_RANK_WIDTH, leaderboardColumns, type LeaderboardColumn } from '@/lib/leaderboard-layout'
-import { useLeaderboardLayout } from '@/lib/use-leaderboard-layout'
 import { LeaderboardSkeleton } from '@/components/PageSkeleton'
 
-function SortHeader({
-  label,
-  sortKey: key,
-  currentKey,
-  sortDir,
-  onSort,
-  className = '',
-}: {
-  label: string
-  className?: string
-  sortKey: SortKey
-  currentKey: SortKey
-  sortDir: 'asc' | 'desc'
-  onSort: (key: SortKey) => void
-}) {
-  const active = currentKey === key
-  return (
-    <TableHead data-column={key} aria-sort={active ? (sortDir === 'desc' ? 'descending' : 'ascending') : undefined} className={cn("px-2 py-3 font-normal text-right", className)}>
-      <Button variant="ghost" className="px-0 text-xs" type="button" onClick={() => onSort(key)}>
-        {label}
-        {active ? (sortDir === 'desc' ? ' ↓' : ' ↑') : ''}
-      </Button>
-    </TableHead>
-  )
-}
+const LeaderboardChart = dynamic(() => import('@/components/LeaderboardChart'), {
+  loading: () => <div className="h-[360px]" role="status" aria-label="Loading chart" />,
+})
 
 interface Props {
   groupId: string
@@ -85,8 +53,7 @@ export default function LeaderboardView(props: Props) {
 function LeaderboardContent({ groupId, players, sessions, filters }: Props & { filters: LeaderboardFilters }) {
   const [view, setView] = useState<'table' | 'chart'>('table')
   const [chartMode, setChartMode] = useState<'chips' | 'cny'>('cny')
-  const [sortKey, setSortKey] = useState<SortKey>('total_yuan')
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+  const [sort, setSort] = useState(defaultLeaderboardSort)
   const { filter, hideLowActivity } = filters
 
   function updateFilters(patch: Partial<LeaderboardFilters>) {
@@ -95,47 +62,22 @@ function LeaderboardContent({ groupId, players, sessions, filters }: Props & { f
     window.history.replaceState(null, '', url)
   }
   const range = filter.period === 'all' ? null : filter.range
-  const {
-    sessionCount,
-    playerCount,
-    emptyRange,
-    sortedStats,
-    chartPlayers,
-    chartData,
-  } = useMemo(
-    () =>
-      buildLeaderboard(players, sessions, {
-        range,
-        hideLowActivity,
-        chartMode,
-        sortKey,
-        sortDir,
-      }),
-    [players, sessions, range, hideLowActivity, chartMode, sortKey, sortDir],
+  const start = range?.start
+  const end = range?.end
+  const ranged = useMemo(
+    () => leaderboardStatsForRange(players, sessions, start && end ? { start, end } : null),
+    [players, sessions, start, end],
   )
-  const showResults = !emptyRange
+  const stats = useMemo(
+    () => hideLowActivity ? filterLowActivityPlayers(ranged.stats).visibleStats : ranged.stats,
+    [ranged.stats, hideLowActivity],
+  )
+  const emptyRange = range !== null && ranged.sessions.length === 0
 
-  const { containerRef, layout } = useLeaderboardLayout(sortedStats, showResults && view === 'table')
-
-  useEffect(() => {
-    if (layout && !layout.visible.includes(sortKey)) {
-      setSortKey('total_yuan')
-      setSortDir('desc')
-    }
-  }, [layout, sortKey])
-
-  function columnClass(key: LeaderboardColumn) {
-    return layout && !layout.visible.includes(key) ? 'hidden' : ''
-  }
-
-  function toggleSort(key: SortKey) {
-    if (key === sortKey) {
-      setSortDir((d) => (d === 'desc' ? 'asc' : 'desc'))
-    } else {
-      setSortKey(key)
-      setSortDir('desc')
-    }
-  }
+  const chartData = useMemo(
+    () => view === 'chart' && ranged.sessions.length >= 2 ? buildChartData(ranged.sessions, stats, chartMode) : null,
+    [view, ranged.sessions, stats, chartMode],
+  )
 
   return (
     <>
@@ -173,156 +115,23 @@ function LeaderboardContent({ groupId, players, sessions, filters }: Props & { f
           NO SESSIONS
         </p>
       )}
-      {showResults && view === 'table' && (
-        <div ref={containerRef}>
-          <Table className="w-full table-fixed text-sm tabular-nums">
-            <colgroup>
-              <col style={{ width: LEADERBOARD_RANK_WIDTH }} />
-              {(layout?.visible ?? leaderboardColumns).map(key => (
-                <col key={key} style={{ width: layout?.widths[key] }} />
-              ))}
-            </colgroup>
-            <TableHeader>
-              <TableRow className="border-b border-border text-muted-foreground text-xs tracking-normal">
-                <TableHead className="text-left pl-5 pr-0 py-3 font-normal">
-                  #
-                </TableHead>
-                <TableHead data-column="player" className="text-left px-2 py-3 font-normal">
-                  PLAYER
-                </TableHead>
-                <SortHeader
-                  currentKey={sortKey}
-                  sortDir={sortDir}
-                  onSort={toggleSort}
-                  label="CNY"
-                  sortKey="total_yuan"
-                />
-                <SortHeader
-                  currentKey={sortKey}
-                  sortDir={sortDir}
-                  onSort={toggleSort}
-                  label="CHIPS"
-                  className={columnClass('total_chips')}
-                  sortKey="total_chips"
-                />
-                <SortHeader
-                  currentKey={sortKey}
-                  sortDir={sortDir}
-                  onSort={toggleSort}
-                  label="SESSIONS"
-                  className={columnClass('sessions_played')}
-                  sortKey="sessions_played"
-                />
-                <SortHeader
-                  currentKey={sortKey}
-                  sortDir={sortDir}
-                  onSort={toggleSort}
-                  label="WIN%"
-                  className={columnClass('win_rate')}
-                  sortKey="win_rate"
-                />
-                <SortHeader
-                  currentKey={sortKey}
-                  sortDir={sortDir}
-                  onSort={toggleSort}
-                  label="POG"
-                  className={cn(columnClass('pog_count'), 'pr-5')}
-                  sortKey="pog_count"
-                />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {playerCount === 0 && (
-                <TableRow>
-                  <TableCell
-                    colSpan={1 + (layout?.visible.length ?? leaderboardColumns.length)}
-                    className="py-12 text-center text-xs text-muted-foreground tracking-normal"
-                  >
-                    NO PLAYERS YET
-                  </TableCell>
-                </TableRow>
-              )}
-              {sortedStats.map((s, i) => (
-                <TableRow
-                  key={s.player.id}
-                  className="border-b border-border hover:bg-muted transition-colors"
-                >
-                  <TableCell className="px-0.5 py-4 text-right text-muted-foreground text-xs">
-                    <Link
-                      href={`/groups/${groupId}/players/${s.player.id}`}
-                      className="block"
-                    >
-                      {i + 1}
-                    </Link>
-                  </TableCell>
-                  <TableCell data-column="player" className="px-2 py-4 text-left whitespace-normal [overflow-wrap:anywhere]">
-                    <Link
-                      href={`/groups/${groupId}/players/${s.player.id}`}
-                      className="block"
-                    >
-                      {s.player.name}
-                    </Link>
-                  </TableCell>
-                  <TableCell data-column="total_yuan" className="px-2 py-4 text-right">
-                    <Link
-                      href={`/groups/${groupId}/players/${s.player.id}`}
-                      className="block"
-                    >
-                      <ChipValue chips={s.total_yuan} prefix="¥" />
-                    </Link>
-                  </TableCell>
-                  <TableCell data-column="total_chips" className={`${columnClass('total_chips')} px-2 py-4 text-right`}>
-                    <Link
-                      href={`/groups/${groupId}/players/${s.player.id}`}
-                      className="block"
-                    >
-                      <ChipValue chips={s.total_chips} />
-                    </Link>
-                  </TableCell>
-                  <TableCell data-column="sessions_played" className={`${columnClass('sessions_played')} px-2 py-4 text-right text-muted-foreground`}>
-                    <Link
-                      href={`/groups/${groupId}/players/${s.player.id}`}
-                      className="block"
-                    >
-                      {s.sessions_played}
-                    </Link>
-                  </TableCell>
-                  <TableCell data-column="win_rate" className={`${columnClass('win_rate')} px-2 py-4 text-right text-muted-foreground`}>
-                    <Link
-                      href={`/groups/${groupId}/players/${s.player.id}`}
-                      className="block"
-                    >
-                      {(s.win_rate * 100).toFixed(0)}%
-                    </Link>
-                  </TableCell>
-                  <TableCell data-column="pog_count" className={`${columnClass('pog_count')} pl-2 pr-5 py-4 text-right text-muted-foreground`}>
-                    <Link
-                      href={`/groups/${groupId}/players/${s.player.id}`}
-                      className="block"
-                    >
-                      {s.pog_count}
-                    </Link>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+      {!emptyRange && view === 'table' && (
+        <LeaderboardTable groupId={groupId} stats={stats} sort={sort} onSort={setSort} />
       )}
-      {showResults && view === 'chart' && (
+      {!emptyRange && view === 'chart' && (
         <div className="surface">
           <div className="flex justify-end px-2 mb-4">
             <ValueUnitControl value={chartMode} onValueChange={setChartMode} />
           </div>
-          {sessionCount < 2 ? (
+          {chartData === null ? (
             <p className="text-muted-foreground text-xs tracking-normal px-2">
               NEED AT LEAST 2 SESSIONS TO SHOW CHART.
             </p>
           ) : (
             <LeaderboardChart
-              key={`${range?.start ?? ''}:${range?.end ?? ''}:${hideLowActivity}`}
+              key={`${start ?? ''}:${end ?? ''}:${hideLowActivity}`}
               data={chartData}
-              players={chartPlayers}
+              players={stats.map(stat => stat.player)}
               mode={chartMode}
             />
           )}

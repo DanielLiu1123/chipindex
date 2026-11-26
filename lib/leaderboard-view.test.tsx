@@ -14,6 +14,7 @@ import userEvent from '@testing-library/user-event'
 import { renderToString } from 'react-dom/server'
 import { hydrateRoot } from 'react-dom/client'
 import LeaderboardView from '../components/LeaderboardView'
+import * as leaderboard from './leaderboard'
 import type { Player } from './domain-types'
 
 // Model Next's search-param subscription; native replaceState does not emit popstate.
@@ -143,7 +144,23 @@ const sessions = [
     ],
   },
 ]
-it('shares an applied calendar range between rankings and rebased CNY/chip curves', () => {
+it('defers chart data until Chart opens and reuses player totals when sorting or switching units', async () => {
+  const totals = vi.spyOn(leaderboard, 'leaderboardStatsForRange')
+  const series = vi.spyOn(leaderboard, 'buildChartData')
+  render(<LeaderboardView groupId="g1" players={players} sessions={sessions} />)
+  fireEvent.click(screen.getByRole('button', { name: 'CNY ↓' }))
+  expect(series).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole('radio', { name: 'Chart' }))
+  await screen.findByTestId('leaderboard-chart')
+  fireEvent.click(screen.getByRole('radio', { name: 'CHIPS' }))
+  expect(series).toHaveBeenCalledTimes(2)
+  expect(totals).toHaveBeenCalledTimes(1)
+  fireEvent.click(screen.getByRole('radio', { name: 'Table' }))
+  expect(screen.getByRole('button', { name: 'CNY ↑' })).toBeTruthy()
+  expect(series).toHaveBeenCalledTimes(2)
+})
+
+it('shares an applied calendar range between rankings and rebased CNY/chip curves', async () => {
   render(<LeaderboardView groupId="g1" players={players} sessions={sessions} />)
   openCustom()
   day('2026-01-01')
@@ -156,7 +173,7 @@ it('shares an applied calendar range between rankings and rebased CNY/chip curve
   expect(screen.queryByRole('link', { name: 'Bob' })).toBeNull()
   fireEvent.click(screen.getByRole('radio', { name: 'Chart' }))
   expect(
-    JSON.parse(screen.getByTestId('leaderboard-chart').textContent!).data,
+    JSON.parse((await screen.findByTestId('leaderboard-chart')).textContent!).data,
   ).toEqual([
     { session_id: 'start', date: '2026-01-01', Alice: 10 },
     { session_id: 'end', date: '2026-01-31', Alice: 5 },
@@ -365,8 +382,10 @@ it('resets hidden sorting after resize and keeps CNY when expanded again', () =>
   }
   try {
     render(<LeaderboardView groupId="g1" players={players} sessions={sessions} />)
-    fireEvent.click(screen.getByRole('button', { name: 'CHIPS' }))
     const measurements = measureText.mock.calls.length
+    expect(measurements).toBeGreaterThan(0)
+    fireEvent.click(screen.getByRole('button', { name: 'CHIPS' }))
+    expect(measureText).toHaveBeenCalledTimes(measurements)
     width = 700
     act(() => resize())
     expect(measureText).toHaveBeenCalledTimes(measurements)
