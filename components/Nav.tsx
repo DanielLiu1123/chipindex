@@ -84,11 +84,6 @@ export default function Nav() {
     }
   }
 
-  function changeGroup(value: string) {
-    if (value === '__new__') router.push('/groups/new')
-    else router.push(`/groups/${value}`)
-  }
-
   const home = groupId && groupId !== 'new' ? `/groups/${groupId}` : '/'
   const sessionsPath =
     groupId && groupId !== 'new' ? `/groups/${groupId}/sessions` : '/'
@@ -102,6 +97,18 @@ export default function Nav() {
   const sessionsActive =
     sessionsPath !== '/' && isActivePath(pathname, sessionsPath, true)
   const manageActive = manage !== null && isActivePath(pathname, manage, true)
+
+  function changeGroup(value: string) {
+    if (value === '__new__') {
+      router.push('/groups/new')
+      return
+    }
+
+    const groupHome = `/groups/${value}`
+    if (sessionsActive) router.push(sessionPageHref(`${groupHome}/sessions`, 1, DEFAULT_SESSION_PAGE_SIZE))
+    else if (manageActive) router.push(`${groupHome}/settings`)
+    else router.push(groupHome)
+  }
 
   return (
     <header className="border-b border-border bg-card">
