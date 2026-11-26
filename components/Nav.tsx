@@ -29,6 +29,17 @@ import type { Group } from '@/lib/domain-types'
 // The group menu is portaled, so apply the same font explicitly there.
 const navigationFont = "font-[-apple-system,BlinkMacSystemFont,Segoe_UI,sans-serif]"
 
+const sections = [
+  { label: 'LEADERBOARD', path: '' },
+  { label: 'SESSIONS', path: '/sessions' },
+  { label: 'MANAGE', path: '/settings' },
+] as const
+
+function sectionHref(groupHome: string, path: string) {
+  const href = groupHome + path
+  return path === '/sessions' ? sessionPageHref(href, 1, DEFAULT_SESSION_PAGE_SIZE) : href
+}
+
 export default function Nav() {
   const pathname = usePathname()
   const router = useRouter()
@@ -84,30 +95,13 @@ export default function Nav() {
     }
   }
 
-  const home = groupId && groupId !== 'new' ? `/groups/${groupId}` : '/'
-  const sessionsPath =
-    groupId && groupId !== 'new' ? `/groups/${groupId}/sessions` : '/'
-  const sessions =
-    sessionsPath === '/'
-      ? '/'
-      : sessionPageHref(sessionsPath, 1, DEFAULT_SESSION_PAGE_SIZE)
-  const manage =
-    groupId && groupId !== 'new' ? `/groups/${groupId}/settings` : null
-  const homeActive = isActivePath(pathname, home)
-  const sessionsActive =
-    sessionsPath !== '/' && isActivePath(pathname, sessionsPath, true)
-  const manageActive = manage !== null && isActivePath(pathname, manage, true)
+  const home = groupId && groupId !== 'new' ? `/groups/${groupId}` : null
+  const activeSection = home
+    ? sections.find(({ path }) => isActivePath(pathname, home + path, path !== ''))
+    : undefined
 
   function changeGroup(value: string) {
-    if (value === '__new__') {
-      router.push('/groups/new')
-      return
-    }
-
-    const groupHome = `/groups/${value}`
-    if (sessionsActive) router.push(sessionPageHref(`${groupHome}/sessions`, 1, DEFAULT_SESSION_PAGE_SIZE))
-    else if (manageActive) router.push(`${groupHome}/settings`)
-    else router.push(groupHome)
+    router.push(value === '__new__' ? '/groups/new' : sectionHref(`/groups/${value}`, activeSection?.path ?? ''))
   }
 
   return (
@@ -115,7 +109,7 @@ export default function Nav() {
       <div className="max-w-5xl mx-auto px-4 sm:px-8 min-h-14 [--header-inset:--spacing(2)] py-(--header-inset) flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4 min-w-0 w-full sm:w-auto justify-between sm:justify-start">
           <Link
-            href={home}
+            href={home ?? '/'}
             className="flex items-center gap-2 text-primary font-semibold tracking-[0.08em] text-sm"
           >
             <Image src="/icon.svg" alt="" width={28} height={28} className="dark:invert" /> CHIPINDEX
@@ -151,31 +145,27 @@ export default function Nav() {
           </div>
         </div>
         <div className="flex w-full flex-wrap items-center justify-between gap-2 sm:w-auto sm:justify-end">
-          {manage && (
+          {home && (
             <nav
               aria-label="Main navigation"
               className={cn(navigationFont, "flex items-center gap-3 min-[360px]:gap-4 sm:mr-4 sm:gap-6.5")}
             >
-              {[
-                { label: 'LEADERBOARD', href: home, active: homeActive },
-                { label: 'SESSIONS', href: sessions, active: sessionsActive },
-                { label: 'MANAGE', href: manage, active: manageActive },
-              ].map(({ label, href, active }) => (
+              {sections.map(section => (
                 <Link
-                  key={label}
-                  href={href}
-                  aria-current={active ? 'page' : undefined}
+                  key={section.path}
+                  href={sectionHref(home, section.path)}
+                  aria-current={section === activeSection ? 'page' : undefined}
                   className={cn(
                     "relative flex h-10 items-center whitespace-nowrap text-xs font-medium tracking-normal text-muted-foreground transition-colors hover:text-foreground min-[360px]:text-[13px] sm:text-sm",
-                    active && "text-foreground after:absolute after:inset-x-0 after:bottom-[calc(-1*var(--header-inset))] after:h-0.5 after:rounded-sm after:bg-foreground",
+                    section === activeSection && "text-foreground after:absolute after:inset-x-0 after:bottom-[calc(-1*var(--header-inset))] after:h-0.5 after:rounded-sm after:bg-foreground",
                   )}
                 >
-                  {label}
+                  {section.label}
                 </Link>
               ))}
             </nav>
           )}
-          <div className={cn('ml-auto flex shrink-0 items-center sm:gap-1', manage && 'border-l border-border pl-1 sm:pl-2')}>
+          <div className={cn('ml-auto flex shrink-0 items-center sm:gap-1', home && 'border-l border-border pl-1 sm:pl-2')}>
             <ThemeToggle />
             <Button
               variant="ghost"
