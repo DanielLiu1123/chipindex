@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { measureTableColumns } from './measure-table-columns'
-import type { buildLeaderboard } from './leaderboard'
+import type { PlayerStats } from './stats'
 import { allocateLeaderboardColumns, leaderboardColumns, type LeaderboardColumn } from './leaderboard-layout'
 
 type Layout = ReturnType<typeof allocateLeaderboardColumns>
@@ -10,14 +10,14 @@ type Measurements = Partial<Record<LeaderboardColumn, number>>
 
 const measuredColumns = leaderboardColumns.map(key => ({ key }))
 
-export function useLeaderboardLayout(rows: ReturnType<typeof buildLeaderboard>['sortedStats'], enabled: boolean) {
+export function useLeaderboardLayout(rows: PlayerStats[]) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [layout, setLayout] = useState<Layout | null>(null)
 
   useEffect(() => {
     const container = containerRef.current
     const table = container?.querySelector('table')
-    if (!enabled || !container || !table) return
+    if (!container || !table) return
     let active = true
     let context: CanvasRenderingContext2D | null = null
     let measured: Measurements | null = null
@@ -50,7 +50,7 @@ export function useLeaderboardLayout(rows: ReturnType<typeof buildLeaderboard>['
       observer.disconnect()
       document.fonts?.removeEventListener('loadingdone', fontsChanged)
     }
-  }, [rows, enabled])
+  }, [rows])
 
   return { containerRef, layout }
 }
