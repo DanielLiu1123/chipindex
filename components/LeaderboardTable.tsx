@@ -31,7 +31,7 @@ export default function LeaderboardTable({ groupId, stats, sort, onSort }: {
   onSort: (sort: LeaderboardSort) => void
 }) {
   const sortedStats = useMemo(() => sortLeaderboard(stats, sort), [stats, sort])
-  const { containerRef, layout } = useLeaderboardLayout(sortedStats)
+  const { containerRef, layout } = useLeaderboardLayout(stats)
 
   useEffect(() => {
     if (layout && !layout.visible.includes(sort.key)) {

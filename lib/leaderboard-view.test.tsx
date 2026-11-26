@@ -382,8 +382,10 @@ it('resets hidden sorting after resize and keeps CNY when expanded again', () =>
   }
   try {
     render(<LeaderboardView groupId="g1" players={players} sessions={sessions} />)
-    fireEvent.click(screen.getByRole('button', { name: 'CHIPS' }))
     const measurements = measureText.mock.calls.length
+    expect(measurements).toBeGreaterThan(0)
+    fireEvent.click(screen.getByRole('button', { name: 'CHIPS' }))
+    expect(measureText).toHaveBeenCalledTimes(measurements)
     width = 700
     act(() => resize())
     expect(measureText).toHaveBeenCalledTimes(measurements)
