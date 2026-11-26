@@ -286,3 +286,28 @@ it('updates the log after each checkbox and clears the player filter', async () 
   await user.click(screen.getByRole('button', { name: 'Clear' }))
   expect(screen.getByText('Session settled.')).toBeTruthy()
 })
+
+it('drops removed players from an open filter when session events refresh', async () => {
+  const user = userEvent.setup()
+  const time = session.started_at!
+  const start = { id: 'start', time, opening: [] }
+  const joins = ['Alice', 'Bob'].map(name => ({
+    id: name, time, player: { id: name, name }, text: `${name} joined.`,
+  }))
+  const props = { groupId: 'g1', session, allPlayers: [] }
+  const { rerender } = render(<LiveSession {...props} events={[...joins, start]} />)
+  await user.click(screen.getByRole('button', { name: 'EVENT LOG' }))
+  await user.click(screen.getByRole('button', { name: 'ALL PLAYERS' }))
+  for (const { player } of joins) {
+    await user.click(screen.getByRole('menuitemcheckbox', { name: player.name }))
+  }
+  await user.keyboard('{Escape}')
+
+  rerender(<LiveSession {...props} events={[joins[1], start]} />)
+  expect(screen.getByRole('button', { name: 'PLAYERS · 1' })).toBeTruthy()
+  expect(screen.getByText('Bob joined.')).toBeTruthy()
+  expect(screen.queryByText('Session started.')).toBeNull()
+
+  rerender(<LiveSession {...props} events={[start]} />)
+  expect(screen.getByText('Session started.')).toBeTruthy()
+})

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ChevronDown, History } from 'lucide-react'
 import BrowserTime from './BrowserTime'
 import { Button } from './ui/button'
@@ -35,6 +35,14 @@ function LogEntries({ events }: { events: SessionEvent[] }) {
     }
     return [...roster.values()].sort((a, b) => a.name.localeCompare(b.name))
   }, [events])
+
+  useEffect(() => {
+    setSelected(previous => {
+      if (!previous.size) return previous
+      const remaining = new Set(players.filter(player => previous.has(player.id)).map(player => player.id))
+      return remaining.size === previous.size ? previous : remaining
+    })
+  }, [players])
 
   function toggle(id: string) {
     setSelected(previous => {
